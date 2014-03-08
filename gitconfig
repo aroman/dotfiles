@@ -1,0 +1,7 @@
+[user]
+	name = Avi Romanoff
+	email = avi@romanoff.me
+[push]
+	default = simple
+[core]
+	excludesfile = /Users/gyatso/.gitignore_global
