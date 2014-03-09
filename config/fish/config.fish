@@ -13,4 +13,6 @@ if status --is-interactive
 end
 
 set fish_greeting "“There are a thousand hacking at the branches of evil to one who is striking at the root.”"
+set fish_greeting "“Things don't have to change the world to be important.”"
+
 
