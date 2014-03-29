@@ -56,8 +56,8 @@ filetype plugin indent on
 
 " Solarized love
 syntax on
-set background=dark
-colorscheme solarized
+"set background=dark
+"colorscheme solarized
 
 " Airline customization
 set noruler
