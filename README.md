@@ -1,2 +1,2 @@
 # Avi's dotfiles
-## Using rvm
+## Using rcm
