@@ -1,2 +1,2 @@
 # Avi's dotfiles
-## Using rcm
+## Using [rcm](https://github.com/thoughtbot/rcm)
