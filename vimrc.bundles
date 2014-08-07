@@ -9,5 +9,7 @@ Plugin 'altercation/vim-colors-solarized'
 Plugin 'kchmck/vim-coffee-script'
 Plugin 'digitaltoad/vim-jade'
 Plugin 'bling/vim-airline'
+Plugin 'pangloss/vim-javascript'
+Plugin 'terryma/vim-multiple-cursors'
 
 filetype on

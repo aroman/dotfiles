@@ -1,9 +1,6 @@
 " Use Vim defaults, not Vi's.
 set nocompatible        
 
-" Because not everybody's a hipster
-set shell=/bin/bash
-
 " Kill swapfiles with fire
 set noswapfile
 set nobackup
@@ -23,6 +20,9 @@ imap <S-Tab> <C-o><<
 " BASH-like autocompletion
 set wildmode=longest:full
 set wildmenu
+
+" Make backspace behave sanely
+set backspace=2
 
 " Highlight search things
 set hlsearch
@@ -67,3 +67,17 @@ set laststatus=2
 let g:airline_theme='solarized'
 let g:airline_left_sep=''
 let g:airline_right_sep=''
+
+" Force myself to learn
+noremap  <Up>     <NOP>
+inoremap  <Down>   <NOP>
+inoremap  <Left>   <NOP>
+inoremap  <Right>  <NOP>
+noremap   <Up>     <NOP>
+noremap   <Down>   <NOP>
+noremap   <Left>   <NOP>
+noremap   <Right>  <NOP>
+
+" Because not everybody's a hipster
+set shell=/bin/bash
+
