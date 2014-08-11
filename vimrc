@@ -1,3 +1,6 @@
+" Because not everybody's a hipster
+set shell=/bin/bash
+
 " Use Vim defaults, not Vi's.
 set nocompatible        
 
@@ -52,12 +55,13 @@ if filereadable(expand("~/.vimrc.bundles"))
   source ~/.vimrc.bundles
 endif
 
-filetype plugin indent on
-
 " Solarized love
 syntax on
-"set background=dark
-"colorscheme solarized
+colorscheme solarized
+set background=dark
+
+" MacVim Font
+set guifont=Monaco:h14
 
 " Airline customization
 set noruler
@@ -69,15 +73,12 @@ let g:airline_left_sep=''
 let g:airline_right_sep=''
 
 " Force myself to learn
-noremap  <Up>     <NOP>
-inoremap  <Down>   <NOP>
-inoremap  <Left>   <NOP>
-inoremap  <Right>  <NOP>
-noremap   <Up>     <NOP>
-noremap   <Down>   <NOP>
-noremap   <Left>   <NOP>
-noremap   <Right>  <NOP>
-
-" Because not everybody's a hipster
-set shell=/bin/bash
-
+" noremap  <Up>     <NOP>
+" inoremap  <Down>   <NOP>
+" inoremap  <Left>   <NOP>
+" inoremap  <Right>  <NOP>
+" noremap   <Up>     <NOP>
+" noremap   <Down>   <NOP>
+" noremap   <Left>   <NOP>
+" noremap   <Right>  <NOP>
+ 
