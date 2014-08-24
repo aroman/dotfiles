@@ -4,6 +4,8 @@ filetype off
 set rtp+=~/.vim/bundle/vundle/
 call vundle#begin()
 
+Plugin 'elzr/vim-json'
+Plugin 'dag/vim-fish'
 Plugin 'gmarik/Vundle.vim'
 Plugin 'altercation/vim-colors-solarized'
 Plugin 'kchmck/vim-coffee-script'
@@ -11,6 +13,8 @@ Plugin 'digitaltoad/vim-jade'
 Plugin 'bling/vim-airline'
 Plugin 'pangloss/vim-javascript'
 Plugin 'terryma/vim-multiple-cursors'
+Plugin 'fatih/vim-go'
+Plugin 'wincent/Command-T'
 
 call vundle#end()
 filetype plugin indent on 

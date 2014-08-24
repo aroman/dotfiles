@@ -1,5 +1,7 @@
 " Because not everybody's a hipster
-set shell=/bin/bash
+if &shell =~# 'fish$'
+    set shell=sh
+endif
 
 " Use Vim defaults, not Vi's.
 set nocompatible        
@@ -56,12 +58,13 @@ if filereadable(expand("~/.vimrc.bundles"))
 endif
 
 " Solarized love
-syntax on
+syntax enable
 colorscheme solarized
 set background=dark
 
 " MacVim Font
 set guifont=Monaco:h14
+set guioptions-=r "scrollbar
 
 " Airline customization
 set noruler
