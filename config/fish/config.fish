@@ -13,7 +13,7 @@ if status --is-interactive
 end
 
 # Source VirtualFish (https://github.com/adambrenecki/virtualfish)
-source ~/.config/fish/virtual.fish
+. ~/.config/fish/virtual.fish
 set -x PIP_REQUIRE_VIRTUALENV true
 
 # MacVim stuff
