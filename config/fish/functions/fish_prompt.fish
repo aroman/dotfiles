@@ -13,6 +13,10 @@ function fish_prompt --description 'Write out the prompt'
 
 	printf '%s ' (__fish_git_prompt)
 
+    if set -q VIRTUAL_ENV
+            echo -n -s (set_color -b blue white) "(" (basename "$VIRTUAL_ENV") ")" (set_color normal) " "
+        end
+
 	if not test $last_status -eq 0
 	set_color $fish_color_error
 	end
