@@ -16,6 +16,11 @@ end
 . ~/.config/fish/virtual.fish
 set -x PIP_REQUIRE_VIRTUALENV true
 
+# sanity for 15-122
+function r
+    ssh unix.andrew.cmu.edu
+end
+
 # MacVim stuff
 function v
     open -a MacVim $argv
@@ -24,3 +29,4 @@ set -x EDITOR vim
 
 set fish_greeting "“There are a thousand hacking at the branches of evil to one who is striking at the root.”"
 set fish_greeting "“Things don't have to change the world to be important.”"
+set fish_greeting "What if this moment is already perfect?"
