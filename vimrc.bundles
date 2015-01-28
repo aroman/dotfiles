@@ -4,6 +4,7 @@ filetype off
 set rtp+=~/.vim/bundle/vundle/
 call vundle#begin()
 
+Plugin 'tpope/vim-commentary'
 Plugin 'elzr/vim-json'
 Plugin 'dag/vim-fish'
 Plugin 'gmarik/Vundle.vim'

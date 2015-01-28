@@ -1,6 +1,7 @@
 set -x GOPATH ~/Developer/go
 # set -x PYTHONPATH "/usr/local/lib/python2.7/site-packages/"
 set PATH "/usr/local/bin" $PATH
+set PATH "~/.gem/ruby/2.2.0/bin" $PATH
 set PATH "/usr/local/sbin" $PATH
 set PATH "/usr/local/share/npm/bin" $PATH
 set PATH "$GOPATH/bin" $PATH
@@ -21,6 +22,14 @@ function v
     open -a MacVim $argv
 end
 set -x EDITOR v
+
+function remove-orphans
+     pacman -Rns (pacman -Qtdq)
+end
+
+function r
+    ssh aromanof@unix.andrew.cmu.edu
+end
 
 set fish_greeting "“There are a thousand hacking at the branches of evil to one who is striking at the root.”"
 set fish_greeting "“Things don't have to change the world to be important.”"
