@@ -14,14 +14,19 @@ if status --is-interactive
 end
 
 # Source VirtualFish (https://github.com/adambrenecki/virtualfish)
-source ~/.config/fish/virtual.fish
+. ~/.config/fish/virtual.fish
 set -x PIP_REQUIRE_VIRTUALENV true
+
+# sanity for 15-122
+function r
+    ssh unix.andrew.cmu.edu
+end
 
 # MacVim stuff
 function v
     open -a MacVim $argv
 end
-set -x EDITOR v
+set -x EDITOR vim
 
 function remove-orphans
      pacman -Rns (pacman -Qtdq)
@@ -33,3 +38,4 @@ end
 
 set fish_greeting "“There are a thousand hacking at the branches of evil to one who is striking at the root.”"
 set fish_greeting "“Things don't have to change the world to be important.”"
+set fish_greeting "What if this moment is already perfect?"

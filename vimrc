@@ -49,6 +49,7 @@ highlight LineNr cterm=bold
 set t_Co=256
 
 " Sync X and Vim clipboards
+" set clipboard=unnamedplus
 set pastetoggle=<F2>
 
 " Vundle
