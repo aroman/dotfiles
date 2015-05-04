@@ -1,6 +1,7 @@
 set -x GOPATH ~/Developer/go
 # set -x PYTHONPATH "/usr/local/lib/python2.7/site-packages/"
 set PATH "/usr/local/bin" $PATH
+set PATH "/usr/local/heroku/bin" $PATH
 set PATH "~/.gem/ruby/2.2.0/bin" $PATH
 set PATH "/usr/local/sbin" $PATH
 set PATH "/usr/local/share/npm/bin" $PATH
@@ -27,6 +28,10 @@ function v
     open -a MacVim $argv
 end
 set -x EDITOR vim
+
+function c
+    xsel --clipboard
+end
 
 function remove-orphans
      pacman -Rns (pacman -Qtdq)

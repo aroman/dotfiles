@@ -60,7 +60,7 @@ endif
 " Solarized love
 syntax enable
 colorscheme solarized
-"set background=dark
+set background=dark
 
 " MacVim Font
 set guifont=Monaco:h14
@@ -74,6 +74,17 @@ set laststatus=2
 let g:airline_theme='solarized'
 let g:airline_left_sep=''
 let g:airline_right_sep=''
+
+" code folding
+"set foldmethod=indent
+"set foldnestmax=2
+nnoremap <space> za
+vnoremap <space> zf
+
+" re-open file to last line
+if has("autocmd")
+      au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
+endif
 
 " Force myself to learn
 " noremap  <Up>     <NOP>
