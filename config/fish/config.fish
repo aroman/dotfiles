@@ -14,8 +14,7 @@ if status --is-interactive
 	set PATH $PATH ~/Developer/pebble-dev/bin
 end
 
-# Source VirtualFish (https://github.com/adambrenecki/virtualfish)
-. ~/.config/fish/virtual.fish
+eval (python -m virtualfish)
 set -x PIP_REQUIRE_VIRTUALENV true
 
 # sanity for 15-122
