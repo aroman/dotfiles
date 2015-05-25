@@ -30,7 +30,7 @@ floating_modifier $mod
 bindsym $mod+Return exec i3-sensible-terminal
 
 # start a browser
-bindsym $mod+Shift+Return exec ~/.start-browser.sh
+bindsym $mod+Shift+Return exec ~/.dotfiles/bin/start-browser.sh
 
 # kill focused window
 bindsym $mod+w kill
@@ -157,4 +157,5 @@ bar {
 
 # Autostart
 exec --no-startup-id nm-applet
+exec --no-startup-id vmware-user
 
