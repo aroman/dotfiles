@@ -1,5 +1,5 @@
 set -x GOPATH ~/Developer/go
-# set -x PYTHONPATH "/usr/local/lib/python2.7/site-packages/"
+set -x RUST_SRC_PATH ~/Developer/rust/src
 set PATH "/usr/local/bin" $PATH
 set PATH "/usr/local/heroku/bin" $PATH
 set PATH "~/.gem/ruby/2.2.0/bin" $PATH
@@ -11,7 +11,6 @@ alias 'log'="git log --graph --abbrev-commit --decorate --date=relative --format
 # From http://stackoverflow.com/questions/7064053/add-a-relative-path-to-path-on-fish-startup
 if status --is-interactive
     set PATH $PATH ~/Developer/bin
-	set PATH $PATH ~/Developer/pebble-dev/bin
 end
 
 eval (python -m virtualfish)
@@ -32,12 +31,12 @@ function c
     xsel --clipboard
 end
 
-function remove-orphans
-     pacman -Rns (pacman -Qtdq)
+function pi
+    ssh ec2-user@expii.dev
 end
 
-function r
-    ssh aromanof@unix.andrew.cmu.edu
+function remove-orphans
+     pacman -Rns (pacman -Qtdq)
 end
 
 set fish_greeting "“There are a thousand hacking at the branches of evil to one who is striking at the root.”"
