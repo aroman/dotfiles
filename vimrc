@@ -4,7 +4,7 @@ if &shell =~# 'fish$'
 endif
 
 " Use Vim defaults, not Vi's.
-set nocompatible        
+set nocompatible
 
 " Kill swapfiles with fire
 set noswapfile
@@ -45,7 +45,7 @@ set number
 set numberwidth=3
 highlight LineNr cterm=bold
 
-" 256-colors 
+" 256-colors
 set t_Co=256
 
 " Sync X and Vim clipboards
@@ -75,6 +75,17 @@ let g:airline_theme='solarized'
 let g:airline_left_sep=''
 let g:airline_right_sep=''
 
+" code folding
+"set foldmethod=indent
+"set foldnestmax=2
+nnoremap <space> za
+vnoremap <space> zf
+
+" re-open file to last line
+if has("autocmd")
+      au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
+endif
+
 " Force myself to learn
 " noremap  <Up>     <NOP>
 " inoremap  <Down>   <NOP>
@@ -84,4 +95,3 @@ let g:airline_right_sep=''
 " noremap   <Down>   <NOP>
 " noremap   <Left>   <NOP>
 " noremap   <Right>  <NOP>
- 

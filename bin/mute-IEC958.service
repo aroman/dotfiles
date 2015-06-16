@@ -1,0 +1,12 @@
+[Unit]
+Description= Mutes the IEC958 channels on mbp7.1 after pulseaudio falsely unmutes them thus turning on 'the red light'
+Requires=gdm.service
+After=gdm.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/mute-IEC958
+
+[Install]
+WantedBy=graphical.target

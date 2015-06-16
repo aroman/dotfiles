@@ -1,6 +1,12 @@
 set -x GOPATH ~/Developer/go
+<<<<<<< HEAD
 set -x EXPII_ROOT /Users/aroman/Developer/expii
+=======
+set -x RUST_SRC_PATH ~/Developer/rust/src
+>>>>>>> edf6951b48f23ad8876fdc67175f48ef4cb1ffd0
 set PATH "/usr/local/bin" $PATH
+set PATH "/usr/local/heroku/bin" $PATH
+set PATH "~/.gem/ruby/2.2.0/bin" $PATH
 set PATH "/usr/local/sbin" $PATH
 set PATH "/usr/local/share/npm/bin" $PATH
 set PATH "$GOPATH/bin" $PATH
@@ -13,11 +19,9 @@ alias stage="ssh -i ~/expii-general.pem ubuntu@10.0.31.238"
 # From http://stackoverflow.com/questions/7064053/add-a-relative-path-to-path-on-fish-startup
 if status --is-interactive
     set PATH $PATH ~/Developer/bin
-	set PATH $PATH ~/Developer/pebble-dev/bin
 end
 
-# Source VirtualFish (https://github.com/adambrenecki/virtualfish)
-. ~/.config/fish/virtual.fish
+eval (python -m virtualfish)
 set -x PIP_REQUIRE_VIRTUALENV true
 
 # sanity for 15-122
@@ -31,6 +35,13 @@ function v
 end
 set -x EDITOR vim
 
+function c
+    xsel --clipboard
+end
+
+function remove-orphans
+     pacman -Rns (pacman -Qtdq)
+end
 
 set fish_greeting "“There are a thousand hacking at the branches of evil to one who is striking at the root.”"
 set fish_greeting "“Things don't have to change the world to be important.”"
