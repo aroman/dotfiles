@@ -1,4 +1,4 @@
-# Avi's dotfiles
+# Avi's dotfiles (documentation WIP)
 ## Using [rcm](https://github.com/thoughtbot/rcm)
 
 ### Command-line tools
