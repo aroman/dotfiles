@@ -20,6 +20,19 @@ unrar
 node/npm
 ngrok
 
+### Graphical Programs
+Sketch
+Spotify
+Google Chrome
+Slack
+Simplenote
+Atom
+Reeder
+Viscosity
+sdaitzman/elementary-thumbdrive-creator (http://cl.ly/3e1q262Q2M1r/download/Make%20Elementary%20Thumb%20Drive.app.zip)
+
+
+
 ### Home directory structure
 ~/Developer
 ~/Pictures/Screenshots
