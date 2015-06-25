@@ -23,3 +23,10 @@ ngrok
 ### Home directory structure
 ~/Developer
 ~/Pictures/Screenshots
+
+### OS X Setup
+
+```
+$ brew tap thoughtbot/formulae
+$ brew install rcm
+```
