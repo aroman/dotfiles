@@ -22,4 +22,4 @@ ngrok
 
 ### Home directory structure
 ~/Developer
-~/Screenshots
+~/Pictures/Screenshots
