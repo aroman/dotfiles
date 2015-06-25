@@ -1,1 +1,0 @@
-/Users/aroman/.dotfiles/zshenv
