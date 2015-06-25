@@ -1,9 +1,6 @@
 set -x GOPATH ~/Developer/go
-<<<<<<< HEAD
 set -x EXPII_ROOT /Users/aroman/Developer/expii
-=======
 set -x RUST_SRC_PATH ~/Developer/rust/src
->>>>>>> edf6951b48f23ad8876fdc67175f48ef4cb1ffd0
 set PATH "/usr/local/bin" $PATH
 set PATH "/usr/local/heroku/bin" $PATH
 set PATH "~/.gem/ruby/2.2.0/bin" $PATH

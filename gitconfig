@@ -5,3 +5,6 @@
 	default = simple
 [core]
 	excludesfile = /Users/gyatso/.gitignore_global
+	editor = vim
+[pull]
+	rebase = true
