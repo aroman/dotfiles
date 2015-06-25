@@ -20,4 +20,6 @@ unrar
 node/npm
 ngrok
 
-
+### Home directory structure
+~/Developer
+~/Screenshots
