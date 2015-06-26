@@ -11,7 +11,7 @@ if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
 fi
 
 export EDITOR=vim
-export EXPII_ROOT=${HOME}/Developer/expii
+export AUTOENV_FILE_ENTER=.env
 
 # Git
 alias g="git"
@@ -25,5 +25,3 @@ alias a="ag -s --ignore app.js* --ignore vendor.js* --ignore-dir flatfiles --ign
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
 source /usr/local/share/zsh/site-functions/_aws
-
-

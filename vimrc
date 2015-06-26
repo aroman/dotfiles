@@ -60,7 +60,7 @@ endif
 
 " Solarized love
 syntax enable
-colorscheme solarized
+"colorscheme solarized
 set background=dark
 
 " MacVim Font

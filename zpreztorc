@@ -25,12 +25,16 @@ zstyle ':prezto:*:*' color 'yes'
 # The order matters.
 zstyle ':prezto:load' pmodule \
   'environment' \
+  'git' \
   'terminal' \
   'editor' \
   'history' \
+  'autoenv' \
   'directory' \
   'spectrum' \
   'utility' \
+  'syntax-highlighting' \
+  'homebrew' \
   'completion' \
   'prompt'
 
@@ -155,3 +159,4 @@ zstyle ':prezto:module:prompt' theme 'sorin'
 
 # Integrate with iTerm2.
 # zstyle ':prezto:module:tmux:iterm' integrate 'yes'
+
