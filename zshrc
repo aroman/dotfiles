@@ -22,6 +22,5 @@ alias gc="git commit"
 alias prod="ssh -i ~/expii-general.pem ubuntu@10.0.25.103"
 alias stage="ssh -i ~/expii-general.pem ubuntu@10.0.31.238"
 alias a="ag -s --ignore app.js* --ignore vendor.js* --ignore-dir flatfiles --ignore-dir external --ignore skydeity.min.js --ignore geo_data.txt"
+[ -f /usr/local/share/zsh/site-functions/_aws ] && source /usr/local/share/zsh/site-functions/_aws
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-
-source /usr/local/share/zsh/site-functions/_aws
