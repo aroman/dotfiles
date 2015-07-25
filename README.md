@@ -52,5 +52,4 @@ $ brew install rcm
 ```
 
 ### Atom packages
-```apm install atom-jinj2 language-jsx language-nginx language-pegjs language-rust react sort-lines vim-mode``
-
+```apm install atom-jinj2 language-jsx language-nginx language-pegjs language-rust react sort-lines vim-mode```
