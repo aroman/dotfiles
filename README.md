@@ -31,7 +31,7 @@ Reeder
 Viscosity
 sdaitzman/elementary-thumbdrive-creator (http://cl.ly/3e1q262Q2M1r/download/Make%20Elementary%20Thumb%20Drive.app.zip)
 
-
+`git clone --recursive https://github.com/sorin-ionescu/prezto.git "${ZDOTDIR:-$HOME}/.zprezto"`
 
 ### Home directory structure
 ~/Developer
