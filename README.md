@@ -33,6 +33,13 @@ sdaitzman/elementary-thumbdrive-creator (http://cl.ly/3e1q262Q2M1r/download/Make
 
 `git clone --recursive https://github.com/sorin-ionescu/prezto.git "${ZDOTDIR:-$HOME}/.zprezto"`
 
+```
+setopt EXTENDED_GLOB
+for rcfile in "${ZDOTDIR:-$HOME}"/.zprezto/runcoms/^README.md(.N); do
+  ln -s "$rcfile" "${ZDOTDIR:-$HOME}/.${rcfile:t}"
+done
+```
+
 ### Home directory structure
 ~/Developer
 ~/Pictures/Screenshots
