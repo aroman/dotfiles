@@ -52,15 +52,5 @@ $ brew install rcm
 ```
 
 ### Atom packages
-├── atom-jinja2@0.5.0
-├── autocomplete-plus-python-jedi@0.3.6
-├── file-icons@1.5.8
-├── language-jsx@0.1.4
-├── language-nginx@0.5.3
-├── language-pegjs@0.5.0
-├── language-rust@0.4.3
-├── merge-conflicts@1.3.2
-├── react@0.12.0
-├── seti-ui@0.7.1
-├── sort-lines@0.11.0
-└── vim-mode@0.53.0
+```apm install atom-jinj2 language-jsx language-nginx language-pegjs language-rust react sort-lines vim-mode``
+
