@@ -49,6 +49,7 @@ done
 ```
 $ brew tap thoughtbot/formulae
 $ brew install rcm
+$ defaults write com.apple.screencapture location ~/Pictures/Screenshots && killall SystemUIServer
 ```
 
 ### Atom packages
