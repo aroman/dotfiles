@@ -7,6 +7,7 @@ fi
 export EDITOR=vim
 export AUTOENV_FILE_ENTER=.env
 export PATH=~/Developer/bin:$PATH
+export FPP_EDITOR=$EDITOR
 
 # git
 alias g="git"
@@ -15,7 +16,10 @@ alias gc="git commit"
 
 # swag
 type ccat > /dev/null && alias cat="ccat"
-alias a="ag -i"
+alias a="ag -i --ignore 'expii/leaderboard/'"
+
+# numeric file permissions on OS X
+alias numstat='stat -f "%Lp %N"'
 
 # expii
 alias prod="ssh -i ~/expii-general.pem ubuntu@10.0.25.103"
