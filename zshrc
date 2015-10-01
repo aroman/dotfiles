@@ -30,8 +30,7 @@ alias a="ag -i --ignore 'expii/leaderboard/'"
 # numeric file permissions on OS X
 alias numstat='stat -f "%Lp %N"'
 
-# expii
-alias prod="ssh -i ~/expii-general.pem ubuntu@10.0.25.103"
-alias stage="ssh -i ~/expii-general.pem ubuntu@10.0.31.238"
+alias coin="rlwrap coin -L /Users/av/Developer/cc0/lib"
+
 [ -f /usr/local/share/zsh/site-functions/_aws ] && source /usr/local/share/zsh/site-functions/_aws
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
