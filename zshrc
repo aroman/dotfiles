@@ -30,7 +30,7 @@ alias a="ag -i --ignore 'expii/leaderboard/'"
 # numeric file permissions on OS X
 alias numstat='stat -f "%Lp %N"'
 
-alias coin="rlwrap coin -L /Users/av/Developer/cc0/lib"
+alias coin="rlwrap coin"
 
 [ -f /usr/local/share/zsh/site-functions/_aws ] && source /usr/local/share/zsh/site-functions/_aws
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
