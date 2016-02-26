@@ -17,11 +17,19 @@ export AUTOENV_FILE_ENTER=.env
 export PATH=~/Developer/bin:$PATH
 export FPP_EDITOR=$EDITOR
 
+# go
+export GOPATH=~/Developer/go
+export PATH=$PATH:$GOPATH/bin
+export PATH=$PATH:/usr/local/opt/go/libexec/bin
+
 # git
 alias g="git"
 alias gs="git status"
+alias gd="git diff"
 alias gc="git commit"
 alias gch="git checkout"
+alias gcb="git rev-parse --abbrev-ref HEAD"
+alias gpsu="git push --set-upstream origin \`gcb\`"
 
 # swag
 type ccat > /dev/null && alias cat="ccat"
