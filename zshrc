@@ -41,20 +41,18 @@ source "${HOME}/.zgen/zgen.zsh"
 # if the init scipt doesn't exist
 if ! zgen saved; then
 
-	zgen prezto
 	zgen prezto environment
   zgen prezto editor key-bindings 'vi'
-	zgen prezto prompt theme 'sorin'
-	# zgen prezto terminal auto-title 'yes'
-	# zgen prezto tmux:auto-start local 'yes'
-	zgen prezto '*:*' case-sensitive 'yes'
+ 	zgen prezto prompt theme 'sorin'
+	# zgen prezto '*:*' case-sensitive 'yes'
 	zgen prezto '*:*' color 'yes'
 
-	# zgen prezto git
-	zgen prezto utility
-	zgen prezto completion
+	zgen prezto
+  zgen prezto git
+	# zgen prezto utility
+	# zgen prezto completion
 	zgen prezto syntax-highlighting
-	zgen prezto history-substring-search
+	# zgen prezto history-substring-search
 
   zgen load Tarrasch/zsh-autoenv
 
