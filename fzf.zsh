@@ -1,17 +1,20 @@
 # Setup fzf
-if [[ "$OSTYPE" == "linux-gnu" ]]; then
-  if [[ ! "$PATH" =~ "/home/avi/.fzf/bin" ]]; then
-    export PATH="$PATH:/home/avi/.fzf/bin"
-    export MANPATH="$MANPATH:/home/avi/.fzf/man"
-#   [[ $- =~ i ]] && source "/home/avi/.fzf/shell/completion.zsh" 2> /dev/null
-#   source "/home/avi/.fzf/shell/key-bindings.zsh"
-    source /usr/share/zsh/site-functions/_fzf
-  fi
-elif [[ "$OSTYPE" == "darwin"* ]]; then
-  if [[ ! "$PATH" =~ "/usr/local/Cellar/fzf/0.10.0/bin" ]]; then
-    export PATH="$PATH:/usr/local/Cellar/fzf/0.10.0/bin"
-    export MANPATH="$MANPATH:/usr/local/Cellar/fzf/0.10.0/man"
-    [[ $- =~ i ]] && source "/usr/local/Cellar/fzf/0.10.0/shell/completion.zsh" 2> /dev/null
-    source "/usr/local/Cellar/fzf/0.10.0/shell/key-bindings.zsh"
-  fi
+# ---------
+if [[ ! "$PATH" == */usr/local/opt/fzf/bin* ]]; then
+  export PATH="$PATH:/usr/local/opt/fzf/bin"
 fi
+
+# Man path
+# --------
+if [[ ! "$MANPATH" == */usr/local/opt/fzf/man* && -d "/usr/local/opt/fzf/man" ]]; then
+  export MANPATH="$MANPATH:/usr/local/opt/fzf/man"
+fi
+
+# Auto-completion
+# ---------------
+[[ $- == *i* ]] && source "/usr/local/opt/fzf/shell/completion.zsh" 2> /dev/null
+
+# Key bindings
+# ------------
+source "/usr/local/opt/fzf/shell/key-bindings.zsh"
+
