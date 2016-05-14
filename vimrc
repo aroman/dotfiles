@@ -53,17 +53,12 @@ set t_Co=256
 set pastetoggle=<F2>
 set paste
 
-" Vundle
-if filereadable(expand("~/.vimrc.bundles"))
-  source ~/.vimrc.bundles
-endif
-
-" Solarized love
+" Colors
 syntax enable
-colorscheme bubblegum-256-dark
-set background=dark
+silent! colorscheme bubblegum-256-dark
+" set background=dark
 
-" Airline customization
+" Airline
 set noruler
 set noshowmode
 set statusline=
@@ -72,7 +67,7 @@ let g:airline_theme='bubblegum'
 let g:airline_left_sep=''
 let g:airline_right_sep=''
 
-" code folding
+" Folding
 "set foldmethod=indent
 "set foldnestmax=2
 nnoremap <space> za
@@ -92,3 +87,19 @@ endif
 " noremap   <Down>   <NOP>
 " noremap   <Left>   <NOP>
 " noremap   <Right>  <NOP>
+
+" Plugins
+call plug#begin('~/.vim/plugged')
+
+Plug 'tpope/vim-commentary'
+Plug 'terryma/vim-multiple-cursors'
+Plug 'bling/vim-airline'
+Plug 'flazz/vim-colorschemes'
+Plug 'vim-airline/vim-airline-themes'
+Plug 'fatih/vim-go', { 'for': 'go' }
+Plug 'elzr/vim-json', { 'for': 'json' }
+Plug 'pangloss/vim-javascript', { 'for': 'js' }
+Plug 'kchmck/vim-coffee-script', { 'for': 'coffee' }
+Plug 'Matt-Deacalion/vim-systemd-syntax'
+
+call plug#end()
