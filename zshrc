@@ -3,14 +3,13 @@ unsetopt share_history
 unsetopt inc_append_history
 
 # jump between word boundaries on OS X
-bindkey "^[f" forward-word
-bindkey "^[b" backward-word
+bindkey '[B' forward-word
+bindkey '[F' backward-word
 
 # so i can have nice things
 export EDITOR=vim
 export AUTOENV_FILE_ENTER=.env
 export PATH=~/Developer/bin:$PATH
-export FPP_EDITOR=$EDITOR
 
 # go
 export GOPATH=~/Developer/go
@@ -26,37 +25,30 @@ alias gch="git checkout"
 alias gcb="git rev-parse --abbrev-ref HEAD"
 alias gpsu="git push --set-upstream origin \`gcb\`"
 
-# swag
+# laziness
 type ccat > /dev/null && alias cat="ccat"
 alias a="ag -i"
 alias k="k -h"
 alias ka="k -A"
-alias kah="k -Ah"
 
-# numeric file permissions on OS X
+# numeric file permissions (useful on OS X)
 alias numstat='stat -f "%Lp %N"'
 
-source "${HOME}/.zgen/zgen.zsh"
+# zplug <3
+source ~/.zplug/init.zsh
 
-# if the init scipt doesn't exist
-if ! zgen saved; then
+zplug "zsh-users/zsh-syntax-highlighting"
+zplug "tarrasch/zsh-autoenv"
+zplug "supercrabtree/k"
+zplug "peterhurford/up.zsh"
+zplug "b4b4r07/enhancd", use:enhancd.sh
+zplug "robbyrussell/oh-my-zsh", \
+  use:"lib/{spectrum,git,theme-and-appearance}.zsh", \
+  nice:1
+zplug "themes/wezm", from:oh-my-zsh, nice:2
 
-  zgen prezto environment
-  zgen prezto editor key-bindings 'vi'
-  zgen prezto prompt theme 'sorin'
-  # zgen prezto '*:*' case-sensitive 'yes'
-  zgen prezto '*:*' color 'yes'
-
-  zgen prezto
-  # zgen prezto utility
-  # zgen prezto completion
-  zgen prezto syntax-highlighting
-  # zgen prezto history-substring-search
-
-  zgen load Tarrasch/zsh-autoenv
-	zgen load supercrabtree/k
-	zgen load peterhurford/up.zsh
-
-  # generate the init script from plugins above
-  zgen save
+if ! zplug check --verbose; then
+  zplug install
 fi
+
+zplug load
