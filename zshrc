@@ -29,32 +29,33 @@ alias gpsu="git push --set-upstream origin \`gcb\`"
 # swag
 type ccat > /dev/null && alias cat="ccat"
 alias a="ag -i"
+alias k="k -h"
+alias ka="k -A"
+alias kah="k -Ah"
 
 # numeric file permissions on OS X
 alias numstat='stat -f "%Lp %N"'
-
-[ -f /usr/local/share/zsh/site-functions/_aws ] && source /usr/local/share/zsh/site-functions/_aws
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
 source "${HOME}/.zgen/zgen.zsh"
 
 # if the init scipt doesn't exist
 if ! zgen saved; then
 
-	zgen prezto environment
+  zgen prezto environment
   zgen prezto editor key-bindings 'vi'
- 	zgen prezto prompt theme 'sorin'
-	# zgen prezto '*:*' case-sensitive 'yes'
-	zgen prezto '*:*' color 'yes'
+  zgen prezto prompt theme 'sorin'
+  # zgen prezto '*:*' case-sensitive 'yes'
+  zgen prezto '*:*' color 'yes'
 
-	zgen prezto
-  zgen prezto git
-	# zgen prezto utility
-	# zgen prezto completion
-	zgen prezto syntax-highlighting
-	# zgen prezto history-substring-search
+  zgen prezto
+  # zgen prezto utility
+  # zgen prezto completion
+  zgen prezto syntax-highlighting
+  # zgen prezto history-substring-search
 
   zgen load Tarrasch/zsh-autoenv
+	zgen load supercrabtree/k
+	zgen load peterhurford/up.zsh
 
   # generate the init script from plugins above
   zgen save
