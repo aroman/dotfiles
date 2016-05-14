@@ -60,19 +60,15 @@ endif
 
 " Solarized love
 syntax enable
-"colorscheme solarized
+colorscheme bubblegum-256-dark
 set background=dark
-
-" MacVim Font
-set guifont=Monaco:h14
-set guioptions-=r "scrollbar
 
 " Airline customization
 set noruler
 set noshowmode
 set statusline=
 set laststatus=2
-let g:airline_theme='solarized'
+let g:airline_theme='bubblegum'
 let g:airline_left_sep=''
 let g:airline_right_sep=''
 
