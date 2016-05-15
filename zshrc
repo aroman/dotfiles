@@ -43,7 +43,10 @@ zplug "zsh-users/zsh-syntax-highlighting"
 zplug "tarrasch/zsh-autoenv"
 zplug "supercrabtree/k"
 zplug "peterhurford/up.zsh"
-# zplug "b4b4r07/enhancd", use:enhancd.sh
+# use prezto's super-fuzzy cd completion
+zplug "sorin-ionescu/prezto", \
+  use:"modules/completion/init.zsh"
+# load functions and variables needed for OMZ themes
 zplug "robbyrussell/oh-my-zsh", \
   use:"lib/{spectrum,git,theme-and-appearance}.zsh", \
   nice:1
