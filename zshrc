@@ -1,4 +1,6 @@
 # don't share history between instances
+SAVEHIST=1000
+HISTFILE=~/.zsh_history
 unsetopt share_history
 unsetopt inc_append_history
 
@@ -41,7 +43,7 @@ zplug "zsh-users/zsh-syntax-highlighting"
 zplug "tarrasch/zsh-autoenv"
 zplug "supercrabtree/k"
 zplug "peterhurford/up.zsh"
-zplug "b4b4r07/enhancd", use:enhancd.sh
+# zplug "b4b4r07/enhancd", use:enhancd.sh
 zplug "robbyrussell/oh-my-zsh", \
   use:"lib/{spectrum,git,theme-and-appearance}.zsh", \
   nice:1
