@@ -6,6 +6,9 @@ if &shell =~# 'fish$'
     set shell=sh
 endif
 
+" Store viminfo inside vim folder (vim 7.4 rocks #bless)
+set viminfo+=n~/.vim/viminfo
+
 " Kill swapfiles with fire
 set noswapfile
 set nobackup
@@ -53,6 +56,13 @@ set t_Co=256
 " set clipboard=unnamedplus
 set pastetoggle=<F2>
 set paste
+
+" iTerm: Set cursor based on mode
+if $TERM_PROGRAM =~ "iTerm"
+    let &t_SI = "\<Esc>]50;CursorShape=1\x7"
+    let &t_SR = "\<Esc>]50;CursorShape=2\x7"
+    let &t_EI = "\<Esc>]50;CursorShape=0\x7"
+endif
 
 " Colors
 syntax enable
