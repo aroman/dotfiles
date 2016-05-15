@@ -1,56 +1,43 @@
-# Avi's dotfiles (documentation WIP)
-## Using [rcm](https://github.com/thoughtbot/rcm)
+## Avi's dotfiles 🤖
+Proudly managed with [rcm/thoughtbot](https://github.com/thoughtbot/rcm)!
 
-### Command-line tools
+### Programs
 
-git
-ccat
-awscli
-fpp
-fzf
-jq
-nmap
-the_silver_searcher
-rcm
-xz
-wget
-zsh
-vim
-unrar
-node/npm
-ngrok
+#### Textual 🙈
+- zsh + zplug
+- vim + vim-plug
+- the_silver_searcher
+- brew
+- git
+- ccat
+- fpp
+- jq
+- wget
+- ngrok
 
-### Graphical Programs
-Sketch
-Spotify
-Google Chrome
-Slack
-Simplenote
-Atom
-Reeder
-Viscosity
-sdaitzman/elementary-thumbdrive-creator (http://cl.ly/3e1q262Q2M1r/download/Make%20Elementary%20Thumb%20Drive.app.zip)
+#### Graphical 👀
+- Sketch
+- Spotify
+- Google Chrome
+- Slack
+- Atom
+- Etcher
+- Viscosity
 
-`git clone --recursive https://github.com/sorin-ionescu/prezto.git "${ZDOTDIR:-$HOME}/.zprezto"`
+### Directories
+`~/Developer`
+`~/Pictures/Screenshots`
 
-```
-setopt EXTENDED_GLOB
-for rcfile in "${ZDOTDIR:-$HOME}"/.zprezto/runcoms/^README.md(.N); do
-  ln -s "$rcfile" "${ZDOTDIR:-$HOME}/.${rcfile:t}"
-done
-```
-
-### Home directory structure
-~/Developer
-~/Pictures/Screenshots
-
-### OS X Setup
+### Installation (OS X)
 
 ```
 $ brew tap thoughtbot/formulae
-$ brew install rcm
+$ brew install rcm vim zsh the_silver_searcher git
+$ git clone git@github.com:aroman/dotfiles ~/.dotfiles
+$ rcup
 $ defaults write com.apple.screencapture location ~/Pictures/Screenshots && killall SystemUIServer
 ```
 
-### Atom packages
-```apm install atom-jinj2 language-jsx language-nginx language-pegjs language-rust react sort-lines vim-mode```
+### Questions? Comments?
+
+Open an issue and I'll get back to you :)
