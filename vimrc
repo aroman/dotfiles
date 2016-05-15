@@ -1,36 +1,37 @@
+" Use Vim defaults, not Vi's.
+set nocompatible
+
 " Because not everybody's a hipster
 if &shell =~# 'fish$'
     set shell=sh
 endif
-
-" Use Vim defaults, not Vi's.
-set nocompatible
 
 " Kill swapfiles with fire
 set noswapfile
 set nobackup
 set nowb
 
-" Sane indentation defaults
-set autoindent
-set smartindent
-set smarttab
-set tabstop=4
-set shiftwidth=4
-set expandtab
-
-" Shift+Tab to unindent
-imap <S-Tab> <C-o><<
-
 " BASH-like autocompletion
 set wildmode=longest:full
 set wildmenu
 
-" Make backspace behave sanely
-set backspace=2
+" Allow backspace in insert mode
+set backspace=indent,eol,start
 
 " Highlight search things
-set hlsearch
+set incsearch       " Find the next match as we type the search
+set hlsearch        " Highlight searches by default
+set ignorecase      " Ignore case when searching...
+set smartcase       " ...unless we type a capital
+
+" Wrapping
+set nowrap       "Don't wrap lines
+set linebreak    "Wrap lines at convenient points
+
+" Scrolling
+set scrolloff=8
+set sidescrolloff=15
+set sidescroll=1
 
 " Bash like keys for the command line
 cnoremap <C-A>      <Home>
@@ -56,7 +57,7 @@ set paste
 " Colors
 syntax enable
 silent! colorscheme bubblegum-256-dark
-" set background=dark
+set background=dark
 
 " Airline
 set noruler
@@ -72,6 +73,9 @@ let g:airline_right_sep=''
 "set foldnestmax=2
 nnoremap <space> za
 vnoremap <space> zf
+
+" Automatically based on previous line
+set autoindent
 
 " re-open file to last line
 if has("autocmd")
@@ -92,6 +96,7 @@ endif
 call plug#begin('~/.vim/plugged')
 
 Plug 'tpope/vim-commentary'
+Plug 'tpope/vim-sleuth'
 Plug 'terryma/vim-multiple-cursors'
 Plug 'bling/vim-airline'
 Plug 'flazz/vim-colorschemes'
