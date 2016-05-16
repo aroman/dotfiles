@@ -66,13 +66,10 @@ cnoremap <C-E>      <End>
 
 " Line numbers
 set number
-set numberwidth=3
-" highlight LineNr cterm=bold
 
 " Sync X and Vim clipboards
 " set clipboard=unnamedplus
 set pastetoggle=<F2>
-set paste
 
 " Mouse support
 set mouse=a
@@ -80,6 +77,7 @@ set mouse=a
 " Colors
 syntax on
 let g:onedark_termcolors=16
+let g:onedark_terminal_italics=1
 colorscheme onedark
 
 " Airline
