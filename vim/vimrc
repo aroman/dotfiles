@@ -20,6 +20,7 @@ call plug#begin('~/.vim/plugged')
 Plug 'tpope/vim-commentary'
 Plug 'tpope/vim-sleuth'
 Plug 'terryma/vim-multiple-cursors'
+Plug 'ntpeters/vim-better-whitespace'
 Plug 'bling/vim-airline'
 Plug 'joshdick/onedark.vim'
 Plug 'joshdick/airline-onedark.vim'
