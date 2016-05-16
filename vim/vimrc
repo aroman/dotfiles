@@ -20,7 +20,9 @@ call plug#begin('~/.vim/plugged')
 Plug 'tpope/vim-commentary'
 Plug 'tpope/vim-sleuth'
 Plug 'terryma/vim-multiple-cursors'
+Plug 'airblade/vim-gitgutter'
 Plug 'ntpeters/vim-better-whitespace'
+Plug 'rking/ag.vim'
 Plug 'bling/vim-airline'
 Plug 'joshdick/onedark.vim'
 Plug 'joshdick/airline-onedark.vim'
@@ -68,8 +70,16 @@ cnoremap <C-E>      <End>
 set number
 
 " Sync X and Vim clipboards
-" set clipboard=unnamedplus
+set clipboard=unnamed
 set pastetoggle=<F2>
+set paste
+
+" Show the filename in the titlebar, don't set 'Thanks for flying' message
+set title
+let &titleold=''
+
+" Don’t show the intro message when starting Vim
+set shortmess=atI
 
 " Mouse support
 set mouse=a
@@ -104,7 +114,7 @@ set autoindent
 
 " re-open file to last line
 if has("autocmd")
-      au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
+    au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
 endif
 
 " Force myself to learn
