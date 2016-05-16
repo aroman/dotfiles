@@ -57,16 +57,13 @@ set t_Co=256
 set pastetoggle=<F2>
 set paste
 
-" iTerm: Set cursor based on mode
-if $TERM_PROGRAM =~ "iTerm"
-    let &t_SI = "\<Esc>]50;CursorShape=1\x7"
-    let &t_SR = "\<Esc>]50;CursorShape=2\x7"
-    let &t_EI = "\<Esc>]50;CursorShape=0\x7"
-endif
+" Mouse support
+set mouse=a
 
 " Colors
 syntax enable
-silent! colorscheme bubblegum-256-dark
+" silent! colorscheme darkrobot
+highlight LineNr ctermfg=red
 set background=dark
 
 " Airline
@@ -74,13 +71,16 @@ set noruler
 set noshowmode
 set statusline=
 set laststatus=2
-let g:airline_theme='bubblegum'
-let g:airline_left_sep=''
-let g:airline_right_sep=''
+let g:airline_theme='cool'
+let g:airline_powerline_fonts = 1
+" let g:airline_left_sep=''
+" let g:airline_right_sep=''
 
 " Folding
-"set foldmethod=indent
-"set foldnestmax=2
+set nofoldenable
+set foldmethod=indent
+set foldnestmax=3
+set foldlevel=1
 nnoremap <space> za
 vnoremap <space> zf
 
@@ -110,11 +110,13 @@ Plug 'tpope/vim-sleuth'
 Plug 'terryma/vim-multiple-cursors'
 Plug 'bling/vim-airline'
 Plug 'flazz/vim-colorschemes'
+Plug 'felixhummel/setcolors.vim'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'fatih/vim-go', { 'for': 'go' }
 Plug 'elzr/vim-json', { 'for': 'json' }
 Plug 'pangloss/vim-javascript', { 'for': 'js' }
 Plug 'kchmck/vim-coffee-script', { 'for': 'coffee' }
 Plug 'Matt-Deacalion/vim-systemd-syntax'
+Plug 'jszakmeister/vim-togglecursor'
 
 call plug#end()
