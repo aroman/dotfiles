@@ -14,6 +14,25 @@ set noswapfile
 set nobackup
 set nowb
 
+" Plugins
+call plug#begin('~/.vim/plugged')
+
+Plug 'tpope/vim-commentary'
+Plug 'tpope/vim-sleuth'
+Plug 'terryma/vim-multiple-cursors'
+Plug 'bling/vim-airline'
+Plug 'joshdick/onedark.vim'
+Plug 'joshdick/airline-onedark.vim'
+Plug 'vim-airline/vim-airline-themes'
+Plug 'fatih/vim-go', { 'for': 'go' }
+Plug 'elzr/vim-json', { 'for': 'json' }
+Plug 'pangloss/vim-javascript', { 'for': 'js' }
+Plug 'kchmck/vim-coffee-script', { 'for': 'coffee' }
+Plug 'Matt-Deacalion/vim-systemd-syntax'
+Plug 'jszakmeister/vim-togglecursor'
+
+call plug#end()
+
 " BASH-like autocompletion
 set wildmode=longest:full
 set wildmenu
@@ -47,10 +66,7 @@ cnoremap <C-E>      <End>
 " Line numbers
 set number
 set numberwidth=3
-highlight LineNr cterm=bold
-
-" 256-colors
-set t_Co=256
+" highlight LineNr cterm=bold
 
 " Sync X and Vim clipboards
 " set clipboard=unnamedplus
@@ -61,18 +77,18 @@ set paste
 set mouse=a
 
 " Colors
-syntax enable
-" silent! colorscheme darkrobot
-highlight LineNr ctermfg=red
-set background=dark
+syntax on
+let g:onedark_termcolors=16
+colorscheme onedark
 
 " Airline
 set noruler
 set noshowmode
 set statusline=
 set laststatus=2
-let g:airline_theme='cool'
+let g:airline_theme='onedark'
 let g:airline_powerline_fonts = 1
+" un-comment when not using powerline-patched font
 " let g:airline_left_sep=''
 " let g:airline_right_sep=''
 
@@ -102,21 +118,3 @@ endif
 " noremap   <Left>   <NOP>
 " noremap   <Right>  <NOP>
 
-" Plugins
-call plug#begin('~/.vim/plugged')
-
-Plug 'tpope/vim-commentary'
-Plug 'tpope/vim-sleuth'
-Plug 'terryma/vim-multiple-cursors'
-Plug 'bling/vim-airline'
-Plug 'flazz/vim-colorschemes'
-Plug 'felixhummel/setcolors.vim'
-Plug 'vim-airline/vim-airline-themes'
-Plug 'fatih/vim-go', { 'for': 'go' }
-Plug 'elzr/vim-json', { 'for': 'json' }
-Plug 'pangloss/vim-javascript', { 'for': 'js' }
-Plug 'kchmck/vim-coffee-script', { 'for': 'coffee' }
-Plug 'Matt-Deacalion/vim-systemd-syntax'
-Plug 'jszakmeister/vim-togglecursor'
-
-call plug#end()
