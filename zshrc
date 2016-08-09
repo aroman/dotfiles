@@ -50,7 +50,7 @@ zplug "sorin-ionescu/prezto", \
 zplug "robbyrussell/oh-my-zsh", \
   use:"lib/{spectrum,git,theme-and-appearance}.zsh", \
   nice:1
-zplug "themes/wezm", from:oh-my-zsh, nice:2
+zplug "themes/zorim", from:oh-my-zsh, nice:2
 
 if ! zplug check --verbose; then
   zplug install
