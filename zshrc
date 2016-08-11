@@ -37,7 +37,8 @@ alias ka="k -A"
 alias numstat='stat -f "%Lp %N"'
 
 # zplug <3
-source ~/.zplug/init.zsh
+export ZPLUG_HOME=/usr/local/opt/zplug
+source $ZPLUG_HOME/init.zsh
 
 zplug "zsh-users/zsh-syntax-highlighting"
 zplug "tarrasch/zsh-autoenv"
@@ -54,6 +55,7 @@ zplug "themes/zorim", from:oh-my-zsh, nice:2
 
 if ! zplug check --verbose; then
   zplug install
+
 fi
 
 zplug load
