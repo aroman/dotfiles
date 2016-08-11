@@ -32,10 +32,13 @@ Proudly managed with [rcm/thoughtbot](https://github.com/thoughtbot/rcm)!
 
 ```
 $ brew tap thoughtbot/formulae
-$ brew install rcm vim zsh the_silver_searcher git
+$ brew install rcm vim zsh zplug the_silver_searcher git
+$ command -v zsh | sudo tee -a /etc/shells
+$ chsh -s $(command -v zsh)
+$ zsh
 $ git clone git@github.com:aroman/dotfiles ~/.dotfiles
 $ rcup
-$ defaults write com.apple.screencapture location ~/Pictures/Screenshots && killall SystemUIServer
+$ mkdir ~/Pictures/Screenshots && defaults write com.apple.screencapture location ~/Pictures/Screenshots && killall SystemUIServer
 ```
 
 ### Questions? Comments?
