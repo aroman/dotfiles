@@ -36,8 +36,10 @@ $ brew install rcm vim zsh zplug the_silver_searcher git
 $ command -v zsh | sudo tee -a /etc/shells
 $ chsh -s $(command -v zsh)
 $ zsh
-$ git clone git@github.com:aroman/dotfiles ~/.dotfiles
+$ git clone https://github.com/aroman/zorim.git ~/.dotfiles
 $ rcup
+$ mkdir ~/Developer && cd ~/Developer
+$ git clone https://github.com/aroman/zorim.git
 $ mkdir ~/Pictures/Screenshots && defaults write com.apple.screencapture location ~/Pictures/Screenshots && killall SystemUIServer
 ```
 
