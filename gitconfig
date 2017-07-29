@@ -8,3 +8,5 @@
 	editor = vim
 [pull]
 	rebase = true
+[credential]
+	helper = osxkeychain
