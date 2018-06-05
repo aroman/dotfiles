@@ -1,14 +1,8 @@
-function gs
-	git status
-end
+set fish_greeting ""
 
-function a
-	ag -i
-end
-
-function hack
-	code .
-end
+alias gs="git status"
+alias a="ag -i"
+alias hack="code ."
 
 function gl
 	git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
