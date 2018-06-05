@@ -8,7 +8,7 @@ Proudly managed with [rcm/thoughtbot](https://github.com/thoughtbot/rcm)!
 - git
 - jq
 - ngrok
-- viw
+- vim
 - wget
 
 #### Graphical 👀
@@ -24,7 +24,19 @@ Proudly managed with [rcm/thoughtbot](https://github.com/thoughtbot/rcm)!
 `~/Projects`
 `~/Pictures/Screenshots`
 
-### Installation (OS X)
+### Installation (elementary OS)
+```
+wget -qO - https://apt.thoughtbot.com/thoughtbot.gpg.key | sudo apt-key add -
+echo "deb http://apt.thoughtbot.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/thoughtbot.list
+sudo apt update
+sudo apt install rcm git fish fonts-ttf-hack
+chsh -s $(which fish)
+fish
+git clone git@github.com:aroman/dotfiles.git .dotfiles
+rcup
+```
+
+### Installation (macOS)
 
 ```
 $ brew tap thoughtbot/formulae
