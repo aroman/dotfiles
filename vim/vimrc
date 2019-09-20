@@ -25,7 +25,6 @@ Plug 'ntpeters/vim-better-whitespace'
 Plug 'rking/ag.vim'
 Plug 'bling/vim-airline'
 Plug 'joshdick/onedark.vim'
-Plug 'joshdick/airline-onedark.vim'
 Plug 'vim-airline/vim-airline-themes'
 Plug 'fatih/vim-go', { 'for': 'go' }
 Plug 'elzr/vim-json', { 'for': 'json' }
