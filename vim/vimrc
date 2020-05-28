@@ -29,8 +29,9 @@ Plug 'vim-airline/vim-airline-themes'
 Plug 'fatih/vim-go', { 'for': 'go' }
 Plug 'elzr/vim-json', { 'for': 'json' }
 Plug 'pangloss/vim-javascript', { 'for': 'js' }
-Plug 'kchmck/vim-coffee-script', { 'for': 'coffee' }
+Plug 'leafgarland/typescript-vim', { 'for': 'ts' }
 Plug 'Matt-Deacalion/vim-systemd-syntax'
+Plug 'dag/vim-fish'
 Plug 'jszakmeister/vim-togglecursor'
 
 call plug#end()

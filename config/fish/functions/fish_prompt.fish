@@ -1,66 +1,113 @@
-function fish_prompt --description 'Write out the prompt'
-	set -l last_status $status
-    set -l normal (set_color normal)
+function fish_prompt
+    set -l status_copy $status
+    set -l pwd_info (pwd_info "/")
+    set -l dir
+    set -l base
+    set -l color (set_color white)
+    set -l color2 (set_color normal)
+    set -l color3 (set_color $fish_color_command)
+    set -l color_error (set_color $fish_color_error)
+    set -l color_normal "$color2"
 
-    # Hack; fish_config only copies the fish_prompt function (see #736)
-    if not set -q -g __fish_classic_git_functions_defined
-        set -g __fish_classic_git_functions_defined
+    echo -sn " "
 
-        function __fish_repaint_user --on-variable fish_color_user --description "Event handler, repaint when fish_color_user changes"
-            if status --is-interactive
-                commandline -f repaint ^/dev/null
-            end
-        end
-
-        function __fish_repaint_host --on-variable fish_color_host --description "Event handler, repaint when fish_color_host changes"
-            if status --is-interactive
-                commandline -f repaint ^/dev/null
-            end
-        end
-
-        function __fish_repaint_status --on-variable fish_color_status --description "Event handler; repaint when fish_color_status changes"
-            if status --is-interactive
-                commandline -f repaint ^/dev/null
-            end
-        end
-
-        function __fish_repaint_bind_mode --on-variable fish_key_bindings --description "Event handler; repaint when fish_key_bindings changes"
-            if status --is-interactive
-                commandline -f repaint ^/dev/null
-            end
-        end
-
-        # initialize our new variables
-        if not set -q __fish_classic_git_prompt_initialized
-            set -qU fish_color_user
-            or set -U fish_color_user -o green
-            set -qU fish_color_host
-            or set -U fish_color_host -o cyan
-            set -qU fish_color_status
-            or set -U fish_color_status red
-            set -U __fish_classic_git_prompt_initialized
-        end
+    if test "$status_copy" -ne 0
+        set color "$color_error"
+        set color2 "$color_error"
+        set color3 "$color_error"
     end
 
-    set -l color_cwd
-    set -l prefix
-    switch $USER
-        case root toor
-            if set -q fish_color_cwd_root
-                set color_cwd $fish_color_cwd_root
-            else
-                set color_cwd $fish_color_cwd
+    set -l glyph " $color2\$$color_normal"
+
+    if test 0 -eq (id -u "$USER")
+        echo -sn "$color_error# $color_normal"
+    end
+
+    if test ! -z "$SSH_CLIENT"
+        set -l color "$color2"
+
+        if test 0 -eq (id -u "$USER")
+            set color "$color_error"
+        end
+
+        echo -sn "$color"(host_info "user@")"$color_normal"
+    end
+
+    if test "$PWD" = ~
+        set base "$color3~"
+        set glyph
+        
+    else if pwd_is_home
+        set dir
+
+    else
+        if test "$PWD" = /
+            set glyph
+        else
+            set dir "/"
+        end
+
+        set base "$color_error/"
+    end
+
+    if test ! -z "$pwd_info[1]"
+        set base "$pwd_info[1]"
+    end
+
+    if test ! -z "$pwd_info[2]"
+        set dir "$dir$pwd_info[2]/"
+    end
+
+    echo -sn "$color2$dir$color$base$color_normal"
+
+    if test ! -z "$pwd_info[3]"
+        echo -sn "$color2/$pwd_info[3]"
+    end
+
+    if set branch_name (git_branch_name)
+        set -l git_color
+        set -l git_glyph \$
+
+        if git_is_staged
+            set git_color (set_color green)
+
+            if git_is_dirty
+                set git_glyph "$git_color$git_glyph$color_error$git_glyph"
+                set git_color "$color_error"
             end
-            set suffix '#'
-        case '*'
-            set color_cwd $fish_color_cwd
-            set suffix '>'
+
+        else if git_is_dirty
+            set git_color "$color_error"
+
+        else if git_is_touched
+            set git_color "$color_error"
+        else
+            set git_color "$color3"
+        end
+
+        set -l git_ahead (git_ahead " +" " -" " +-")
+
+        if test "$branch_name" = "master"
+            set branch_name
+            if git_is_stashed
+                set branch_name "{}"
+            end
+        else
+            set -l left_par "("
+            set -l right_par ")"
+
+            if git_is_stashed
+                set left_par "{"
+                set right_par "}"
+            end
+
+            set branch_name " $git_color$left_par$color2$branch_name$git_color$right_par"
+        end
+
+        echo -sn "$branch_name$git_color$git_ahead $git_glyph"
+    else
+        echo -sn "$color$glyph$color_normal"
     end
 
-    set -l prompt_status
-    if test $last_status -ne 0
-        set prompt_status ' ' (set_color $fish_color_status) "[$last_status]" "$normal"
-    end
-
-    echo -n -s (set_color $fish_color_user) "$USER" $normal @ (set_color $fish_color_host) (prompt_hostname) $normal ' ' (set_color $color_cwd) (prompt_pwd) $normal (__fish_vcs_prompt) $normal $prompt_status "> "
+    echo -sn "$color_normal "
 end
