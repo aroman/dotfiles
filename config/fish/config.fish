@@ -15,6 +15,8 @@ function gl
 	git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
 end
 
+set -Ux LS_COLORS "$LS_COLORS:ow=1;34:tw=1;34:"
+
 # set theme to Solarized Dark
 set -U fish_color_normal normal
 set -U fish_color_command 93a1a1
