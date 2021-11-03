@@ -1,1 +1,2 @@
-# UseKeychain yes
+UseKeychain yes
+AddKeysToAgent yes
