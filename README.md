@@ -56,8 +56,8 @@ $ brew tap thoughtbot/formulae
 $ brew install rcm vim fish git
 $ brew tap caskroom/fonts
 $ brew cask install font-inconsolata
-$ command -v zsh | sudo tee -a /usr/local/bin/fish
-$ chsh -s /usr/local/bin/fish
+$ sudo sh -c 'echo `which fish` >> /etc/shells'
+$ chsh -s `which fish`
 $ fish
 $ git clone git@github.com:aroman/dotfiles.git .dotfiles
 $ rcup
