@@ -1,3 +1,7 @@
+if status --is-interactive
+  eval (/opt/homebrew/bin/brew shellenv)
+end
+
 set fish_greeting ""
 
 alias gs="git status"
