@@ -54,8 +54,8 @@ rcup
 ```
 $ brew tap thoughtbot/formulae
 $ brew install rcm vim fish git
-$ brew tap caskroom/fonts
-$ brew cask install font-inconsolata
+$ brew tap homebrew/cask-fonts
+$ brew install font-hack
 $ sudo sh -c 'echo `which fish` >> /etc/shells'
 $ chsh -s `which fish`
 $ fish
