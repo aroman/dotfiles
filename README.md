@@ -55,7 +55,7 @@ rcup
 $ brew tap thoughtbot/formulae
 $ brew install rcm vim fish git
 $ brew tap homebrew/cask-fonts
-$ brew install font-hack
+$ brew install font-hack font-inconsolata font-cascadia-code
 $ sudo sh -c 'echo `which fish` >> /etc/shells'
 $ chsh -s `which fish`
 $ fish
