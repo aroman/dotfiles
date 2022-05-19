@@ -2,7 +2,16 @@ if status --is-interactive
   eval (/opt/homebrew/bin/brew shellenv)
 end
 
+function code
+  set location "$PWD/$argv"
+  open -n -b "com.microsoft.VSCode" --args $location
+end
+
 set fish_greeting ""
+
+function godo
+  godot *.godot &> /dev/null &
+end
 
 alias gs="git status"
 alias a="ag -i"
