@@ -69,6 +69,30 @@ $ defaults write com.apple.dock persistent-apps -array
 $ killall SystemUIServer && killall Dock
 ```
 
+To do:
+Rectangle prefs
+iTerm2 prefs
+
+# Showing all filename extensions in Finder by default"
+` defaults write NSGlobalDomain AppleShowAllExtensions -bool true`
+
+# Setting Dock to auto-hide and removing the auto-hiding delay
+```
+defaults write com.apple.dock autohide -bool true
+defaults write com.apple.dock autohide-delay -float 0
+defaults write com.apple.dock show-recents -bool false
+```
+
+defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
+
+Reset launchpad layout
+defaults write com.apple.dock ResetLaunchPad -bool true; killall Dock
+defaults write com.apple.dock mineffect -string scale
+
+defaults write com.apple.Dock showhidden -bool true && killall Dock
+
+brew bundle dump --force --global
+
 ### Questions? Comments?
 
 Open an issue and I'll get back to you :)
