@@ -35,6 +35,9 @@ cask "superhuman"
 cask "unity-hub"
 cask "visual-studio-code"
 cask "zoom"
+cask "scroll-reverser"
+mas "Tailscale", id: 1475387142
+mas "Velja", id: 1607635845
 mas "Gifski", id: 1351639930
 mas "Microsoft Excel", id: 462058435
 mas "Microsoft Word", id: 462054704
