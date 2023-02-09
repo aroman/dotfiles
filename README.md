@@ -66,15 +66,14 @@ brew install font-hack font-inconsolata font-cascadia-code
 sudo sh -c 'echo `which fish` >> /etc/shells'
 chsh -s `which fish`
 fish
-curl -sL https://git.io/fisher | source
+curl -sL https://git.io/fisher | source && fisher install jorgebucaran/fisher && fisher install jorgebucaran/hydro
 git clone git@github.com:aroman/dotfiles.git .dotfiles
 rcup
 
 mkdir ~/Projects
 mkdir ~/Pictures/Screenshots && defaults write com.apple.screencapture location ~/Pictures/Screenshots
 defaults write com.apple.mail AddressesIncludeNameOnPasteboard -bool false
-defaults write com.apple.dock persistent-apps -array
-killall SystemUIServer && killall Dock
+defaults write -g AppleReduceDesktopTinting -bool yes
 defaults write com.googlecode.iterm2 PrefsCustomFolder -string "~/.dotfiles/iTerm2"
 defaults write com.googlecode.iterm2 LoadPrefsFromCustomFolder -bool true
 hidutil property --set '{"UserKeyMapping":[{"HIDKeyboardModifierMappingSrc": 0x700000039, "HIDKeyboardModifierMappingDst": 0x700000029}]}'
@@ -93,21 +92,25 @@ defaults write NSGlobalDomain AppleShowAllExtensions -bool true
 chflags nohidden ~/Library
 ```
 
-# Setting Dock to auto-hide and removing the auto-hiding delay
+# Dock
 
 ```
 defaults write com.apple.dock autohide -bool true
 defaults write com.apple.dock autohide-delay -float 0
+defaults write com.apple.dock persistent-apps -array
 defaults write com.apple.dock show-recents -bool false
+defaults write com.apple.dock ResetLaunchPad -bool true
+defaults write com.apple.dock mineffect -string scale
+defaults write com.apple.Dock showhidden -bool true
+
+# Enable tap-to-click
+defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
 ```
 
-defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
-
-Reset launchpad layout
-defaults write com.apple.dock ResetLaunchPad -bool true; killall Dock
-defaults write com.apple.dock mineffect -string scale
-
-defaults write com.apple.Dock showhidden -bool true && killall Dock
+# Apply everything
+```
+killall SystemUIServer && killall Dock && killall Finder
+```
 
 ### Questions? Comments?
 
