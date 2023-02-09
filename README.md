@@ -91,6 +91,7 @@ defaults write NSGlobalDomain AppleShowAllExtensions -bool true
 
 # Show Library folder in Finder
 chflags nohidden ~/Library
+```
 
 # Setting Dock to auto-hide and removing the auto-hiding delay
 
