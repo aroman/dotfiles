@@ -66,6 +66,7 @@ brew install font-hack font-inconsolata font-cascadia-code
 sudo sh -c 'echo `which fish` >> /etc/shells'
 chsh -s `which fish`
 fish
+curl -sL https://git.io/fisher | source
 git clone git@github.com:aroman/dotfiles.git .dotfiles
 rcup
 
@@ -76,7 +77,7 @@ defaults write com.apple.dock persistent-apps -array
 killall SystemUIServer && killall Dock
 defaults write com.googlecode.iterm2 PrefsCustomFolder -string "~/.dotfiles/iTerm2"
 defaults write com.googlecode.iterm2 LoadPrefsFromCustomFolder -bool true
-hidutil property --set {"UserKeyMapping":[{"HIDKeyboardModifierMappingSrc": 0x700000039, "HIDKeyboardModifierMappingDst": 0x700000029}]}
+hidutil property --set '{"UserKeyMapping":[{"HIDKeyboardModifierMappingSrc": 0x700000039, "HIDKeyboardModifierMappingDst": 0x700000029}]}'
 ```
 
 To do:
