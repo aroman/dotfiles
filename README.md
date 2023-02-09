@@ -79,13 +79,18 @@ defaults write com.googlecode.iterm2 PrefsCustomFolder -string "~/.dotfiles/iTer
 defaults write com.googlecode.iterm2 LoadPrefsFromCustomFolder -bool true
 hidutil property --set '{"UserKeyMapping":[{"HIDKeyboardModifierMappingSrc": 0x700000039, "HIDKeyboardModifierMappingDst": 0x700000029}]}'
 ```
+# Finder
+```
+Showing all filename extensions in Finder by default
+defaults write NSGlobalDomain AppleShowAllExtensions -bool true
 
-To do:
-Rectangle prefs
+# Enable snap-to-grid for icons on the desktop and in other icon views
+/usr/libexec/PlistBuddy -c "Set :DesktopViewSettings:IconViewSettings:arrangeBy grid" ~/Library/Preferences/com.apple.finder.plist
+/usr/libexec/PlistBuddy -c "Set :FK_StandardViewSettings:IconViewSettings:arrangeBy grid" ~/Library/Preferences/com.apple.finder.plist
+/usr/libexec/PlistBuddy -c "Set :StandardViewSettings:IconViewSettings:arrangeBy grid" ~/Library/Preferences/com.apple.finder.plist
 
-# Showing all filename extensions in Finder by default"
-
-` defaults write NSGlobalDomain AppleShowAllExtensions -bool true`
+# Show Library folder in Finder
+chflags nohidden ~/Library
 
 # Setting Dock to auto-hide and removing the auto-hiding delay
 
