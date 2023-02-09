@@ -17,44 +17,17 @@ Proudly managed with [rcm/thoughtbot](https://github.com/thoughtbot/rcm)!
 
 - 1Password
 - Figma
-- Spectacle (macOS)
+- Raycast
+- Rectangle (macOS)
 - Spotify
 - VSCode
+- Scroll Reverser
+- Gifski
 
 ### Directories
 
 `~/Projects`
 `~/Pictures/Screenshots`
-
-### Installation (elementary OS)
-
-```
-wget -qO - https://apt.thoughtbot.com/thoughtbot.gpg.key | sudo apt-key add -
-echo "deb http://apt.thoughtbot.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/thoughtbot.list
-sudo apt update
-sudo apt install rcm git fish fonts-ttf-hack
-chsh -s $(which fish)
-fish
-git clone git@github.com:aroman/dotfiles.git .dotfiles
-rcup
-```
-
-### Installation (WSL2)
-
-- Install Windows Terminal
-- Install [Cascadia Code](https://github.com/microsoft/cascadia-code/releases)
-
-```
-wget -qO - https://apt.thoughtbot.com/thoughtbot.gpg.key | sudo apt-key add -
-echo "deb http://apt.thoughtbot.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/thoughtbot.list
-sudo apt update
-sudo apt install rcm git fish
-sudo npm install -g wsl-open
-chsh -s $(which fish)
-fish
-git clone git@github.com:aroman/dotfiles.git .dotfiles
-rcup
-```
 
 ### Installation (macOS)
 
@@ -111,6 +84,38 @@ defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
 ```
 killall SystemUIServer && killall Dock && killall Finder
 ```
+
+
+### Installation (elementary OS)
+
+```
+wget -qO - https://apt.thoughtbot.com/thoughtbot.gpg.key | sudo apt-key add -
+echo "deb http://apt.thoughtbot.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/thoughtbot.list
+sudo apt update
+sudo apt install rcm git fish fonts-ttf-hack
+chsh -s $(which fish)
+fish
+git clone git@github.com:aroman/dotfiles.git .dotfiles
+rcup
+```
+
+### Installation (WSL2)
+
+- Install Windows Terminal
+- Install [Cascadia Code](https://github.com/microsoft/cascadia-code/releases)
+
+```
+wget -qO - https://apt.thoughtbot.com/thoughtbot.gpg.key | sudo apt-key add -
+echo "deb http://apt.thoughtbot.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/thoughtbot.list
+sudo apt update
+sudo apt install rcm git fish
+sudo npm install -g wsl-open
+chsh -s $(which fish)
+fish
+git clone git@github.com:aroman/dotfiles.git .dotfiles
+rcup
+```
+
 
 ### Questions? Comments?
 
