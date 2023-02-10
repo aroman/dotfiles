@@ -46,6 +46,7 @@ rcup
 mkdir ~/Projects
 mkdir ~/Pictures/Screenshots && defaults write com.apple.screencapture location ~/Pictures/Screenshots
 defaults write com.apple.mail AddressesIncludeNameOnPasteboard -bool false
+defaults write -g ApplePressAndHoldEnabled -bool false
 defaults write -g AppleReduceDesktopTinting -bool yes
 defaults write com.googlecode.iterm2 PrefsCustomFolder -string "~/.dotfiles/iTerm2"
 defaults write com.googlecode.iterm2 LoadPrefsFromCustomFolder -bool true
