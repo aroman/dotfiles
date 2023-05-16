@@ -2,11 +2,6 @@ if status --is-interactive
   eval (/opt/homebrew/bin/brew shellenv)
 end
 
-function code
-  set location "$PWD/$argv"
-  open -n -b "com.microsoft.VSCode" --args $location
-end
-
 set fish_greeting ""
 
 function godo
@@ -17,6 +12,9 @@ alias gs="git status"
 alias a="ag -i"
 alias hack="code ."
 alias exifscrub="exiftool -all= "
+alias brew='sudo -Hu aroman brew'
+alias cat='bat --paging=never'
+
 
 switch (uname -r)
 	case '*microsof*'
@@ -27,6 +25,9 @@ end
 function gl
 	git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
 end
+
+# GPG Key Setup
+set -x GPG_TTY (tty)
 
 set -Ux LS_COLORS "$LS_COLORS:ow=1;34:tw=1;34:"
 

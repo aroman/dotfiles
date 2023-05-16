@@ -1,6 +1,7 @@
 [user]
 	name = Avi Romanoff
-	email = avi@romanoff.me
+	email = avi@magiccircle.studio
+	signingkey = DD0C0E72
 [push]
 	default = simple
 [core]
@@ -17,3 +18,7 @@
 	clean = git-lfs clean -- %f
 [init]
 	defaultBranch = main
+[gpg]
+	program = /opt/homebrew/bin/gpg
+[commit]
+	gpgsign = true
