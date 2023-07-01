@@ -1,0 +1,75 @@
+{
+  "version" : "1.12.4",
+  "rules" : [
+    {
+      "sourceApps" : [
+
+      ],
+      "id" : "683A22DB-C8F9-45BD-ACFD-7F54830DD672",
+      "title" : "Notion",
+      "matchers" : [
+        {
+          "pattern" : "notion.so",
+          "id" : "27C09625-CC5F-486B-86E4-9FAC8ABA0AD8",
+          "kind" : "hostSuffix",
+          "fixture" : "https:\/\/www.notion.so\/"
+        }
+      ],
+      "isEnabled" : true,
+      "browser" : "com.google.Chrome|Profile 2"
+    },
+    {
+      "sourceApps" : [
+
+      ],
+      "id" : "B55B61A1-5042-4B40-8ED0-84874E9A744B",
+      "title" : "GitHub",
+      "matchers" : [
+        {
+          "pattern" : "github.com",
+          "id" : "27C09625-CC5F-486B-86E4-9FAC8ABA0AD8",
+          "kind" : "hostSuffix",
+          "fixture" : "https:\/\/github.com"
+        }
+      ],
+      "isEnabled" : true,
+      "browser" : "com.google.Chrome|Profile 2"
+    },
+    {
+      "sourceApps" : [
+        "com.superhuman.electron"
+      ],
+      "id" : "B665A4FD-694C-4852-A584-57C099518491",
+      "title" : "Superhuman -> Magic Circle",
+      "matchers" : [
+
+      ],
+      "isEnabled" : true,
+      "browser" : "com.google.Chrome|Profile 2"
+    },
+    {
+      "sourceApps" : [
+        "com.tinyspeck.slackmacgap"
+      ],
+      "id" : "56B41BDC-9FA5-41AC-B489-71FCAFBFAEFB",
+      "title" : "Slack -> Magic Circle",
+      "matchers" : [
+
+      ],
+      "isEnabled" : true,
+      "browser" : "com.google.Chrome|Profile 2"
+    },
+    {
+      "sourceApps" : [
+        "notion.id"
+      ],
+      "id" : "B106123D-347E-4867-984A-D1AE0DA8C416",
+      "title" : "Notion App -> Magic Circle",
+      "matchers" : [
+
+      ],
+      "isEnabled" : true,
+      "browser" : "com.google.Chrome|Profile 2"
+    }
+  ]
+}
