@@ -72,7 +72,7 @@ set number
 " Sync X and Vim clipboards
 set clipboard=unnamed
 set pastetoggle=<F2>
-set paste
+" set paste
 
 " Show the filename in the titlebar, don't set 'Thanks for flying' message
 set title
