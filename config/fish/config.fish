@@ -15,12 +15,10 @@ alias exifscrub="exiftool -all= "
 alias brew='sudo -Hu aroman brew'
 alias cat='bat --paging=never'
 
-
 switch (uname -r)
 	case '*microsof*'
 		alias open='wsl-open'
 end
-
 
 function gl
 	git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
