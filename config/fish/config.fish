@@ -16,6 +16,7 @@ alias hack="code ."
 alias exifscrub="exiftool -all= "
 alias brew='sudo -Hu aroman brew'
 alias cat='bat --paging=never'
+alias gg='cd ~/Projects/magiccircle.gg'
 
 switch (uname -r)
 	case '*microsof*'
@@ -25,6 +26,7 @@ end
 function gl
 	git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
 end
+
 
 # GPG Key Setup
 set -x GPG_TTY (tty)
