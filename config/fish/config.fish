@@ -13,6 +13,7 @@ end
 alias gs="git status"
 alias a="ag -i"
 alias hack="code ."
+alias hack="cursor ."
 alias exifscrub="exiftool -all= "
 alias brew='sudo -Hu aroman brew'
 alias cat='bat --paging=never'
