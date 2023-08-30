@@ -28,6 +28,9 @@ function gl
 	git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
 end
 
+# # LLVM symbolizer
+# set -x LLVM_SYMBOLIZER /opt/homebrew/opt/llvm/bin/llvm-symbolizer
+
 
 # GPG Key Setup
 set -x GPG_TTY (tty)
