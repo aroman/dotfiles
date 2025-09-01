@@ -5,32 +5,45 @@ if status --is-interactive
 end
 
 set fish_greeting ""
+starship init fish | source
 
-function godo
-  godot *.godot &> /dev/null &
-end
+alias cat="bat --paging=never"
 
-alias gs="git status"
-alias a="ag -i"
-alias hack="code ."
-alias hack="cursor ."
-alias exifscrub="exiftool -all= "
-alias brew='sudo -Hu aroman brew'
-alias cat='bat --paging=never'
-alias gg='cd ~/Projects/magiccircle.gg'
+# abbr --add pi "ssh carovi@raspberrypi.local"
+# abbr --add godo "godot *.godot &> /dev/null &"
+abbr --add wrangler "pnpm wrangler"
+abbr --add a "ag -i"
+# abbr --add hack "code ."
+abbr --add hack "cursor ."
+abbr --add exifscrub "exiftool -all= "
+abbr --add gg "cd ~/Projects/magiccircle.gg"
+abbr --add serve "open 'http://127.0.0.1:8080' && bunx http-server ."
+
+abbr --add gs "git status"
+abbr --add gl "git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
 
 switch (uname -r)
 	case '*microsof*'
-		alias open='wsl-open'
+		abbr --add open "wsl-open"
+	case '*darwin*'
+		abbr --add foo "bar"
 end
 
-function gl
-	git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+function killport
+    set port $argv[1]
+    set pids (lsof -ti :$port)
+    if test -n "$pids"
+        for pid in $pids
+            kill -9 $pid
+            echo "Killed process $pid listening on port $port"
+        end
+    else
+        echo "No process found listening on port $port"
+    end
 end
 
 # # LLVM symbolizer
 # set -x LLVM_SYMBOLIZER /opt/homebrew/opt/llvm/bin/llvm-symbolizer
-
 
 # GPG Key Setup
 set -x GPG_TTY (tty)
@@ -61,3 +74,16 @@ set -U fish_pager_color_completion B3A06D
 set -U fish_pager_color_description B3A06D
 set -U fish_pager_color_prefix cyan --underline
 set -U fish_pager_color_progress brwhite --background=cyan
+
+# bun
+set --export BUN_INSTALL "$HOME/.bun"
+set --export PATH $BUN_INSTALL/bin $PATH
+
+# Added by OrbStack: command-line tools and integration
+# This won't be added again if you remove it.
+source ~/.orbstack/shell/init2.fish 2>/dev/null || :
+
+alias claude="/Users/aroman/.claude/local/claude"
+
+test -e {$HOME}/.iterm2_shell_integration.fish ; and source {$HOME}/.iterm2_shell_integration.fish ; or true
+
