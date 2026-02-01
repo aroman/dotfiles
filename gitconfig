@@ -1,3 +1,5 @@
+[include]
+	path = ~/.gitconfig.local
 [user]
 	name = Avi Romanoff
 	email = avi@magiccircle.studio
@@ -9,8 +11,6 @@
 	editor = vim
 [pull]
 	rebase = true
-[credential]
-	helper = osxkeychain
 [filter "lfs"]
 	smudge = git-lfs smudge -- %f
 	process = git-lfs filter-process
@@ -19,6 +19,6 @@
 [init]
 	defaultBranch = main
 [gpg]
-	program = /opt/homebrew/bin/gpg
+	program = gpg
 [commit]
 	gpgsign = true
