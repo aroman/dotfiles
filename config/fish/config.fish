@@ -1,6 +1,6 @@
 # vim: set ts=4
 
-if status --is-interactive
+if status --is-interactive; and test (uname) = Darwin
   eval (/opt/homebrew/bin/brew shellenv)
 end
 
@@ -8,13 +8,15 @@ set fish_greeting ""
 starship init fish | source
 
 alias cat="bat --paging=never"
+alias zed="flatpak run dev.zed.Zed"
 
 # abbr --add pi "ssh carovi@raspberrypi.local"
 # abbr --add godo "godot *.godot &> /dev/null &"
 abbr --add wrangler "pnpm wrangler"
 abbr --add a "ag -i"
 # abbr --add hack "code ."
-abbr --add hack "cursor ."
+# abbr --add hack "cursor ."
+abbr --add hack "zed ."
 abbr --add exifscrub "exiftool -all= "
 abbr --add gg "cd ~/Projects/magiccircle.gg"
 abbr --add serve "open 'http://127.0.0.1:8080' && bunx http-server ."
@@ -83,7 +85,8 @@ set --export PATH $BUN_INSTALL/bin $PATH
 # This won't be added again if you remove it.
 source ~/.orbstack/shell/init2.fish 2>/dev/null || :
 
-alias claude="/Users/aroman/.claude/local/claude"
+# alias claude="/Users/aroman/.claude/local/claude"
 
 test -e {$HOME}/.iterm2_shell_integration.fish ; and source {$HOME}/.iterm2_shell_integration.fish ; or true
 
+export PATH="$HOME/.local/bin:$PATH"
