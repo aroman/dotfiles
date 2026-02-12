@@ -1,0 +1,7 @@
+#!/bin/sh
+# OS-aware pinentry dispatcher for gpg-agent
+if [ "$(uname)" = "Darwin" ]; then
+  exec /opt/homebrew/bin/pinentry-mac "$@"
+else
+  exec /usr/bin/pinentry-gnome3 "$@"
+fi
