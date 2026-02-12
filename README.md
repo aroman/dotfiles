@@ -106,6 +106,13 @@ rcup
 ```
 
 
+### Flatpak apps (Linux)
+
+If Zed is installed via Flatpak, symlink the Flatpak config dir to the rcm-managed standard path:
+```
+ln -sf ~/.config/zed ~/.var/app/dev.zed.Zed/config/zed
+```
+
 ### Questions? Comments?
 
 Open an issue and I'll get back to you :)

@@ -1,0 +1,43 @@
+// Zed settings
+//
+// For information on how to configure Zed, see the Zed
+// documentation: https://zed.dev/docs/configuring-zed
+//
+// To see all of Zed's default settings without changing your
+// custom settings, run `zed: open default settings` from the
+// command palette (cmd-shift-p / ctrl-shift-p)
+{
+  "buffer_font_family": "Cascadia Code NF",
+  "vim": {
+    "toggle_relative_line_numbers": false
+  },
+  "project_panel": {
+    "bold_folder_labels": false
+  },
+  "buffer_line_height": "comfortable",
+  "scroll_sensitivity": 3.0,
+  "sticky_scroll": {
+    "enabled": false
+  },
+  "git": {
+    "inline_blame": {
+      "show_commit_summary": true
+    }
+  },
+  "agent": {
+    "default_model": {
+      "provider": "anthropic",
+      "model": "claude-opus-4-5-thinking-latest",
+    },
+    "favorite_models": [],
+    "model_parameters": [],
+  },
+  "base_keymap": "VSCode",
+  "vim_mode": true,
+  "icon_theme": "Zed (Default)",
+  "theme": {
+    "mode": "system",
+    "light": "One Light",
+    "dark": "Github Plus Dark",
+  },
+}

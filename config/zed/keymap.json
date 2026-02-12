@@ -1,0 +1,23 @@
+// Zed keymap
+//
+// Restore common editor shortcuts that vim mode overrides.
+// See: https://zed.dev/docs/vim#restoring-common-keybindings-on-linux--windows
+[
+  {
+    "context": "Editor && !menu",
+    "bindings": {
+      "ctrl-c": "editor::Copy",
+      "ctrl-x": "editor::Cut",
+      "ctrl-v": "editor::Paste",
+      "ctrl-a": "editor::SelectAll",
+      "ctrl-f": "buffer_search::Deploy",
+      "ctrl-g": "go_to_line::Toggle",
+      "ctrl-y": "editor::Redo",
+      "ctrl-o": "workspace::Open",
+      "ctrl-s": "workspace::Save",
+      "ctrl-b": "workspace::ToggleLeftDock",
+      "ctrl-t": "project_symbols::Toggle",
+      "ctrl-w": "pane::CloseActiveItem",
+    },
+  },
+]
