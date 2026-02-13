@@ -20,4 +20,11 @@
       "ctrl-w": "pane::CloseActiveItem",
     },
   },
+  {
+    "context": "BufferSearchBar && !in_replace",
+    "bindings": {
+      "enter": "search::SelectNextMatch",
+      "shift-enter": "search::SelectPreviousMatch",
+    },
+  },
 ]
