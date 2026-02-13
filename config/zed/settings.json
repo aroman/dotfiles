@@ -9,20 +9,20 @@
 {
   "buffer_font_family": "Cascadia Code NF",
   "vim": {
-    "toggle_relative_line_numbers": false
+    "toggle_relative_line_numbers": false,
   },
   "project_panel": {
-    "bold_folder_labels": false
+    "bold_folder_labels": false,
   },
   "buffer_line_height": "comfortable",
-  "scroll_sensitivity": 3.0,
+  "scroll_sensitivity": 1.25,
   "sticky_scroll": {
-    "enabled": false
+    "enabled": false,
   },
   "git": {
     "inline_blame": {
-      "show_commit_summary": true
-    }
+      "show_commit_summary": true,
+    },
   },
   "agent": {
     "default_model": {
