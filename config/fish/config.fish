@@ -8,7 +8,6 @@ set fish_greeting ""
 starship init fish | source
 
 alias cat="bat --paging=never"
-alias zed="flatpak run dev.zed.Zed"
 
 # abbr --add pi "ssh carovi@raspberrypi.local"
 # abbr --add godo "godot *.godot &> /dev/null &"
@@ -91,4 +90,3 @@ test -e {$HOME}/.iterm2_shell_integration.fish ; and source {$HOME}/.iterm2_shel
 
 export PATH="$HOME/.local/bin:$PATH"
 
-fish_add_path /var/home/aroman/.spicetify

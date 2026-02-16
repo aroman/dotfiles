@@ -3,5 +3,5 @@
 if [ "$(uname)" = "Darwin" ]; then
   exec /opt/homebrew/bin/pinentry-mac "$@"
 else
-  exec /usr/bin/pinentry-gnome3 "$@"
+  exec /usr/bin/pinentry-gnome3 "$@" 2>/dev/null || exec /usr/bin/pinentry-curses "$@"
 fi

@@ -149,6 +149,7 @@ layout {
     // - "on-overflow", focusing a column will center it if it doesn't fit
     //   together with the previously focused column.
     // center-focused-column "always"
+    always-center-single-column
 
     // You can customize the widths that "switch-preset-column-width" (Mod+R) toggles between.
     preset-column-widths {
@@ -306,7 +307,7 @@ layout {
 // spawn-at-startup "swaybg" "-i" "/var/home/aroman/.local/share/backgrounds/2026-02-14-02-13-09-liquid-marbling-paint-texture-background-fluid-painting-abstract-texture-intensive-color-mix-wallpaper.jpg" "-m" "fill"
 spawn-at-startup "qs" "-c" "noctalia-shell"
 spawn-at-startup "vicinae" "server"
-spawn-at-startup "flatpak" "run" "--command=easyeffects" "com.github.wwmm.easyeffects" "--gapplication-service"
+spawn-at-startup "easyeffects" "--gapplication-service"
 
 // To run a shell command (with variables, pipes, etc.), use spawn-sh-at-startup:
 // spawn-sh-at-startup "qs -c ~/source/qs/MyAwesomeShell"
@@ -429,7 +430,7 @@ binds {
     // Suggested binds for running programs: terminal, app launcher, screen locker.
     Mod+Space hotkey-overlay-title="Open Vicinae" { spawn "vicinae" "toggle"; }
     Alt+Space hotkey-overlay-title="Open Vicinae" { spawn "vicinae" "toggle"; }
-    Mod+T hotkey-overlay-title="Open a Terminal: BlackBox" { spawn "flatpak" "run" "com.raggesilver.BlackBox"; }
+    Mod+T hotkey-overlay-title="Open a Terminal" { spawn "ptyxis"; }
     Mod+Return { maximize-column; }
     Mod+Shift+Return { fullscreen-window; }
     Mod+B hotkey-overlay-title="Open Browser" { spawn "xdg-open" "https://"; }
