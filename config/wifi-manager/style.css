@@ -1,0 +1,92 @@
+/* Match waybar's dark theme */
+
+.wifi-panel {
+  background: rgba(18, 19, 20, 0.95);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.header {
+  padding: 14px 18px;
+}
+
+.header-title {
+  color: #deddda;
+  font-size: 15px;
+}
+
+.status-label {
+  color: rgba(222, 221, 218, 0.5);
+  font-size: 12px;
+}
+
+.scan-button {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(222, 221, 218, 0.6);
+}
+
+.scan-button:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #deddda;
+}
+
+switch:checked {
+  background: #3584e4;
+}
+
+.ssid-label {
+  color: rgba(222, 221, 218, 0.9);
+  font-size: 14px;
+}
+
+.network-row.connected {
+  background: rgba(53, 132, 228, 0.1);
+}
+
+.network-row.connected .ssid-label {
+  color: #deddda;
+}
+
+.signal-strong { color: #8ff0a4; }
+.signal-good   { color: #f8e45c; }
+.signal-fair   { color: #ffbe6f; }
+.signal-weak   { color: rgba(222, 221, 218, 0.4); }
+
+.security-icon {
+  color: rgba(222, 221, 218, 0.4);
+}
+
+.saved-icon {
+  color: #99c1f1;
+}
+
+.network-popover {
+  background: rgba(18, 19, 20, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.password-entry {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #deddda;
+}
+
+.password-entry:focus {
+  border-color: #3584e4;
+}
+
+.connect-button {
+  background: #3584e4;
+  color: #ffffff;
+  border-radius: 8px;
+}
+
+.connect-button:hover {
+  background: #4a91e9;
+}
+
+.cancel-button {
+  color: rgba(222, 221, 218, 0.5);
+}
