@@ -435,7 +435,7 @@ binds {
     Mod+Shift+Return { fullscreen-window; }
     Mod+B hotkey-overlay-title="Open Browser" { spawn "xdg-open" "https://"; }
     Mod+Backslash hotkey-overlay-title="Open Browser" { spawn "xdg-open" "https://"; }
-    Mod+D hotkey-overlay-title="Run an Application: fuzzel" { spawn "fuzzel"; }
+    Mod+D hotkey-overlay-title="Open Vicinae" { spawn "vicinae" "toggle"; }
     Super+Alt+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn "swaylock"; }
 
     // Use spawn-sh to run a shell command. Do this if you need pipes, multiple commands, etc.

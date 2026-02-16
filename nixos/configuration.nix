@@ -35,13 +35,9 @@
   services.pipewire = {
     enable = true;
     alsa.enable = true;
-    alsa.support32Bit = true;
     pulse.enable = true;
     wireplumber.enable = true;
   };
-  # Prevent PulseAudio from conflicting
-  hardware.pulseaudio.enable = false;
-  security.rtkit.enable = true;
 
   # Graphics (AMD iGPU — Ryzen AI 300 series)
   hardware.graphics.enable = true;
@@ -84,37 +80,14 @@
   # Enable fish system-wide (needed for it to be a valid login shell)
   programs.fish.enable = true;
 
-  # GPG
-  programs.gnupg.agent = {
-    enable = true;
-    pinentryPackage = pkgs.pinentry-gnome3;
-  };
-
   # Polkit (needed by 1Password, niri, etc.)
   security.polkit.enable = true;
 
   # GNOME Keyring (for secrets, SSH agent, etc.)
   services.gnome.gnome-keyring.enable = true;
 
-  # Portal (xdg-desktop-portal for screen sharing, file picker, etc.)
-  # niri-flake sets up portals, but ensure GNOME portal is available for GTK apps
-  xdg.portal = {
-    enable = true;
-    extraPortals = [ pkgs.xdg-desktop-portal-gnome ];
-  };
-
-  # Dark mode for GTK apps
-  environment.sessionVariables = {
-    # Tell GTK apps to use dark theme
-    GTK_THEME = "Adwaita:dark";
-  };
-
-  # Power management (recommended for Framework AMD by nixos-hardware)
-  services.power-profiles-daemon.enable = true;
-
   # Bluetooth
   hardware.bluetooth.enable = true;
-  services.blueman.enable = true;
 
   # Fan control for Framework (using default curves for now)
   # Custom curves from Silverblue backup are in NixLifeboat/fw-fanctrl-config.json
@@ -125,9 +98,7 @@
 
   # Core system packages (user packages go in home.nix)
   environment.systemPackages = with pkgs; [
-    vim
     git
-    wget
     curl
   ];
 

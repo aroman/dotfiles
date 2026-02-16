@@ -37,7 +37,6 @@ in
   home.packages = with pkgs; [
     # Shells & prompts
     starship
-    fish
 
     # Core CLI
     bat
@@ -57,7 +56,6 @@ in
     # Wayland tools
     wl-clipboard
     swaylock
-    fuzzel
     brightnessctl
     playerctl
 
@@ -71,7 +69,7 @@ in
     google-chrome
 
     # Communication
-    vesktop        # Discord client
+    vesktop
 
     # Passwords
     _1password-gui
@@ -87,16 +85,12 @@ in
     # Development
     nodejs_22
     bun
-    gnumake
-    gcc
   ];
 
   # ── GPG agent ──────────────────────────────────────────────────────
 
   services.gpg-agent = {
     enable = true;
-    defaultCacheTtl = 3600;
-    maxCacheTtl = 7200;
     pinentryPackage = pkgs.pinentry-gnome3;
   };
 
