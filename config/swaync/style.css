@@ -1,0 +1,221 @@
+:root {
+  --cc-bg: rgba(18, 19, 20, 0.92);
+
+  --noti-border-color: rgba(255, 255, 255, 0.06);
+  --noti-bg: 18, 19, 20;
+  --noti-bg-alpha: 0.95;
+  --noti-bg-darker: rgb(12, 13, 14);
+  --noti-bg-hover: rgb(36, 37, 38);
+  --noti-bg-focus: rgba(53, 132, 228, 0.15);
+  --noti-close-bg: rgba(255, 255, 255, 0.08);
+  --noti-close-bg-hover: rgba(255, 255, 255, 0.14);
+
+  --text-color: #deddda;
+  --text-color-disabled: #9a9996;
+
+  --bg-selected: #3584e4;
+
+  --border-radius: 12px;
+  --border: 1px solid var(--noti-border-color);
+
+  --font-size-body: 14px;
+  --font-size-summary: 15px;
+
+  --mpris-album-art-overlay: rgba(18, 19, 20, 0.6);
+  --mpris-button-hover: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Control Center ──────────────────────────────────────────────── */
+
+.control-center {
+  background: var(--cc-bg);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--border-radius);
+  padding: 12px;
+}
+
+.control-center-list-placeholder {
+  color: var(--text-color-disabled);
+  font-size: 14px;
+}
+
+/* Shrink the giant bell icon in the empty state */
+.control-center-list-placeholder image {
+  -gtk-icon-size: 48px;
+  margin: 8px;
+  opacity: 0.3;
+}
+
+/* ── Notifications ───────────────────────────────────────────────── */
+
+.notification {
+  background: rgba(var(--noti-bg), var(--noti-bg-alpha));
+  border: var(--border);
+  border-radius: var(--border-radius);
+  margin: 4px 0;
+}
+
+.notification .notification-content .summary {
+  color: var(--text-color);
+  font-weight: 600;
+  font-size: var(--font-size-summary);
+}
+
+.notification .notification-content .body {
+  color: rgba(222, 221, 218, 0.7);
+  font-size: var(--font-size-body);
+}
+
+.notification .notification-content .time {
+  color: var(--text-color-disabled);
+  font-size: 12px;
+}
+
+.notification.critical {
+  border-color: rgba(237, 51, 59, 0.4);
+}
+
+.close-button {
+  background: var(--noti-close-bg);
+  border-radius: 50%;
+  min-width: 24px;
+  min-height: 24px;
+  color: var(--text-color);
+}
+
+.close-button:hover {
+  background: var(--noti-close-bg-hover);
+}
+
+/* ── Notification Actions ────────────────────────────────────────── */
+
+.notification .notification-action > button {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  color: var(--text-color);
+  padding: 6px 12px;
+}
+
+.notification .notification-action > button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ── Title Widget ────────────────────────────────────────────────── */
+
+.widget-title {
+  margin-bottom: 4px;
+}
+
+.widget-title > label {
+  color: var(--text-color);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.widget-title > button {
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  border-radius: 8px;
+  color: var(--text-color-disabled);
+  padding: 4px 12px;
+}
+
+.widget-title > button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-color);
+}
+
+/* ── DND Widget ──────────────────────────────────────────────────── */
+
+.widget-dnd {
+  padding: 8px 12px;
+  margin: 4px 0;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+}
+
+.widget-dnd label {
+  color: var(--text-color);
+  font-size: 14px;
+}
+
+.widget-dnd switch {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.widget-dnd switch:checked {
+  background: var(--bg-selected);
+}
+
+.widget-dnd switch slider {
+  border-radius: 999px;
+  background: white;
+}
+
+/* ── Buttons Grid (Quick Toggles) ────────────────────────────────── */
+
+.widget-buttons-grid {
+  margin: 4px 0;
+}
+
+.widget-buttons-grid flowboxchild > button {
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  border-radius: 10px;
+  color: var(--text-color);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.widget-buttons-grid flowboxchild > button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.widget-buttons-grid flowboxchild > button.toggle:checked {
+  background: rgba(53, 132, 228, 0.25);
+  color: #99c1f1;
+}
+
+/* ── Volume Widget ───────────────────────────────────────────────── */
+
+.widget-volume {
+  padding: 8px 4px;
+  margin: 4px 0;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+}
+
+/* ── Backlight Widget ────────────────────────────────────────────── */
+
+.widget-backlight {
+  padding: 8px 4px;
+  margin: 4px 0;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+}
+
+/* ── MPRIS Widget ────────────────────────────────────────────────── */
+
+.widget-mpris {
+  margin: 4px 0;
+}
+
+.widget-mpris .widget-mpris-player {
+  border-radius: 10px;
+  border: var(--border);
+  overflow: hidden;
+}
+
+.widget-mpris .widget-mpris-title {
+  color: var(--text-color);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.widget-mpris .widget-mpris-subtitle {
+  color: rgba(222, 221, 218, 0.6);
+  font-size: 13px;
+}

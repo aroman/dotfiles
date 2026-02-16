@@ -22,7 +22,8 @@
 
   "clock": {
     "format": "{:%a %b %d   %H:%M}",
-    "tooltip-format": "{:%A, %B %d, %Y}"
+    "tooltip-format": "{:%A, %B %d, %Y}",
+    "on-click": "swaync-client -t -sw"
   },
 
   "battery": {

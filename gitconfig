@@ -3,7 +3,7 @@
 [user]
 	name = Avi Romanoff
 	email = avi@magiccircle.studio
-	signingkey = DD0C0E72
+	signingkey = /home/aroman/.ssh/blue.pub
 [push]
 	default = simple
 [core]
@@ -20,5 +20,6 @@
 	defaultBranch = main
 [gpg]
 	program = gpg
+	format = ssh
 [commit]
 	gpgsign = true

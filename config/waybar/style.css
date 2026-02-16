@@ -27,15 +27,6 @@ window#waybar {
   border-radius: 8px;
 }
 
-/* Subtle separator between modules */
-#clock,
-#battery,
-#network,
-#bluetooth,
-#pulseaudio,
-#custom-notification {
-  border-left: 1px solid rgba(255, 255, 255, 0.06);
-}
 
 #window {
   color: rgba(255, 255, 255, 0.7);
@@ -74,6 +65,7 @@ window#waybar {
 
 #bluetooth {
   color: #99c1f1;
+  font-size: 20px;
 }
 
 #pulseaudio {
@@ -94,6 +86,7 @@ window#waybar {
 
 #custom-notification {
   color: #deddda;
+  font-size: 20px;
 }
 
 tooltip {

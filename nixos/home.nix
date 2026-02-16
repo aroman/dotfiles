@@ -16,6 +16,13 @@ in
     bake = "sudo nixos-rebuild switch --flake ~/Projects/dotfiles/nixos";
   };
 
+  home.pointerCursor = {
+    name = "Adwaita";
+    package = pkgs.adwaita-icon-theme;
+    size = 24;
+    gtk.enable = true;
+  };
+
   # ── Symlink existing dotfiles ──────────────────────────────────────
 
   # XDG config dirs (-> ~/.config/*)
@@ -26,6 +33,7 @@ in
     "fish".source = link "config/fish";
     "bat".source = link "config/bat";
     "waybar".source = link "config/waybar";
+    "swaync".source = link "config/swaync";
     "easyeffects/output/Cab's_20Fav.json".source = link "Cab's_20Fav.json";
   };
 
@@ -86,7 +94,7 @@ in
   xdg.desktopEntries.figma = {
     name = "Figma";
     comment = "Figma (Chrome app mode)";
-    exec = "google-chrome-stable --profile-directory=\"Profile 1\" --user-agent=\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36\" --hide-crash-restore-bubble --app=https://www.figma.com %U";
+    exec = "google-chrome-stable --user-data-dir=${config.home.homeDirectory}/.config/figma-chrome --user-agent=\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36\" --hide-crash-restore-bubble --app=https://www.figma.com %U";
     icon = ./figma.png;
     terminal = false;
     mimeType = [ "x-scheme-handler/figma" ];
@@ -213,7 +221,10 @@ in
       color-scheme = "prefer-dark";
       gtk-theme = "Adwaita-dark";
       accent-color = "blue";
+      font-name = "Inter 11";
       monospace-font-name = "Cascadia Code NF 12";
+      cursor-theme = "Adwaita";
+      cursor-size = 24;
     };
     "com/raggesilver/BlackBox" = {
       theme-dark = "Everblush";
@@ -222,12 +233,21 @@ in
     };
   };
 
+  # ── Services ─────────────────────────────────────────────────────
+
+  systemd.user.services.figma-agent = {
+    Unit.Description = "Figma local font agent";
+    Service = {
+      ExecStart = "${pkgs.figma-agent}/bin/figma-agent";
+      Restart = "on-failure";
+    };
+    Install.WantedBy = [ "default.target" ];
+  };
+
   # ── Environment variables ──────────────────────────────────────────
 
   home.sessionVariables = {
     EDITOR = "zeditor --wait";
-    # Force Qt apps to use Adwaita dark theme (matches GTK dark mode set via dconf)
-    QT_STYLE_OVERRIDE = "adwaita-dark";
   };
 
   # ── Let Home Manager manage itself ─────────────────────────────────
