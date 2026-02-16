@@ -16,7 +16,7 @@
   networking.networkmanager.enable = true;
 
   # Locale
-  time.timeZone = "America/New_York";
+  time.timeZone = "America/Los_Angeles";
   i18n.defaultLocale = "en_US.UTF-8";
 
   # Niri compositor (provided by niri-flake)
@@ -28,7 +28,7 @@
     enable = true;
     settings = {
       default_session = {
-        command = "${pkgs.tuigreet}/bin/tuigreet --time --cmd niri-session";
+        command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --remember-session --asterisks --greeting 'hack the planet' --theme 'border=magenta;text=cyan;prompt=green;time=red;action=bold;button=yellow' --cmd niri-session";
         user = "greeter";
       };
     };
@@ -93,10 +93,11 @@
     packages = with pkgs; [
       cascadia-code
       inter
+      geist-font
     ];
     fontconfig.defaultFonts = {
       monospace = [ "Cascadia Code NF" ];
-      sansSerif = [ "Inter" ];
+      sansSerif = [ "Geist" ];
       emoji = [ "Noto Color Emoji" ];
     };
   };

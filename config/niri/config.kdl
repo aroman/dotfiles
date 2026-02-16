@@ -148,7 +148,6 @@ layout {
     // - "always", the focused column will always be centered.
     // - "on-overflow", focusing a column will center it if it doesn't fit
     //   together with the previously focused column.
-    // center-focused-column "always"
     always-center-single-column
 
     // You can customize the widths that "switch-preset-column-width" (Mod+R) toggles between.
@@ -302,11 +301,8 @@ layout {
 // See the binds section below for more spawn examples.
 
 // This line starts waybar, a commonly used bar for Wayland compositors.
-// spawn-at-startup "waybar"
-// spawn-at-startup "swaync"
-// spawn-at-startup "swaybg" "-i" "/var/home/aroman/.local/share/backgrounds/2026-02-14-02-13-09-liquid-marbling-paint-texture-background-fluid-painting-abstract-texture-intensive-color-mix-wallpaper.jpg" "-m" "fill"
-// spawn-at-startup "qs" "-c" "noctalia-shell"
-// spawn-at-startup "noctalia-shell"
+spawn-at-startup "waybar"
+spawn-at-startup "swaync"
 spawn-at-startup "vicinae" "server"
 spawn-at-startup "easyeffects" "--gapplication-service"
 
@@ -397,6 +393,8 @@ window-rule {
 window-rule {
     match app-id=r#"(?i)^spotify$"#
     match app-id=r#"^figma-linux$"#
+    // Chrome --app=figma gets its own app-id like "chrome-www.figma.com__-Profile_1"
+    match app-id=r#"^chrome-www\.figma\.com"#
     scroll-factor 0.15
 }
 
@@ -439,8 +437,8 @@ binds {
     Mod+Shift+T hotkey-overlay-title="Stack Terminal Behind" { spawn "sh" "-c" "~/.local/bin/stack-terminal"; }
     Mod+Return { maximize-column; }
     Mod+Shift+Return { fullscreen-window; }
-    Mod+N hotkey-overlay-title="Chrome (Personal)" { spawn "google-chrome-stable" "--profile-directory=Default" "--new-window"; }
-    Mod+M hotkey-overlay-title="Chrome (Magic Circle)" { spawn "google-chrome-stable" "--profile-directory=Profile 1" "--new-window"; }
+    Mod+N hotkey-overlay-title="Chrome (Personal)" { spawn "google-chrome-stable" "--profile-directory=Default" "--new-window" "--hide-crash-restore-bubble"; }
+    Mod+M hotkey-overlay-title="Chrome (Magic Circle)" { spawn "google-chrome-stable" "--profile-directory=Profile 1" "--new-window" "--hide-crash-restore-bubble"; }
     Mod+B hotkey-overlay-title="Open Browser" { spawn "xdg-open" "https://"; }
     Mod+Backslash hotkey-overlay-title="Open Browser" { spawn "xdg-open" "https://"; }
     Mod+D hotkey-overlay-title="Open Vicinae" { spawn "vicinae" "toggle"; }
@@ -708,6 +706,3 @@ binds {
     Mod+Shift+P { power-off-monitors; }
 }
 
-include "dms/outputs.kdl"
-
-include "dms/cursor.kdl"

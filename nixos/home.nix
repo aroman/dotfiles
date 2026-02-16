@@ -6,7 +6,6 @@ let
 in
 {
   imports = [
-    inputs.dms.homeModules.dank-material-shell
   ];
 
   home.username = "aroman";
@@ -14,6 +13,7 @@ in
   home.shellAliases = {
     zed = "zededitor";
     vim = "nvim";
+    bake = "sudo nixos-rebuild switch --flake ~/Projects/dotfiles/nixos";
   };
 
   # ── Symlink existing dotfiles ──────────────────────────────────────
@@ -25,6 +25,7 @@ in
     "zed".source = link "config/zed";
     "fish".source = link "config/fish";
     "bat".source = link "config/bat";
+    "waybar".source = link "config/waybar";
     "easyeffects/output/Cab's_20Fav.json".source = link "Cab's_20Fav.json";
   };
 
@@ -64,11 +65,29 @@ in
       "#2D3437" "#EF7E7E" "#96D988" "#F4D67A" "#71BAF2" "#CE89DF" "#67CBE7" "#BDC3C2"
     ];
   };
-  xdg.desktopEntries.figma-linux = {
-    name = "Figma Linux";
-    comment = "Unofficial Figma desktop application for Linux";
-    exec = "figma-linux %U";
-    icon = "figma-linux";
+  xdg.desktopEntries."com.codeandweb.texturepacker" = {
+    name = "TexturePacker";
+    genericName = "Sprite Sheet Creator";
+    exec = "TexturePacker -platform wayland --gui %F";
+    icon = "com.codeandweb.texturepacker";
+    terminal = false;
+    categories = [ "Development" ];
+    mimeType = [
+      "application/vnd.codeandweb.de.tps"
+      "application/vnd.codeandweb.de.pvr"
+      "application/vnd.codeandweb.de.pvr.ccz"
+      "application/vnd.codeandweb.de.pvr.gz"
+    ];
+  };
+
+  # Figma via Chrome app mode instead of figma-linux (Electron).
+  # Chrome --app is noticeably faster on Wayland/niri.
+  # Windows user-agent tricks Figma into talking to figma-agent for local fonts.
+  xdg.desktopEntries.figma = {
+    name = "Figma";
+    comment = "Figma (Chrome app mode)";
+    exec = "google-chrome-stable --profile-directory=\"Profile 1\" --user-agent=\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36\" --hide-crash-restore-bubble --app=https://www.figma.com %U";
+    icon = ./figma.png;
     terminal = false;
     mimeType = [ "x-scheme-handler/figma" ];
   };
@@ -78,7 +97,7 @@ in
     defaultApplications = {
       "text/plain" = "dev.zed.Zed.desktop";
       "application/x-zerosize" = "dev.zed.Zed.desktop";
-      "x-scheme-handler/figma" = "figma-linux.desktop";
+      "x-scheme-handler/figma" = "figma.desktop";
     };
   };
 
@@ -124,12 +143,14 @@ in
     swaylock
     brightnessctl
     playerctl
+    networkmanagerapplet
+    overskride
 
     # Media & audio
     easyeffects
     pwvucontrol
     spotify
-    vlc
+    celluloid
 
     # Browsers
     firefox
@@ -137,6 +158,7 @@ in
       commandLineArgs = [
         "--enable-features=TouchpadOverscrollHistoryNavigation"
         "--new-window"
+        "--hide-crash-restore-bubble"
       ];
     })
 
@@ -144,10 +166,16 @@ in
     vesktop
 
     # Design
-    figma-linux
+    figma-agent # serves local fonts to Figma web (needs Windows user-agent)
+    texturepacker
+    adwaita-qt6
 
     nautilus
     loupe
+    snapshot
+    papers
+    mission-center
+    font-manager
     adwaita-icon-theme
 
     # Terminal
@@ -157,20 +185,14 @@ in
 
     # Desktop shell & launcher
     vicinae
+    waybar
+    swaynotificationcenter
 
     # Development
     nodejs_22
     bun
   ];
 
-  # ── DankMaterialShell ──────────────────────────────────────────────
-
-  programs.dank-material-shell = {
-    enable = true;
-    systemd.enable = true;
-    enableSystemMonitoring = true;
-    enableDynamicTheming = true;
-  };
 
   # ── GPG agent ──────────────────────────────────────────────────────
 
@@ -204,6 +226,8 @@ in
 
   home.sessionVariables = {
     EDITOR = "zeditor --wait";
+    # Force Qt apps to use Adwaita dark theme (matches GTK dark mode set via dconf)
+    QT_STYLE_OVERRIDE = "adwaita-dark";
   };
 
   # ── Let Home Manager manage itself ─────────────────────────────────
