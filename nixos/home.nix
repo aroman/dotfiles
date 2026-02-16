@@ -32,8 +32,6 @@ in
     "zed".source = link "config/zed";
     "fish".source = link "config/fish";
     "bat".source = link "config/bat";
-    "waybar".source = link "config/waybar";
-    "swaync".source = link "config/swaync";
     "easyeffects/output/Cab's_20Fav.json".source = link "Cab's_20Fav.json";
   };
 
@@ -141,6 +139,7 @@ in
     gnupg
     tokei
     yt-dlp
+    unzip
 
     # Editor
     neovim
@@ -193,8 +192,6 @@ in
 
     # Desktop shell & launcher
     vicinae
-    waybar
-    swaynotificationcenter
 
     # Development
     nodejs_22
@@ -250,7 +247,7 @@ in
     EDITOR = "zeditor --wait";
   };
 
-  # ── Let Home Manager manage itself ─────────────────────────────────
+  # ── Programs ─────────────────────────────────────────────────────
 
   programs.home-manager.enable = true;
 

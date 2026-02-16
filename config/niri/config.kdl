@@ -305,9 +305,6 @@ layout {
 // which may be more convenient to use.
 // See the binds section below for more spawn examples.
 
-// This line starts waybar, a commonly used bar for Wayland compositors.
-spawn-at-startup "waybar"
-spawn-at-startup "swaync"
 spawn-at-startup "vicinae" "server"
 spawn-at-startup "easyeffects" "--gapplication-service"
 
@@ -710,4 +707,3 @@ binds {
     // moving the mouse or pressing any other key.
     Mod+Shift+P { power-off-monitors; }
 }
-
