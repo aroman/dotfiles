@@ -80,16 +80,15 @@ in
     # Terminal
     ptyxis
 
+    # Desktop shell & launcher
+    vicinae
+    noctalia-shell
+
     # Development
     nodejs_22
     bun
     gnumake
     gcc
-
-    # TODO: vicinae and noctalia-shell (qs) — these may need custom packages
-    # or manual installation if not in nixpkgs. Check:
-    #   nix search nixpkgs vicinae
-    #   nix search nixpkgs noctalia
   ];
 
   # ── GPG agent ──────────────────────────────────────────────────────
@@ -114,7 +113,6 @@ in
 
   home.sessionVariables = {
     EDITOR = "nvim";
-    GPG_TTY = "$(tty)";
   };
 
   # ── Let Home Manager manage itself ─────────────────────────────────

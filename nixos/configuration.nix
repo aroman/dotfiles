@@ -116,6 +116,10 @@
   hardware.bluetooth.enable = true;
   services.blueman.enable = true;
 
+  # Fan control for Framework (using default curves for now)
+  # Custom curves from Silverblue backup are in NixLifeboat/fw-fanctrl-config.json
+  hardware.fw-fanctrl.enable = true;
+
   # Allow unfree packages (Spotify, 1Password, Chrome, etc.)
   nixpkgs.config.allowUnfree = true;
 

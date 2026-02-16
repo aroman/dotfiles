@@ -9,12 +9,8 @@ starship init fish | source
 
 alias cat="bat --paging=never"
 
-# abbr --add pi "ssh carovi@raspberrypi.local"
-# abbr --add godo "godot *.godot &> /dev/null &"
 abbr --add wrangler "pnpm wrangler"
-abbr --add a "ag -i"
-# abbr --add hack "code ."
-# abbr --add hack "cursor ."
+abbr --add a "rg -i"
 abbr --add hack "zed ."
 abbr --add exifscrub "exiftool -all= "
 abbr --add gg "cd ~/Projects/magiccircle.gg"
@@ -22,13 +18,6 @@ abbr --add serve "open 'http://127.0.0.1:8080' && bunx http-server ."
 
 abbr --add gs "git status"
 abbr --add gl "git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
-
-switch (uname -r)
-	case '*microsof*'
-		abbr --add open "wsl-open"
-	case '*darwin*'
-		abbr --add foo "bar"
-end
 
 function killport
     set port $argv[1]
@@ -42,9 +31,6 @@ function killport
         echo "No process found listening on port $port"
     end
 end
-
-# # LLVM symbolizer
-# set -x LLVM_SYMBOLIZER /opt/homebrew/opt/llvm/bin/llvm-symbolizer
 
 # GPG Key Setup
 set -x GPG_TTY (tty)
@@ -80,13 +66,10 @@ set -U fish_pager_color_progress brwhite --background=cyan
 set --export BUN_INSTALL "$HOME/.bun"
 set --export PATH $BUN_INSTALL/bin $PATH
 
-# Added by OrbStack: command-line tools and integration
-# This won't be added again if you remove it.
-source ~/.orbstack/shell/init2.fish 2>/dev/null || :
-
-# alias claude="/Users/aroman/.claude/local/claude"
-
-test -e {$HOME}/.iterm2_shell_integration.fish ; and source {$HOME}/.iterm2_shell_integration.fish ; or true
+# macOS-only integrations
+if test (uname) = Darwin
+    source ~/.orbstack/shell/init2.fish 2>/dev/null || :
+    test -e {$HOME}/.iterm2_shell_integration.fish; and source {$HOME}/.iterm2_shell_integration.fish; or true
+end
 
 export PATH="$HOME/.local/bin:$PATH"
-
