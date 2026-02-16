@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+# Spawn a terminal tabbed behind the current window in niri
+
+niri msg action set-column-display tabbed
+ptyxis --new-window &
+
+# Wait for the window to actually open via niri's event stream
+# timeout ensures we don't hang forever if something goes wrong
+timeout 3 niri msg event-stream --json | while IFS= read -r line; do
+  case "$line" in
+    *"WindowOpenedOrChanged"*)
+      niri msg action consume-or-expel-window-left
+      niri msg action focus-window-up
+      exit 0
+      ;;
+  esac
+done

@@ -7,10 +7,12 @@
   # Boot
   boot.loader.systemd-boot.enable = true;
   boot.loader.systemd-boot.configurationLimit = 20;
+  boot.loader.systemd-boot.consoleMode = "5";
+  boot.initrd.systemd.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
   # Networking
-  networking.hostName = "framework";
+  networking.hostName = "wizardtower";
   networking.networkmanager.enable = true;
 
   # Locale
@@ -19,13 +21,23 @@
 
   # Niri compositor (provided by niri-flake)
   programs.niri.enable = true;
+  programs.niri.package = pkgs.niri-unstable;
+
+
+  # Fingerprint reader
+  # services.fprintd.enable = true;
+  # security.pam.services.login.fprintAuth = true;
+  # systemd.services.fprintd = {
+  #   wantedBy = [ "multi-user.target" ];
+  #   serviceConfig.Type = "simple";
+  # };
 
   # Display manager — greetd with tuigreet (lightweight, TTY-based)
   services.greetd = {
     enable = true;
     settings = {
       default_session = {
-        command = "${pkgs.greetd.tuigreet}/bin/tuigreet --time --cmd niri-session";
+        command = "${pkgs.tuigreet}/bin/tuigreet --time --cmd niri-session";
         user = "greeter";
       };
     };
@@ -53,17 +65,19 @@
   # Also set console keymap for TTY
   console.useXkbConfig = true;
 
+  xdg.portal = {
+    enable = true;
+    extraPortals = [ pkgs.xdg-desktop-portal-gnome ];
+  };
+
   # Fonts
   fonts = {
     packages = with pkgs; [
       cascadia-code
-      nerd-fonts.caskaydia-cove
-      noto-fonts
-      noto-fonts-emoji
       inter
     ];
     fontconfig.defaultFonts = {
-      monospace = [ "CaskaydiaCove Nerd Font" ];
+      monospace = [ "Cascadia Code NF" ];
       sansSerif = [ "Inter" ];
       emoji = [ "Noto Color Emoji" ];
     };
@@ -80,8 +94,22 @@
   # Enable fish system-wide (needed for it to be a valid login shell)
   programs.fish.enable = true;
 
+  programs.dconf.enable = true;
+
+  # 1Password (NixOS module sets up browser extension socket + polkit)
+  programs._1password.enable = true;
+  programs._1password-gui = {
+    enable = true;
+    polkitPolicyOwners = [ "aroman" ];
+  };
+
   # Polkit (needed by 1Password, niri, etc.)
   security.polkit.enable = true;
+  security.soteria.enable = true;
+  # Disable niri-flake's bundled KDE polkit agent (soteria replaces it)
+  systemd.user.services.niri-flake-polkit.enable = false;
+
+  security.pam.services.greetd.fprintAuth = false;
 
   # GNOME Keyring (for secrets, SSH agent, etc.)
   services.gnome.gnome-keyring.enable = true;
@@ -96,14 +124,20 @@
   # Allow unfree packages (Spotify, 1Password, Chrome, etc.)
   nixpkgs.config.allowUnfree = true;
 
+  # Electron/Chromium apps: use native Wayland
+  environment.sessionVariables.NIXOS_OZONE_WL = "1";
+
   # Core system packages (user packages go in home.nix)
   environment.systemPackages = with pkgs; [
     git
     curl
   ];
 
-  # Enable Nix flakes
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings = {
+    experimental-features = [ "nix-command" "flakes" ];
+    substituters = [ "https://niri.cachix.org" ];
+    trusted-public-keys = [ "niri.cachix.org-1:Wv0OmO7PsuocRKzfDoJ3mulSl7Z6oezYhGhR+3W2964=" ];
+  };
 
   # Automatic garbage collection
   nix.gc = {
