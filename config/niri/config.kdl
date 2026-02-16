@@ -56,7 +56,7 @@ input {
     touchpad {
         // off
         tap
-        dwt
+        // dwt
         // dwtp
         // drag false
         // drag-lock
@@ -390,15 +390,19 @@ window-rule {
 // See also: https://github.com/swaywm/sway/issues/7338
 // Remove this workaround if Chromium ever fixes native Wayland scroll handling.
 window-rule {
-    match app-id=r#"^(google-chrome|chromium|brave-browser|microsoft-edge|vivaldi).*$"#
-    match app-id=r#"^(vesktop|discord|zen|code|signal|1password|vicinae).*$"#
+    match app-id=r#"^(google-chrome|chromium|vesktop|discord|1password|vicinae).*$"#
     scroll-factor 0.25
 }
 
 window-rule {
     match app-id=r#"(?i)^spotify$"#
-    default-column-width { proportion 1.0; }
+    match app-id=r#"^figma-linux$"#
     scroll-factor 0.15
+}
+
+window-rule {
+    match app-id=r#"(?i)^spotify$"#
+    default-column-width { proportion 1.0; }
 }
 
 window-rule {

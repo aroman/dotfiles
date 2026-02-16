@@ -64,11 +64,21 @@ in
       "#2D3437" "#EF7E7E" "#96D988" "#F4D67A" "#71BAF2" "#CE89DF" "#67CBE7" "#BDC3C2"
     ];
   };
+  xdg.desktopEntries.figma-linux = {
+    name = "Figma Linux";
+    comment = "Unofficial Figma desktop application for Linux";
+    exec = "figma-linux %U";
+    icon = "figma-linux";
+    terminal = false;
+    mimeType = [ "x-scheme-handler/figma" ];
+  };
+
   xdg.mimeApps = {
     enable = true;
     defaultApplications = {
       "text/plain" = "dev.zed.Zed.desktop";
       "application/x-zerosize" = "dev.zed.Zed.desktop";
+      "x-scheme-handler/figma" = "figma-linux.desktop";
     };
   };
 
@@ -133,7 +143,11 @@ in
     # Communication
     vesktop
 
+    # Design
+    figma-linux
+
     nautilus
+    loupe
     adwaita-icon-theme
 
     # Terminal
@@ -169,7 +183,7 @@ in
 
   dconf.settings = {
     "com/github/wwmm/easyeffects/streamoutputs" = {
-      output-device = "auto_null";
+      output-device = "alsa_output.pci-0000_c2_00.6.HiFi__Speaker__sink";
       last-used-output-preset = "Cab's_20Fav";
       use-default-output-preset = true;
     };

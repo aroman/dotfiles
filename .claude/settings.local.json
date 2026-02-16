@@ -65,7 +65,10 @@
       "Bash(git -C /home/aroman/Projects/dotfiles status)",
       "Bash(git -C /home/aroman/Projects/dotfiles diff --cached --stat)",
       "Bash(git -C /home/aroman/Projects/dotfiles log --oneline -5)",
-      "Bash(git -C /home/aroman/Projects/dotfiles diff -- local/bin/stack-terminal nixos/home.nix config/zed/settings.json .claude/settings.local.json)"
+      "Bash(git -C /home/aroman/Projects/dotfiles diff -- local/bin/stack-terminal nixos/home.nix config/zed/settings.json .claude/settings.local.json)",
+      "Bash(nix search:*)",
+      "Bash(git -C /home/aroman/Projects/dotfiles diff)",
+      "Bash(git -C /home/aroman/Projects/dotfiles log --oneline -3)"
     ]
   }
 }
