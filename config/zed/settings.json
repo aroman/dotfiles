@@ -7,15 +7,26 @@
 // custom settings, run `zed: open default settings` from the
 // command palette (cmd-shift-p / ctrl-shift-p)
 {
+  "edit_predictions": {
+    "provider": "copilot",
+  },
+  "scroll_beyond_last_line": "one_page",
+  "buffer_font_size": 15.0,
   "buffer_font_family": "Cascadia Code NF",
   "vim": {
     "toggle_relative_line_numbers": false,
+  },
+  "gutter": {
+    "folds": false,
+    "runnables": false,
+    "code_actions": false,
+    "breakpoints": false,
   },
   "project_panel": {
     "bold_folder_labels": false,
   },
   "buffer_line_height": "comfortable",
-  "scroll_sensitivity": 1.25,
+  // "scroll_sensitivity": 1.25,
   "sticky_scroll": {
     "enabled": false,
   },
@@ -25,19 +36,46 @@
     },
   },
   "agent": {
-    "default_model": {
-      "provider": "anthropic",
-      "model": "claude-opus-4-5-thinking-latest",
-    },
     "favorite_models": [],
     "model_parameters": [],
+    "dock": "left",
+    "button": false,
+  },
+  "outline_panel": {
+    "button": false,
+  },
+  "project_search": {
+    "button": false,
+  },
+  "collaboration_panel": {
+    "button": false,
+  },
+  "notification_panel": {
+    "button": false,
+  },
+  "terminal": {
+    "dock": "right",
+    "button": false,
+  },
+  "debugger": {
+    "button": false,
+  },
+  "toolbar": {
+    "breadcrumbs": false,
+    "quick_actions": false,
+    "selections_menu": false,
+  },
+  "tab_bar": {
+    "show_nav_history_buttons": false,
+    "show_tab_bar_buttons": false,
   },
   "base_keymap": "VSCode",
+  "window_decorations": "server",
   "vim_mode": true,
   "icon_theme": "Zed (Default)",
   "theme": {
     "mode": "dark",
     "light": "Night Owl Light No Italics",
-    "dark": "GitHub Dark",
+    "dark": "GitHub Dark Dimmed",
   },
 }

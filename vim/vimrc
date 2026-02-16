@@ -32,7 +32,7 @@ Plug 'pangloss/vim-javascript', { 'for': 'js' }
 Plug 'leafgarland/typescript-vim', { 'for': 'ts' }
 Plug 'Matt-Deacalion/vim-systemd-syntax'
 Plug 'dag/vim-fish'
-Plug 'jszakmeister/vim-togglecursor'
+" Plug 'jszakmeister/vim-togglecursor'
 
 call plug#end()
 
@@ -83,6 +83,11 @@ set shortmess=atI
 
 " Mouse support
 set mouse=a
+
+" Dynamic cursor shape (block/beam/underline)
+let &t_SI = "\e[6 q"  " insert mode: beam |
+let &t_EI = "\e[2 q"  " normal mode: block
+let &t_SR = "\e[4 q"  " replace mode: underline
 
 " Colors
 syntax on

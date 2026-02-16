@@ -113,6 +113,24 @@ If Zed is installed via Flatpak, symlink the Flatpak config dir to the rcm-manag
 ln -sf ~/.config/zed ~/.var/app/dev.zed.Zed/config/zed
 ```
 
+Zed Flatpak needs `host` filesystem access for file-watching (inotify) to work — without it, files edited externally (e.g. by CLI tools) won't auto-reload in the editor:
+```
+flatpak override --user dev.zed.Zed --filesystem=host
+```
+
+Similarly for Neovim Flatpak:
+```
+ln -sf ~/.config/nvim ~/.var/app/io.neovim.nvim/config/nvim
+flatpak override --user io.neovim.nvim --filesystem=host
+```
+
+### Keyboard (Linux)
+
+Remap Caps Lock to Escape system-wide (works in TTY, GDM, and all compositors):
+```
+localectl set-x11-keymap us "" "" "caps:escape"
+```
+
 ### Questions? Comments?
 
 Open an issue and I'll get back to you :)

@@ -90,3 +90,5 @@ source ~/.orbstack/shell/init2.fish 2>/dev/null || :
 test -e {$HOME}/.iterm2_shell_integration.fish ; and source {$HOME}/.iterm2_shell_integration.fish ; or true
 
 export PATH="$HOME/.local/bin:$PATH"
+
+fish_add_path /var/home/aroman/.spicetify
