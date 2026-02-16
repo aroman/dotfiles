@@ -28,7 +28,10 @@
       # inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    ashell.url = "github:MalpenZibo/ashell";
+    dms = {
+      url = "github:AvengeMedia/DankMaterialShell/stable";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs@{ self, nixpkgs, home-manager, nixos-hardware, niri, ... }: {

@@ -41,7 +41,31 @@
       "Bash(fish -c \"type fzf_key_bindings 2>/dev/null || echo ''not found''\")",
       "Bash(gh search issues:*)",
       "Bash(gh issue view:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "WebFetch(domain:danklinux.com)",
+      "Bash(easyeffects:*)",
+      "WebFetch(domain:gitlab.gnome.org)",
+      "Bash(wpctl inspect:*)",
+      "Bash(wpctl enumerate-profiles:*)",
+      "Bash(pactl list:*)",
+      "Bash(pw-cli info:*)",
+      "Bash(grep:*)",
+      "Bash(dconf write:*)",
+      "Bash(bluetoothctl info:*)",
+      "Bash(bluetoothctl trust:*)",
+      "Bash(bluetoothctl disconnect:*)",
+      "Bash(bluetoothctl connect:*)",
+      "Bash(wpctl settings:*)",
+      "Bash(pw-dump:*)",
+      "Bash(bluetoothctl remove:*)",
+      "Bash(bluetoothctl:*)",
+      "Bash(wpctl set-default:*)",
+      "Bash(git rm:*)",
+      "Bash(git -C /home/aroman/Projects/dotfiles status)",
+      "Bash(git -C /home/aroman/Projects/dotfiles diff --cached --stat)",
+      "Bash(git -C /home/aroman/Projects/dotfiles log --oneline -5)",
+      "Bash(git -C /home/aroman/Projects/dotfiles diff -- local/bin/stack-terminal nixos/home.nix config/zed/settings.json .claude/settings.local.json)"
     ]
   }
 }

@@ -1,0 +1,87 @@
+--- a/src/gtk/header-bar.ui	2026-02-16 04:21:16.299778431 -0500
++++ b/src/gtk/header-bar.ui	2026-02-16 04:18:08.741312980 -0500
+@@ -167,14 +167,6 @@
+ 
+                             <child>
+                               <object class="GtkButton">
+-                                <property name="tooltip-text" translatable="yes">New Tab</property>
+-                                <property name="icon-name">list-add-symbolic</property>
+-                                <property name="action-name">win.new_tab</property>
+-                              </object>
+-                            </child>
+-
+-                            <child>
+-                              <object class="GtkButton">
+                                 <property name="tooltip-text" translatable="yes">Exit Fullscreen</property>
+                                 <property name="icon-name">view-restore-symbolic</property>
+                                 <property name="can-focus">false</property>
+@@ -210,23 +202,6 @@
+                               </object>
+                             </child>
+ 
+-                            <child>
+-                              <object class="GtkWindowControls">
+-                                <property name="side">end</property>
+-
+-                                <binding name="visible">
+-                                  <closure type="gboolean" function="show_window_controls">
+-                                    <lookup name="fullscreened">
+-                                      <lookup name="window">TerminalHeaderBar</lookup>
+-                                    </lookup>
+-                                    <lookup name="floating-mode">TerminalHeaderBar</lookup>
+-                                    <lookup name="single-tab-mode">TerminalHeaderBar</lookup>
+-                                    <constant type="gboolean">false</constant>
+-                                  </closure>
+-                                </binding>
+-                              </object>
+-                            </child>
+-
+                           </object>
+                         </child>
+                       </object>
+@@ -277,14 +252,6 @@
+ 
+                             <child>
+                               <object class="GtkButton">
+-                                <property name="tooltip-text" translatable="yes">New Tab</property>
+-                                <property name="icon-name">list-add-symbolic</property>
+-                                <property name="action-name">win.new_tab</property>
+-                              </object>
+-                            </child>
+-
+-                            <child>
+-                              <object class="GtkButton">
+                                 <property name="tooltip-text" translatable="yes">Exit Fullscreen</property>
+                                 <property name="icon-name">view-restore-symbolic</property>
+                                 <property name="can-focus">false</property>
+@@ -320,23 +287,6 @@
+                               </object>
+                             </child>
+ 
+-                            <child>
+-                              <object class="GtkWindowControls">
+-                                <property name="side">end</property>
+-
+-                                <binding name="visible">
+-                                  <closure type="gboolean" function="show_window_controls">
+-                                    <lookup name="fullscreened">
+-                                      <lookup name="window">TerminalHeaderBar</lookup>
+-                                    </lookup>
+-                                    <lookup name="floating-mode">TerminalHeaderBar</lookup>
+-                                    <lookup name="single-tab-mode">TerminalHeaderBar</lookup>
+-                                    <constant type="gboolean">false</constant>
+-                                  </closure>
+-                                </binding>
+-                              </object>
+-                            </child>
+-
+                           </object>
+                         </child>
+                       </object>
+@@ -353,4 +303,4 @@
+       </object>
+     </child>
+   </template>
+-</interface>
+\ No newline at end of file
++</interface>

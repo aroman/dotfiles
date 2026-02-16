@@ -7,11 +7,15 @@
 // custom settings, run `zed: open default settings` from the
 // command palette (cmd-shift-p / ctrl-shift-p)
 {
+  "features": {
+    "edit_prediction_provider": "copilot",
+  },
   "edit_predictions": {
     "provider": "copilot",
   },
   "scroll_beyond_last_line": "one_page",
   "buffer_font_size": 15.0,
+  // "ui_font_family": ".SystemUIFont",
   "buffer_font_family": "Cascadia Code NF",
   "vim": {
     "toggle_relative_line_numbers": false,
@@ -72,10 +76,15 @@
   "base_keymap": "VSCode",
   "window_decorations": "server",
   "vim_mode": true,
-  "icon_theme": "Zed (Default)",
+  "icon_theme": {
+    "mode": "system",
+    "light": "Base Charmed Icons",
+    // "dark": "Zed (Default)",
+    "dark": "Soft Charmed Icons",
+  },
   "theme": {
     "mode": "dark",
-    "light": "Night Owl Light No Italics",
+    "light": "GitHub Light",
     "dark": "GitHub Dark Dimmed",
   },
 }

@@ -1,16 +1,26 @@
 #!/usr/bin/env sh
-# Spawn a terminal tabbed behind the current window in niri
+# Spawn a terminal as a tab in the current column in niri.
+#
+# Niri has no native "open window into current column" action — new windows
+# always land in their own column. This script works around that by:
+#   1. Spawning blackbox (which niri places in a new column to the right)
+#   2. Listening to niri's event stream for the window to appear
+#   3. Consuming it back into the original column and switching to tabbed view
 
-niri msg action set-column-display tabbed
-ptyxis --new-window &
+# Launch terminal in the background. Niri auto-focuses it in a new column.
+blackbox &
 
-# Wait for the window to actually open via niri's event stream
-# timeout ensures we don't hang forever if something goes wrong
-timeout 3 niri msg event-stream --json | while IFS= read -r line; do
+# Subscribe to niri's event stream and wait for our new window.
+# `timeout 3` ensures we don't hang forever if something goes wrong.
+timeout 3 niri msg event-stream | while IFS= read -r line; do
   case "$line" in
-    *"WindowOpenedOrChanged"*)
+    # Match on both the event type AND app ID to avoid reacting to unrelated
+    # window changes (e.g. title updates on other windows).
+    *"Window opened or changed"*BlackBox*)
+      # The new terminal is focused in its own column. Pull it left into the
+      # column we were in before, then switch that column to tabbed display.
       niri msg action consume-or-expel-window-left
-      niri msg action focus-window-up
+      niri msg action set-column-display tabbed
       exit 0
       ;;
   esac

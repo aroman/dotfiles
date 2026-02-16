@@ -23,15 +23,6 @@
   programs.niri.enable = true;
   programs.niri.package = pkgs.niri-unstable;
 
-
-  # Fingerprint reader
-  # services.fprintd.enable = true;
-  # security.pam.services.login.fprintAuth = true;
-  # systemd.services.fprintd = {
-  #   wantedBy = [ "multi-user.target" ];
-  #   serviceConfig.Type = "simple";
-  # };
-
   # Display manager — greetd with tuigreet (lightweight, TTY-based)
   services.greetd = {
     enable = true;
@@ -48,7 +39,34 @@
     enable = true;
     alsa.enable = true;
     pulse.enable = true;
-    wireplumber.enable = true;
+    wireplumber = {
+      enable = true;
+      extraConfig = {
+        "51-bluez-config" = {
+          "monitor.bluez.properties" = {
+            # Roles the computer will advertise to Bluetooth devices.
+            # Without explicit roles, some devices (e.g. Jabra Speak2 75) only get
+            # HSP/HFP headset profiles and never negotiate A2DP high-quality audio.
+            #
+            # Enabled:
+            #   a2dp_sink — send high-quality stereo audio TO a speaker/headphones (one-way)
+            #   hfp_ag    — act as call audio gateway for mic+speaker (two-way, lower quality)
+            #               WirePlumber auto-switches between A2DP and HFP when apps request a mic.
+            #
+            # Not enabled:
+            #   a2dp_source — receive high-quality audio FROM a device (e.g. phone streaming to computer)
+            #   hsp_hs      — computer acts as a headset for another device (obsolete, use HFP)
+            #   hsp_ag      — computer acts as call gateway via HSP (obsolete, use HFP)
+            #   hfp_hf      — computer acts as a hands-free device for another device's calls
+            #   bsp         — LE Audio broadcast sink (needs BT 5.2+ LE Audio on both ends)
+            "bluez5.roles" = [ "a2dp_sink" "hfp_ag" ];
+            "bluez5.enable-sbc-xq" = true;   # better quality SBC codec variant
+            "bluez5.enable-msbc" = true;      # wideband voice for HFP calls
+            "bluez5.enable-hw-volume" = true;  # sync volume to device hardware
+          };
+        };
+      };
+    };
   };
 
   # Graphics (AMD iGPU — Ryzen AI 300 series)
@@ -113,6 +131,9 @@
 
   # GNOME Keyring (for secrets, SSH agent, etc.)
   services.gnome.gnome-keyring.enable = true;
+
+  # Battery / power info (used by ironbar, etc.)
+  services.upower.enable = true;
 
   # Bluetooth
   hardware.bluetooth.enable = true;

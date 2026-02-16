@@ -5,6 +5,10 @@ let
   link = path: config.lib.file.mkOutOfStoreSymlink "${dotfiles}/${path}";
 in
 {
+  imports = [
+    inputs.dms.homeModules.dank-material-shell
+  ];
+
   home.username = "aroman";
   home.homeDirectory = "/home/aroman";
   home.shellAliases = {
@@ -21,25 +25,7 @@ in
     "zed".source = link "config/zed";
     "fish".source = link "config/fish";
     "bat".source = link "config/bat";
-    # "environment.d".source = link "config/environment.d";
     "easyeffects/output/Cab's_20Fav.json".source = link "Cab's_20Fav.json";
-    "blackbox/schemes/Everblush.json".text = builtins.toJSON {
-      name = "Everblush";
-      comment = "A dark, vibrant, and beautiful color scheme.";
-      background-color = "#141B1E";
-      foreground-color = "#DADADA";
-      cursor-background-color = "#DADADA";
-      cursor-foreground-color = "#141B1E";
-      highlight-background-color = "#DADADA";
-      highlight-foreground-color = "#141B1E";
-      palette = [
-        "#232A2D" "#E57474" "#8CCF7E" "#E5C76B" "#67B0E8" "#C47FD5" "#6CBFBF" "#B3B9B8"
-        "#2D3437" "#EF7E7E" "#96D988" "#F4D67A" "#71BAF2" "#CE89DF" "#67CBE7" "#BDC3C2"
-      ];
-      use-cursor-color = true;
-      use-highlight-color = true;
-      use-theme-colors = false;
-    };
   };
 
   xdg.desktopEntries."dev.zed.Zed" = {
@@ -66,6 +52,18 @@ in
 
   xdg.configFile."mimeapps.list".force = true;
   xdg.dataFile."applications/mimeapps.list".force = true;
+  xdg.dataFile."blackbox/schemes/Everblush.json".force = true;
+  xdg.dataFile."blackbox/schemes/Everblush.json".text = builtins.toJSON {
+    name = "Everblush";
+    comment = "A dark, vibrant, and beautiful color scheme.";
+    use-theme-colors = false;
+    foreground-color = "#DADADA";
+    background-color = "#141B1E";
+    palette = [
+      "#232A2D" "#E57474" "#8CCF7E" "#E5C76B" "#67B0E8" "#C47FD5" "#6CBFBF" "#B3B9B8"
+      "#2D3437" "#EF7E7E" "#96D988" "#F4D67A" "#71BAF2" "#CE89DF" "#67CBE7" "#BDC3C2"
+    ];
+  };
   xdg.mimeApps = {
     enable = true;
     defaultApplications = {
@@ -139,18 +137,26 @@ in
     adwaita-icon-theme
 
     # Terminal
-    ptyxis
-    blackbox-terminal
+    (blackbox-terminal.overrideAttrs (old: {
+      patches = (old.patches or []) ++ [ ./blackbox-no-buttons.patch ];
+    }))
 
     # Desktop shell & launcher
     vicinae
-    # noctalia-shell
-    inputs.ashell.packages.${pkgs.system}.default
 
     # Development
     nodejs_22
     bun
   ];
+
+  # ── DankMaterialShell ──────────────────────────────────────────────
+
+  programs.dank-material-shell = {
+    enable = true;
+    systemd.enable = true;
+    enableSystemMonitoring = true;
+    enableDynamicTheming = true;
+  };
 
   # ── GPG agent ──────────────────────────────────────────────────────
 
@@ -176,7 +182,7 @@ in
     "com/raggesilver/BlackBox" = {
       theme-dark = "Everblush";
       pretty = true;
-      show-headerbar = false;
+      show-headerbar = true;
     };
   };
 
