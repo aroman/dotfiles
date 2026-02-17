@@ -109,7 +109,7 @@ input {
 // Find more information on the wiki:
 // https://yalter.github.io/niri/Configuration:-Outputs
 // Remember to uncomment the node by removing "/-"!
-/-output "eDP-1" {
+output "eDP-1" {
     // Uncomment this line to disable this output.
     // off
 
@@ -119,14 +119,20 @@ input {
     // for the resolution.
     // If the mode is omitted altogether or is invalid, niri will pick one automatically.
     // Run `niri msg outputs` while inside a niri instance to list all outputs and their modes.
-    mode "1920x1080@120.030"
+    // mode "1920x1080@120.030"
 
     // You can use integer or fractional scale, for example use 1.5 for 150% scale.
-    scale 2
+    scale 1.5
 
     // Transform allows to rotate the output counter-clockwise, valid values are:
     // normal, 90, 180, 270, flipped, flipped-90, flipped-180 and flipped-270.
     transform "normal"
+    variable-refresh-rate // on-demand=true
+
+    // backdrop-color "#111418"
+     // backdrop-color "#1D2024"
+     backdrop-color "#1D2029"
+
 
     // Position of the output in the global coordinate space.
     // This affects directional monitor actions like "focus-monitor-left", and cursor movement.
@@ -154,6 +160,7 @@ layout {
     // - "on-overflow", focusing a column will center it if it doesn't fit
     //   together with the previously focused column.
     always-center-single-column
+    center-focused-column "never"
 
     // You can customize the widths that "switch-preset-column-width" (Mod+R) toggles between.
     preset-column-widths {
@@ -201,13 +208,16 @@ layout {
         // - CSS-like notation: "rgb(255, 127, 0)", rgba(), hsl() and a few others.
 
         // Color of the ring on the active monitor.
-        active-color "#7fc8ff"
+        // active-color "#58a6ff"
+        // active-color "#58a6ff"
+        // active-color "#c3c0ff"
+        // active-color "#ffb4ab"
 
         // Color of the ring on inactive monitors.
         //
         // The focus ring only draws around the active window, so the only place
         // where you can see its inactive-color is on other monitors.
-        inactive-color "#505050"
+        inactive-color "#30363d"
 
         // You can also use gradients. They take precedence over solid colors.
         // Gradients are rendered the same as CSS linear-gradient(angle, from, to).
@@ -217,6 +227,7 @@ layout {
         // Changing the color space is also supported, check the wiki for more info.
         //
         // active-gradient from="#80c8ff" to="#c7ff7f" angle=45
+        active-gradient from="#58a6ff" to="#ffb4ab" angle=45
 
         // You can also color the gradient relative to the entire view
         // of the workspace, rather than relative to just the window itself.
@@ -271,16 +282,16 @@ layout {
         // pixels and match the CSS box-shadow properties.
 
         // Softness controls the shadow blur radius.
-        softness 30
+        softness 40
 
         // Spread expands the shadow.
-        spread 5
+        spread 2
 
         // Offset moves the shadow relative to the window.
-        offset x=0 y=5
+        offset x=0 y=8
 
         // You can also change the shadow color and opacity.
-        color "#0007"
+        color "#01040966"
     }
 
     // Struts shrink the area occupied by windows, similarly to layer-shell panels.
@@ -306,6 +317,7 @@ layout {
 // See the binds section below for more spawn examples.
 
 spawn-at-startup "vicinae" "server"
+spawn-at-startup "noctalia-shell"
 spawn-at-startup "easyeffects" "--gapplication-service"
 
 // To run a shell command (with variables, pipes, etc.), use spawn-sh-at-startup:
@@ -337,13 +349,26 @@ debug {
 // Animation settings.
 // The wiki explains how to configure individual animations:
 // https://yalter.github.io/niri/Configuration:-Animations
-animations {
-    // Uncomment to turn off all animations.
-    // off
-
-    // Slow down all animations by this factor. Values below 1 speed them up instead.
-    // slowdown 3.0
-}
+// animations {
+//     window-open {
+//         spring damping-ratio=0.78 stiffness=800 epsilon=0.0001
+//     }
+//     window-close {
+//         spring damping-ratio=0.78 stiffness=800 epsilon=0.0001
+//     }
+//     window-movement {
+//         spring damping-ratio=0.85 stiffness=900 epsilon=0.0001
+//     }
+//     window-resize {
+//         spring damping-ratio=0.85 stiffness=900 epsilon=0.0001
+//     }
+//     workspace-switch {
+//         spring damping-ratio=0.85 stiffness=900 epsilon=0.0001
+//     }
+//     horizontal-view-movement {
+//         spring damping-ratio=0.85 stiffness=900 epsilon=0.0001
+//     }
+// }
 
 // Window rules let you adjust behavior for individual windows.
 // Find more information on the wiki:
@@ -388,7 +413,8 @@ window-rule {
 // See also: https://github.com/swaywm/sway/issues/7338
 // Remove this workaround if Chromium ever fixes native Wayland scroll handling.
 window-rule {
-    match app-id=r#"^(google-chrome|chromium|vesktop|discord|1password|vicinae).*$"#
+    match app-id=r#"^(google-chrome|chromium|chrome-|vesktop|discord|1password|vicinae).*$"#
+    match title="^Vicinae Settings$"
     scroll-factor 0.25
 }
 
@@ -402,11 +428,17 @@ window-rule {
 
 window-rule {
     match app-id=r#"(?i)^spotify$"#
-    default-column-width { proportion 1.0; }
+    match title="^TexturePacker$"
+    open-maximized true
 }
 
 window-rule {
-    geometry-corner-radius 14
+    match app-id=r#"^org\.quickshell$"# title="^Noctalia$"
+    open-floating true
+}
+
+window-rule {
+    geometry-corner-radius 12
     clip-to-geometry true
 }
 
@@ -444,7 +476,8 @@ binds {
     Mod+B hotkey-overlay-title="Open Browser" { spawn "xdg-open" "https://"; }
     Mod+Backslash hotkey-overlay-title="Open Browser" { spawn "xdg-open" "https://"; }
     Mod+D hotkey-overlay-title="Open Vicinae" { spawn "vicinae" "toggle"; }
-    Super+Alt+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn "swaylock"; }
+    Super+Alt+L hotkey-overlay-title="Lock the Screen" { spawn "noctalia-shell" "ipc" "call" "lockScreen" "lock"; }
+    Mod+Shift+Comma hotkey-overlay-title="Noctalia Settings" { spawn "noctalia-shell" "ipc" "call" "settings" "toggle"; }
 
     // Use spawn-sh to run a shell command. Do this if you need pipes, multiple commands, etc.
     // Note: the entire command goes as a single argument. It's passed verbatim to `sh -c`.
@@ -643,6 +676,7 @@ binds {
     Mod+Ctrl+F { expand-column-to-available-width; }
 
     Mod+C { center-column; }
+    Mod+Shift+C hotkey-overlay-title="Toggle Auto-Center" { spawn "sh" "/home/aroman/Projects/dotfiles/local/bin/toggle-center"; }
 
     // Center all fully visible columns on screen.
     Mod+Ctrl+C { center-visible-columns; }

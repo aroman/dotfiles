@@ -31,7 +31,7 @@
   };
 
   outputs = inputs@{ self, nixpkgs, home-manager, nixos-hardware, niri, ... }: {
-    nixosConfigurations.framework = nixpkgs.lib.nixosSystem {
+    nixosConfigurations.wizardtower = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       specialArgs = { inherit inputs; };
       modules = [

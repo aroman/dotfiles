@@ -99,7 +99,15 @@
       "Bash(gpg --import:*)",
       "Bash(gpg:*)",
       "Bash(getcap:*)",
-      "WebFetch(domain:discourse.nixos.org)"
+      "WebFetch(domain:discourse.nixos.org)",
+      "WebFetch(domain:docs.noctalia.dev)",
+      "Bash(git stash:*)",
+      "Bash(git checkout:*)",
+      "Bash(~/.local/bin/toggle-center:*)",
+      "Bash(sh /home/aroman/Projects/dotfiles/local/bin/toggle-center)",
+      "Bash(xxd:*)",
+      "WebFetch(domain:docs.pipewire.org)",
+      "Bash(niri validate:*)"
     ]
   }
 }

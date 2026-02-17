@@ -10,12 +10,6 @@ in
 
   home.username = "aroman";
   home.homeDirectory = "/home/aroman";
-  home.shellAliases = {
-    zed = "zededitor";
-    vim = "nvim";
-    bake = "sudo nixos-rebuild switch --flake ~/Projects/dotfiles/nixos";
-  };
-
   home.pointerCursor = {
     name = "Adwaita";
     package = pkgs.adwaita-icon-theme;
@@ -27,7 +21,7 @@ in
 
   # XDG config dirs (-> ~/.config/*)
   xdg.configFile = {
-    "niri/config.kdl".source = link "config/niri/config.kdl";
+    "niri".source = link "config/niri";
     "nvim".source = link "config/nvim";
     "zed".source = link "config/zed";
     "fish".source = link "config/fish";
@@ -59,16 +53,16 @@ in
 
   xdg.configFile."mimeapps.list".force = true;
   xdg.dataFile."applications/mimeapps.list".force = true;
-  xdg.dataFile."blackbox/schemes/Everblush.json".force = true;
-  xdg.dataFile."blackbox/schemes/Everblush.json".text = builtins.toJSON {
-    name = "Everblush";
-    comment = "A dark, vibrant, and beautiful color scheme.";
+  xdg.dataFile."blackbox/schemes/GitHub Dark.json".force = true;
+  xdg.dataFile."blackbox/schemes/GitHub Dark.json".text = builtins.toJSON {
+    name = "GitHub Dark";
+    comment = "GitHub Dark color scheme.";
     use-theme-colors = false;
-    foreground-color = "#DADADA";
-    background-color = "#141B1E";
+    foreground-color = "#e6edf3";
+    background-color = "#0d1117";
     palette = [
-      "#232A2D" "#E57474" "#8CCF7E" "#E5C76B" "#67B0E8" "#C47FD5" "#6CBFBF" "#B3B9B8"
-      "#2D3437" "#EF7E7E" "#96D988" "#F4D67A" "#71BAF2" "#CE89DF" "#67CBE7" "#BDC3C2"
+      "#484f58" "#f85149" "#3fb950" "#d29922" "#58a6ff" "#bc8cff" "#39d2c0" "#b1bac4"
+      "#6e7681" "#ff7b72" "#56d364" "#e3b341" "#79c0ff" "#d2a8ff" "#56d4cf" "#f0f6fc"
     ];
   };
   xdg.desktopEntries."com.codeandweb.texturepacker" = {
@@ -224,7 +218,7 @@ in
       cursor-size = 24;
     };
     "com/raggesilver/BlackBox" = {
-      theme-dark = "Everblush";
+      theme-dark = "GitHub Dark";
       pretty = true;
       show-headerbar = true;
     };
@@ -237,6 +231,38 @@ in
     Service = {
       ExecStart = "${pkgs.figma-agent}/bin/figma-agent";
       Restart = "on-failure";
+    };
+    Install.WantedBy = [ "default.target" ];
+  };
+
+  # ── Portal permissions ────────────────────────────────────────────
+  # xdg-desktop-portal-gnome can't show the "allow camera?" dialog
+  # outside a full GNOME session (no org.gnome.Shell on niri), so we
+  # grant camera access directly in the permission store on startup.
+  systemd.user.services.portal-camera-permission = let
+    dbus-send = "${pkgs.dbus}/bin/dbus-send";
+    grant = app: ''
+      ${dbus-send} --session \
+        --dest=org.freedesktop.impl.portal.PermissionStore \
+        --type=method_call \
+        /org/freedesktop/impl/portal/PermissionStore \
+        org.freedesktop.impl.portal.PermissionStore.SetPermission \
+        string:devices boolean:true string:camera \
+        string:${app} array:string:yes
+    '';
+    cameraApps = [
+      "org.gnome.Snapshot"
+    ];
+  in {
+    Unit = {
+      Description = "Grant camera permission in XDG portal store";
+      After = [ "xdg-desktop-portal.service" ];
+    };
+    Service = {
+      Type = "oneshot";
+      ExecStart = pkgs.writeShellScript "grant-camera-permissions" ''
+        ${lib.concatMapStringsSep "\n" grant cameraApps}
+      '';
     };
     Install.WantedBy = [ "default.target" ];
   };

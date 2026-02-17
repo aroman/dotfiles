@@ -7,6 +7,12 @@
 // custom settings, run `zed: open default settings` from the
 // command palette (cmd-shift-p / ctrl-shift-p)
 {
+  "restore_on_startup": "last_session",
+  "when_closing_with_no_tabs": "platform_default",
+  "on_last_window_closed": "platform_default",
+  "git_panel": {
+    "tree_view": true
+  },
   "features": {
     "edit_prediction_provider": "copilot",
   },
