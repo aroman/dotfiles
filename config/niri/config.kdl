@@ -467,7 +467,7 @@ binds {
     // Suggested binds for running programs: terminal, app launcher, screen locker.
     Mod+Space hotkey-overlay-title="Open Vicinae" { spawn "vicinae" "toggle"; }
     Alt+Space hotkey-overlay-title="Open Vicinae" { spawn "vicinae" "toggle"; }
-    Mod+T hotkey-overlay-title="Open a Terminal" { spawn "blackbox"; }
+    Mod+T hotkey-overlay-title="Open a Terminal" { spawn "ptyxis" "--new-window"; }
     Mod+Shift+T hotkey-overlay-title="Stack Terminal Behind" { spawn "sh" "-c" "~/.local/bin/stack-terminal"; }
     Mod+Return { maximize-column; }
     Mod+Shift+Return { fullscreen-window; }

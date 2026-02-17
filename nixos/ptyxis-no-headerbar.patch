@@ -1,0 +1,10 @@
+--- a/src/ptyxis-window.ui	2026-02-17 00:56:46.627519849 -0800
++++ b/src/ptyxis-window.ui	2026-02-17 00:56:46.633468868 -0800
+@@ -378,6 +378,7 @@
+                     <property name="hexpand">true</property>
+                     <child>
+                       <object class="AdwHeaderBar" id="header_bar">
++                        <property name="visible">false</property>
+                         <style>
+                           <class name="main-header-bar"/>
+                         </style>

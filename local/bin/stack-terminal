@@ -3,12 +3,12 @@
 #
 # Niri has no native "open window into current column" action — new windows
 # always land in their own column. This script works around that by:
-#   1. Spawning blackbox (which niri places in a new column to the right)
+#   1. Spawning ptyxis (which niri places in a new column to the right)
 #   2. Listening to niri's event stream for the window to appear
 #   3. Consuming it back into the original column and switching to tabbed view
 
 # Launch terminal in the background. Niri auto-focuses it in a new column.
-blackbox &
+ptyxis --new-window &
 
 # Subscribe to niri's event stream and wait for our new window.
 # `timeout 3` ensures we don't hang forever if something goes wrong.
@@ -16,7 +16,7 @@ timeout 3 niri msg event-stream | while IFS= read -r line; do
   case "$line" in
     # Match on both the event type AND app ID to avoid reacting to unrelated
     # window changes (e.g. title updates on other windows).
-    *"Window opened or changed"*BlackBox*)
+    *"Window opened or changed"*org.gnome.Ptyxis*)
       # The new terminal is focused in its own column. Pull it left into the
       # column we were in before, then switch that column to tabbed display.
       niri msg action consume-or-expel-window-left

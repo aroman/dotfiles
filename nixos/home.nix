@@ -53,18 +53,50 @@ in
 
   xdg.configFile."mimeapps.list".force = true;
   xdg.dataFile."applications/mimeapps.list".force = true;
-  xdg.dataFile."blackbox/schemes/GitHub Dark.json".force = true;
-  xdg.dataFile."blackbox/schemes/GitHub Dark.json".text = builtins.toJSON {
-    name = "GitHub Dark";
-    comment = "GitHub Dark color scheme.";
-    use-theme-colors = false;
-    foreground-color = "#e6edf3";
-    background-color = "#0d1117";
-    palette = [
-      "#484f58" "#f85149" "#3fb950" "#d29922" "#58a6ff" "#bc8cff" "#39d2c0" "#b1bac4"
-      "#6e7681" "#ff7b72" "#56d364" "#e3b341" "#79c0ff" "#d2a8ff" "#56d4cf" "#f0f6fc"
-    ];
-  };
+  xdg.dataFile."org.gnome.Ptyxis/palettes/one-dark.palette".text = ''
+    [Palette]
+    Name=One Dark
+
+    [Dark]
+    Foreground=#abb2bf
+    Background=#0d1117
+    Color0=#0d1117
+    Color1=#e06c75
+    Color2=#98c379
+    Color3=#e5c07b
+    Color4=#61afef
+    Color5=#c678dd
+    Color6=#56b6c2
+    Color7=#abb2bf
+    Color8=#545862
+    Color9=#e06c75
+    Color10=#98c379
+    Color11=#e5c07b
+    Color12=#61afef
+    Color13=#c678dd
+    Color14=#56b6c2
+    Color15=#c8ccd4
+
+    [Light]
+    Foreground=#abb2bf
+    Background=#0d1117
+    Color0=#0d1117
+    Color1=#e06c75
+    Color2=#98c379
+    Color3=#e5c07b
+    Color4=#61afef
+    Color5=#c678dd
+    Color6=#56b6c2
+    Color7=#abb2bf
+    Color8=#545862
+    Color9=#e06c75
+    Color10=#98c379
+    Color11=#e5c07b
+    Color12=#61afef
+    Color13=#c678dd
+    Color14=#56b6c2
+    Color15=#c8ccd4
+  '';
   xdg.desktopEntries."com.codeandweb.texturepacker" = {
     name = "TexturePacker";
     genericName = "Sprite Sheet Creator";
@@ -180,8 +212,8 @@ in
     adwaita-icon-theme
 
     # Terminal
-    (blackbox-terminal.overrideAttrs (old: {
-      patches = (old.patches or []) ++ [ ./blackbox-no-buttons.patch ];
+    (ptyxis.overrideAttrs (old: {
+      patches = (old.patches or []) ++ [ ./ptyxis-no-headerbar.patch ];
     }))
 
     # Desktop shell & launcher
@@ -216,11 +248,6 @@ in
       monospace-font-name = "Cascadia Code NF 12";
       cursor-theme = "Adwaita";
       cursor-size = 24;
-    };
-    "com/raggesilver/BlackBox" = {
-      theme-dark = "GitHub Dark";
-      pretty = true;
-      show-headerbar = true;
     };
   };
 
