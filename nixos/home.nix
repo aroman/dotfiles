@@ -128,6 +128,15 @@ in
     mimeType = [ "x-scheme-handler/figma" ];
   };
 
+  xdg.desktopEntries.linear = {
+    name = "Linear";
+    comment = "Linear (Chrome app mode)";
+    exec = "google-chrome-stable --user-data-dir=${config.home.homeDirectory}/.config/linear-chrome --hide-crash-restore-bubble --app=https://linear.app %U";
+    icon = ./linear.png;
+    terminal = false;
+    mimeType = [];
+  };
+
   xdg.mimeApps = {
     enable = true;
     defaultApplications = {
@@ -196,7 +205,7 @@ in
     overskride
 
     # Media & audio
-    pwvucontrol
+    pwvucontrol # TODO: missing icons (emblem-default-symbolic) — https://github.com/saivert/pwvucontrol/issues/71
     spotify
     celluloid
     newsflash
