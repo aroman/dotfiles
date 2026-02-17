@@ -14,13 +14,42 @@
   systemd.user.services.pipewire.environment.LV2_PATH =
     lib.mkForce "${pkgs.lsp-plugins}/lib/lv2:${pkgs.calf}/lib/lv2";
 
+  # Rename the raw ALSA speaker node
+  services.pipewire.wireplumber.extraConfig."50-fw16-speaker-rename" = {
+    "monitor.alsa.rules" = [
+      {
+        matches = [
+          { "node.name" = "alsa_output.pci-0000_c2_00.6.HiFi__Speaker__sink"; }
+        ];
+        actions.update-props = {
+          "node.description" = "Raw Laptop Speakers";
+        };
+      }
+      {
+        matches = [
+          { "node.name" = "alsa_input.pci-0000_c2_00.6.HiFi__Mic1__source"; }
+        ];
+        actions.update-props = {
+          "node.description" = "Framework 16 Microphone";
+        };
+      }
+    ];
+  };
+
+  # Make DSP the default audio sink
+  services.pipewire.wireplumber.extraConfig."50-fw16-speaker-default" = {
+    "wireplumber.settings" = {
+      "default.configured.audio.sink" = "effect_input.fw16_speaker_dsp";
+    };
+  };
+
   services.pipewire.extraConfig.pipewire."90-fw16-speaker-dsp" = {
     "context.modules" = [
       {
         name = "libpipewire-module-filter-chain";
         args = {
-          "node.description" = "Framework 16 Speaker DSP";
-          "media.name" = "Framework 16 Speaker DSP";
+          "node.description" = "Framework 16 Speakers";
+          "media.name" = "Framework 16 Speakers";
           "filter.graph" = {
             nodes = [
               # 1. High-pass filter + input gain stage (+36 dB drives the chain hot)

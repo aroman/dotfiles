@@ -53,6 +53,54 @@ in
 
   xdg.configFile."mimeapps.list".force = true;
   xdg.dataFile."applications/mimeapps.list".force = true;
+  xdg.dataFile."org.gnome.Ptyxis/palettes/everblush-custom.palette".text = ''
+    [Palette]
+    Name=Everblush Custom
+
+    [Dark]
+    Background=#141B1E
+    Foreground=#DADADA
+    Color0=#232A2D
+    Color1=#E57474
+    Color2=#8CCF7E
+    Color3=#E5C76B
+    Color4=#67B0E8
+    Color5=#C47FD5
+    Color6=#6CBFBF
+    Color7=#B3B9B8
+    Color8=#2D3437
+    Color9=#EF7E7E
+    Color10=#96D988
+    Color11=#F4D67A
+    Color12=#71BAF2
+    Color13=#CE89DF
+    Color14=#67CBE7
+    Color15=#BDC3C2
+    SuperuserBackground=#1C0A0C
+    SuperuserForeground=#DADADA
+
+    [Light]
+    Background=#141B1E
+    Foreground=#DADADA
+    Color0=#232A2D
+    Color1=#E57474
+    Color2=#8CCF7E
+    Color3=#E5C76B
+    Color4=#67B0E8
+    Color5=#C47FD5
+    Color6=#6CBFBF
+    Color7=#B3B9B8
+    Color8=#2D3437
+    Color9=#EF7E7E
+    Color10=#96D988
+    Color11=#F4D67A
+    Color12=#71BAF2
+    Color13=#CE89DF
+    Color14=#67CBE7
+    Color15=#BDC3C2
+    SuperuserBackground=#1C0A0C
+    SuperuserForeground=#DADADA
+  '';
   xdg.desktopEntries."com.codeandweb.texturepacker" = {
     name = "TexturePacker";
     genericName = "Sprite Sheet Creator";
@@ -86,6 +134,16 @@ in
       "text/plain" = "dev.zed.Zed.desktop";
       "application/x-zerosize" = "dev.zed.Zed.desktop";
       "x-scheme-handler/figma" = "figma.desktop";
+      "image/png" = "org.gnome.Loupe.desktop";
+      "image/jpeg" = "org.gnome.Loupe.desktop";
+      "image/gif" = "org.gnome.Loupe.desktop";
+      "image/webp" = "org.gnome.Loupe.desktop";
+      "image/avif" = "org.gnome.Loupe.desktop";
+      "image/svg+xml" = "org.gnome.Loupe.desktop";
+      "image/bmp" = "org.gnome.Loupe.desktop";
+      "image/tiff" = "org.gnome.Loupe.desktop";
+      "image/heic" = "org.gnome.Loupe.desktop";
+      "image/vnd.microsoft.icon" = "org.gnome.Loupe.desktop";
     };
   };
 
@@ -141,6 +199,7 @@ in
     pwvucontrol
     spotify
     celluloid
+    newsflash
 
     # Browsers
     firefox
@@ -197,14 +256,11 @@ in
       gtk-theme = "Adwaita-dark";
       accent-color = "blue";
       font-name = "Inter 11";
-      monospace-font-name = "Cascadia Code NF 12";
+      monospace-font-name = "CaskaydiaCove Nerd Font 12";
       cursor-theme = "Adwaita";
       cursor-size = 24;
     };
-    "com/raggesilver/BlackBox" = {
-      theme-dark = "One Dark";
-      pretty = true;
-    };
+    # TODO: manage Ptyxis settings declaratively (dconf module doesn't re-apply after manual changes)
   };
 
   # ── Services ─────────────────────────────────────────────────────

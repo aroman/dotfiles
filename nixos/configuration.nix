@@ -32,6 +32,7 @@
   services.greetd = {
     enable = true;
     settings = {
+      terminal.vt = 2;
       default_session = {
         command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --remember-session --asterisks --greeting 'hack the planet' --theme 'border=magenta;text=cyan;prompt=green;time=red;action=bold;button=yellow' --cmd niri-session";
         user = "greeter";
@@ -74,6 +75,9 @@
     };
   };
 
+  # Real-time scheduling for PipeWire (prevents audio pops/crackles)
+  security.rtkit.enable = true;
+
   # Graphics (AMD iGPU — Ryzen AI 300 series)
   hardware.graphics.enable = true;
 
@@ -96,12 +100,12 @@
   # Fonts
   fonts = {
     packages = with pkgs; [
-      cascadia-code
+      nerd-fonts.caskaydia-cove
       inter
       geist-font
     ];
     fontconfig.defaultFonts = {
-      monospace = [ "Cascadia Code NF" ];
+      monospace = [ "CaskaydiaCove Nerd Font" ];
       sansSerif = [ "Inter" ];
       emoji = [ "Noto Color Emoji" ];
     };
