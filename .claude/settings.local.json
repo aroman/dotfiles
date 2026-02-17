@@ -107,7 +107,29 @@
       "Bash(sh /home/aroman/Projects/dotfiles/local/bin/toggle-center)",
       "Bash(xxd:*)",
       "WebFetch(domain:docs.pipewire.org)",
-      "Bash(niri validate:*)"
+      "Bash(niri validate:*)",
+      "Bash(nix flake info:*)",
+      "Bash(sudo nixos-rebuild switch:*)",
+      "WebFetch(domain:www.collabora.com)",
+      "WebFetch(domain:pipewire.pages.freedesktop.org)",
+      "WebFetch(domain:community.frame.work)",
+      "WebFetch(domain:kittenlabs.de)",
+      "WebFetch(domain:asahilinux.org)",
+      "WebFetch(domain:bbs.archlinux.org)",
+      "Bash(wireplumber:*)",
+      "Bash(pw-cli list-objects:*)",
+      "Bash(nix-instantiate:*)",
+      "WebFetch(domain:www.physicsforums.com)",
+      "WebFetch(domain:forums.ernieball.com)",
+      "WebFetch(domain:ampgarage.com)",
+      "WebFetch(domain:sevenstring.org)",
+      "WebFetch(domain:www.soundonsound.com)",
+      "WebFetch(domain:gearspace.com)",
+      "WebFetch(domain:www.resetera.com)",
+      "WebFetch(domain:andrew-mccall.com)",
+      "Bash(qs -c noctalia-shell ipc call lockScreen lock:*)",
+      "Bash(gsettings list-schemas:*)",
+      "Bash(pw-top:*)"
     ]
   }
 }

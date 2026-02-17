@@ -419,15 +419,21 @@ window-rule {
 }
 
 window-rule {
-    match app-id=r#"(?i)^spotify$"#
-    match app-id=r#"^figma-linux$"#
-    // Chrome --app=figma gets its own app-id like "chrome-www.figma.com__-Profile_1"
-    match app-id=r#"^chrome-www\.figma\.com"#
-    scroll-factor 0.15
+    match app-id=r#"^(google-chrome|chromium).*$"#
+    default-column-width { proportion 0.667; }
 }
 
 window-rule {
     match app-id=r#"(?i)^spotify$"#
+    match app-id=r#"^figma-linux$"#
+    // Chrome --app=figma gets its own app-id like "chrome-www.figma.com__-Profile_1"
+    match app-id=r#"^chrome-www\.figma\.com"#
+    // scroll-factor 0.15
+}
+
+window-rule {
+    match app-id=r#"(?i)^spotify$"#
+    match app-id=r#"^vesktop$"#
     match title="^TexturePacker$"
     open-maximized true
 }
@@ -476,6 +482,7 @@ binds {
     Mod+B hotkey-overlay-title="Open Browser" { spawn "xdg-open" "https://"; }
     Mod+Backslash hotkey-overlay-title="Open Browser" { spawn "xdg-open" "https://"; }
     Mod+D hotkey-overlay-title="Open Vicinae" { spawn "vicinae" "toggle"; }
+    Ctrl+Alt+Space hotkey-overlay-title="Emoji Picker" { spawn "vicinae" "deeplink" "vicinae://extensions/vicinae/core/search-emojis"; }
     Super+Alt+L hotkey-overlay-title="Lock the Screen" { spawn "noctalia-shell" "ipc" "call" "lockScreen" "lock"; }
     Mod+Shift+Comma hotkey-overlay-title="Noctalia Settings" { spawn "noctalia-shell" "ipc" "call" "settings" "toggle"; }
 

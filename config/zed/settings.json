@@ -7,7 +7,7 @@
 // custom settings, run `zed: open default settings` from the
 // command palette (cmd-shift-p / ctrl-shift-p)
 {
-  "restore_on_startup": "last_session",
+  "restore_on_startup": "last_workspace",
   "when_closing_with_no_tabs": "platform_default",
   "on_last_window_closed": "platform_default",
   "git_panel": {
@@ -22,7 +22,7 @@
   "scroll_beyond_last_line": "one_page",
   "buffer_font_size": 15.0,
   // "ui_font_family": ".SystemUIFont",
-  "buffer_font_family": "Cascadia Code NF",
+  "buffer_font_family": "CaskaydiaCove Nerd Font",
   "vim": {
     "toggle_relative_line_numbers": false,
   },

@@ -8,6 +8,9 @@ set fish_greeting ""
 starship init fish | source
 
 alias cat="bat --paging=never"
+alias vim="nvim"
+alias zed="zededitor"
+alias bake="sudo nixos-rebuild switch --flake ~/Projects/dotfiles/nixos"
 
 abbr --add wrangler "pnpm wrangler"
 abbr --add a "rg -i"
@@ -16,6 +19,7 @@ abbr --add exifscrub "exiftool -all= "
 abbr --add gg "cd ~/Projects/magiccircle.gg"
 abbr --add serve "open 'http://127.0.0.1:8080' && bunx http-server ."
 
+abbr --add yolo "claude --dangerously-skip-permissions"
 abbr --add gs "git status"
 abbr --add gl "git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
 

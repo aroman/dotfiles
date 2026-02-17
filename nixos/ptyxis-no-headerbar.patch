@@ -8,3 +8,19 @@
                          <style>
                            <class name="main-header-bar"/>
                          </style>
+--- a/src/ptyxis-window-dressing.c	2026-02-17 01:54:48.077900797 -0800
++++ b/src/ptyxis-window-dressing.c	2026-02-17 01:55:01.571239241 -0800
+@@ -179,9 +179,11 @@
+                                   self->css_class, rm_bg, rm_fg);
+           g_string_append_printf (string,
+                                   "window.%s.superuser .window-contents headerbar { background-color: %s; color: %s; }\n"
+-                                  "window.%s.superuser .window-contents toolbarview > revealer > windowhandle { background-color: %s; color: %s; }\n",
++                                  "window.%s.superuser .window-contents toolbarview > revealer > windowhandle { background-color: %s; color: %s; }\n"
++                                  "window.%s.superuser { background-color: %s; }\n",
+                                   self->css_class, su_bg, su_fg,
+-                                  self->css_class, su_bg, su_fg);
++                                  self->css_class, su_bg, su_fg,
++                                  self->css_class, su_bg);
+         }
+ 
+       if (!ptyxis_palette_use_system_accent (self->palette))
