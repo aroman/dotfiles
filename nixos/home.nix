@@ -26,7 +26,7 @@ in
     "zed".source = link "config/zed";
     "fish".source = link "config/fish";
     "bat".source = link "config/bat";
-    "easyeffects/output/Cab's_20Fav.json".source = link "Cab's_20Fav.json";
+    "noctalia/settings.json".source = link "config/noctalia_settings.json";
   };
 
   xdg.desktopEntries."dev.zed.Zed" = {
@@ -53,50 +53,6 @@ in
 
   xdg.configFile."mimeapps.list".force = true;
   xdg.dataFile."applications/mimeapps.list".force = true;
-  xdg.dataFile."org.gnome.Ptyxis/palettes/one-dark.palette".text = ''
-    [Palette]
-    Name=One Dark
-
-    [Dark]
-    Foreground=#abb2bf
-    Background=#0d1117
-    Color0=#0d1117
-    Color1=#e06c75
-    Color2=#98c379
-    Color3=#e5c07b
-    Color4=#61afef
-    Color5=#c678dd
-    Color6=#56b6c2
-    Color7=#abb2bf
-    Color8=#545862
-    Color9=#e06c75
-    Color10=#98c379
-    Color11=#e5c07b
-    Color12=#61afef
-    Color13=#c678dd
-    Color14=#56b6c2
-    Color15=#c8ccd4
-
-    [Light]
-    Foreground=#abb2bf
-    Background=#0d1117
-    Color0=#0d1117
-    Color1=#e06c75
-    Color2=#98c379
-    Color3=#e5c07b
-    Color4=#61afef
-    Color5=#c678dd
-    Color6=#56b6c2
-    Color7=#abb2bf
-    Color8=#545862
-    Color9=#e06c75
-    Color10=#98c379
-    Color11=#e5c07b
-    Color12=#61afef
-    Color13=#c678dd
-    Color14=#56b6c2
-    Color15=#c8ccd4
-  '';
   xdg.desktopEntries."com.codeandweb.texturepacker" = {
     name = "TexturePacker";
     genericName = "Sprite Sheet Creator";
@@ -146,6 +102,9 @@ in
     ".local/bin/stack-terminal" = {
       source = link "local/bin/stack-terminal";
     };
+    ".local/bin/dsp-toggle" = {
+      source = link "local/bin/dsp-toggle";
+    };
   };
 
   # ── User packages ──────────────────────────────────────────────────
@@ -173,14 +132,12 @@ in
 
     # Wayland tools
     wl-clipboard
-    swaylock
     brightnessctl
     playerctl
     networkmanagerapplet
     overskride
 
     # Media & audio
-    easyeffects
     pwvucontrol
     spotify
     celluloid
@@ -235,11 +192,6 @@ in
   # ── Dark mode (dconf/gsettings) ────────────────────────────────────
 
   dconf.settings = {
-    "com/github/wwmm/easyeffects/streamoutputs" = {
-      output-device = "alsa_output.pci-0000_c2_00.6.HiFi__Speaker__sink";
-      last-used-output-preset = "Cab's_20Fav";
-      use-default-output-preset = true;
-    };
     "org/gnome/desktop/interface" = {
       color-scheme = "prefer-dark";
       gtk-theme = "Adwaita-dark";
@@ -248,6 +200,10 @@ in
       monospace-font-name = "Cascadia Code NF 12";
       cursor-theme = "Adwaita";
       cursor-size = 24;
+    };
+    "com/raggesilver/BlackBox" = {
+      theme-dark = "One Dark";
+      pretty = true;
     };
   };
 

@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Toggle between DSP-processed and raw speaker output.
+# Syncs volume when switching so levels stay consistent.
+DSP_NODE="effect_input.fw16_speaker_dsp"
+RAW_NODE="alsa_output.pci-0000_c2_00.6.HiFi__Speaker__sink"
+
+# Get node IDs
+dsp_id=$(pw-dump | jq -r "[.[] | select(.info.props[\"node.name\"]? == \"$DSP_NODE\")] | first | .id")
+raw_id=$(pw-dump | jq -r "[.[] | select(.info.props[\"node.name\"]? == \"$RAW_NODE\")] | first | .id")
+
+if [ -z "$dsp_id" ] || [ "$dsp_id" = "null" ]; then
+  echo "DSP node not found"
+  exit 1
+fi
+if [ -z "$raw_id" ] || [ "$raw_id" = "null" ]; then
+  echo "Raw speaker node not found"
+  exit 1
+fi
+
+# Check current default sink
+default_sink=$(wpctl inspect @DEFAULT_AUDIO_SINK@ 2>/dev/null | grep "node.name" | head -1 | sed 's/.*= "\(.*\)"/\1/')
+
+if [ "$default_sink" = "$DSP_NODE" ]; then
+  # Switching DSP -> Raw: copy DSP volume to raw speaker
+  vol=$(wpctl get-volume "$dsp_id" | awk '{print $2}')
+  wpctl set-default "$raw_id"
+  wpctl set-volume "$raw_id" "$vol"
+  echo "DSP OFF (raw speaker, vol=$vol)"
+else
+  # Switching Raw -> DSP: copy raw volume to DSP, max out raw speaker
+  vol=$(wpctl get-volume "$raw_id" | awk '{print $2}')
+  wpctl set-volume "$raw_id" 1.0
+  wpctl set-default "$dsp_id"
+  wpctl set-volume "$dsp_id" "$vol"
+  echo "DSP ON (vol=$vol)"
+fi
