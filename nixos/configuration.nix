@@ -32,7 +32,7 @@
   services.greetd = {
     enable = true;
     settings = {
-      terminal.vt = 2;
+      terminal.vt = lib.mkForce 2;
       default_session = {
         command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --remember-session --asterisks --greeting 'hack the planet' --theme 'border=magenta;text=cyan;prompt=green;time=red;action=bold;button=yellow' --cmd niri-session";
         user = "greeter";
@@ -50,22 +50,13 @@
       extraConfig = {
         "51-bluez-config" = {
           "monitor.bluez.properties" = {
-            # Roles the computer will advertise to Bluetooth devices.
             # Without explicit roles, some devices (e.g. Jabra Speak2 75) only get
             # HSP/HFP headset profiles and never negotiate A2DP high-quality audio.
             #
-            # Enabled:
-            #   a2dp_sink — send high-quality stereo audio TO a speaker/headphones (one-way)
-            #   hfp_ag    — act as call audio gateway for mic+speaker (two-way, lower quality)
+            # a2dp_source — send high-quality audio TO BT headphones/speakers
+            # hfp_ag/hf   — two-way call audio (lower quality, with mic)
             #               WirePlumber auto-switches between A2DP and HFP when apps request a mic.
-            #
-            # Not enabled:
-            #   a2dp_source — receive high-quality audio FROM a device (e.g. phone streaming to computer)
-            #   hsp_hs      — computer acts as a headset for another device (obsolete, use HFP)
-            #   hsp_ag      — computer acts as call gateway via HSP (obsolete, use HFP)
-            #   hfp_hf      — computer acts as a hands-free device for another device's calls
-            #   bsp         — LE Audio broadcast sink (needs BT 5.2+ LE Audio on both ends)
-            "bluez5.roles" = [ "a2dp_sink" "hfp_ag" ];
+            "bluez5.roles" = [ "a2dp_source" "hfp_ag" "hfp_hf" ];
             "bluez5.enable-sbc-xq" = true;   # better quality SBC codec variant
             "bluez5.enable-msbc" = true;      # wideband voice for HFP calls
             "bluez5.enable-hw-volume" = true;  # sync volume to device hardware

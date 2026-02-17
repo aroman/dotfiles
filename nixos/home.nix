@@ -257,6 +257,7 @@ in
       accent-color = "blue";
       font-name = "Inter 11";
       monospace-font-name = "CaskaydiaCove Nerd Font 12";
+      icon-theme = "Adwaita";
       cursor-theme = "Adwaita";
       cursor-size = 24;
     };
