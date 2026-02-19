@@ -172,6 +172,12 @@ in
     ".local/bin/dsp-toggle" = {
       source = link "local/bin/dsp-toggle";
     };
+    ".local/bin/dictate" = {
+      source = link "local/bin/dictate";
+    };
+    ".local/bin/dictate-transcribe" = {
+      source = link "local/bin/dictate-transcribe";
+    };
   };
 
   # ── User packages ──────────────────────────────────────────────────
@@ -196,6 +202,10 @@ in
     # Editor
     neovim
     zed-editor
+
+    # Dictation (speech-to-text)
+    wtype
+    (python3.withPackages (ps: [ ps.faster-whisper ]))
 
     # Wayland tools
     wl-clipboard
@@ -222,6 +232,7 @@ in
 
     # Communication
     vesktop
+    slack
 
     # Design
     figma-agent # serves local fonts to Figma web (needs Windows user-agent)
@@ -229,6 +240,7 @@ in
     adwaita-qt6
 
     nautilus
+    file-roller
     loupe
     snapshot
     papers
@@ -314,12 +326,6 @@ in
       '';
     };
     Install.WantedBy = [ "default.target" ];
-  };
-
-  # ── Environment variables ──────────────────────────────────────────
-
-  home.sessionVariables = {
-    EDITOR = "zeditor --wait";
   };
 
   # ── Programs ─────────────────────────────────────────────────────

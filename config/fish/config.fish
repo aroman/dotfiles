@@ -5,6 +5,7 @@ if status --is-interactive; and test (uname) = Darwin
 end
 
 set fish_greeting ""
+set -gx EDITOR "zeditor --wait"
 starship init fish | source
 
 alias cat="bat --paging=never"
@@ -17,6 +18,11 @@ abbr --add a "rg -i"
 abbr --add hack "zed ."
 abbr --add exifscrub "exiftool -all= "
 abbr --add gg "cd ~/Projects/magiccircle.gg"
+
+function ggs
+    set dir (ls -d ~/Projects/magiccircle-worktrees/*/ | fzf)
+    and cd $dir
+end
 abbr --add serve "open 'http://127.0.0.1:8080' && bunx http-server ."
 
 abbr --add yolo "claude --dangerously-skip-permissions"

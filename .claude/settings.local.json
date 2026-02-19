@@ -129,7 +129,18 @@
       "WebFetch(domain:andrew-mccall.com)",
       "Bash(qs -c noctalia-shell ipc call lockScreen lock:*)",
       "Bash(gsettings list-schemas:*)",
-      "Bash(pw-top:*)"
+      "Bash(pw-top:*)",
+      "Bash(git reset:*)",
+      "WebFetch(domain:www.ultimate-guitar.com)",
+      "WebFetch(domain:www.fixya.com)",
+      "WebFetch(domain:music-electronics-forum.com)",
+      "WebFetch(domain:www.tdpri.com)",
+      "WebFetch(domain:squier-talk.com)",
+      "WebFetch(domain:xftest.thegearpage.net)",
+      "WebFetch(domain:www.guitarworld.com)",
+      "WebFetch(domain:guitar.com)",
+      "Bash(cat:*)",
+      "Bash(nix-env:*)"
     ]
   }
 }

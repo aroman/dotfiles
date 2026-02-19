@@ -1,0 +1,8 @@
+#!/usr/bin/env python3
+"""Transcribe an audio file using faster-whisper (large-v3, int8, CPU)."""
+import sys
+from faster_whisper import WhisperModel
+
+model = WhisperModel("large-v3", device="cpu", compute_type="int8")
+segments, _ = model.transcribe(sys.argv[1], beam_size=5, language="en")
+print(" ".join(seg.text.strip() for seg in segments))

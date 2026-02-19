@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+# Toggle dictation: press once to start recording, press again to stop and transcribe.
+# Transcribed text is typed at the cursor via wtype.
+
+PIDFILE="/tmp/dictate.pid"
+AUDIOFILE="/tmp/dictate.wav"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+
+if [ -f "$PIDFILE" ]; then
+    # Stop recording
+    PID=$(cat "$PIDFILE")
+    kill "$PID" 2>/dev/null
+    rm -f "$PIDFILE"
+
+    # Transcribe and type the result
+    TEXT=$("$SCRIPT_DIR/dictate-transcribe" "$AUDIOFILE" 2>/dev/null)
+    rm -f "$AUDIOFILE"
+
+    if [ -n "$TEXT" ]; then
+        wtype -- "$TEXT"
+    fi
+else
+    # Start recording from default mic
+    pw-record --channels=1 --rate=16000 --format=s16 "$AUDIOFILE" &
+    echo $! > "$PIDFILE"
+fi

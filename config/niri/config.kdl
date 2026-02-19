@@ -16,7 +16,7 @@ gestures {
     dnd-edge-view-scroll {
         trigger-width 64
         delay-ms 100
-        max-speed 1500
+        max-speed 2000
     }
 
 // dnd-edge-workspace-switch {
@@ -413,7 +413,7 @@ window-rule {
 // See also: https://github.com/swaywm/sway/issues/7338
 // Remove this workaround if Chromium ever fixes native Wayland scroll handling.
 window-rule {
-    match app-id=r#"^(google-chrome|chromium|chrome-|vesktop|discord|1password|vicinae).*$"#
+    match app-id=r#"^(google-chrome|chromium|chrome-|vesktop|discord|1password|vicinae|slack).*$"#
     match title="^Vicinae Settings$"
     scroll-factor 0.25
 }
@@ -428,7 +428,7 @@ window-rule {
     match app-id=r#"^figma-linux$"#
     // Chrome --app=figma gets its own app-id like "chrome-www.figma.com__-Profile_1"
     match app-id=r#"^chrome-www\.figma\.com"#
-    // scroll-factor 0.15
+    scroll-factor 0.15
 }
 
 window-rule {
@@ -452,6 +452,9 @@ layer-rule {
     match namespace="^vicinae$"
     shadow {
         on
+        softness 40
+        spread 20
+        color "#01040977"
     }
 }
 
@@ -483,8 +486,9 @@ binds {
     Mod+Backslash hotkey-overlay-title="Open Browser" { spawn "xdg-open" "https://"; }
     Mod+D hotkey-overlay-title="Open Vicinae" { spawn "vicinae" "toggle"; }
     Ctrl+Alt+Space hotkey-overlay-title="Emoji Picker" { spawn "vicinae" "deeplink" "vicinae://extensions/vicinae/core/search-emojis"; }
-    Super+Alt+L hotkey-overlay-title="Lock the Screen" { spawn "noctalia-shell" "ipc" "call" "lockScreen" "lock"; }
+    Ctrl+Mod+Q hotkey-overlay-title="Lock the Screen" { spawn "noctalia-shell" "ipc" "call" "lockScreen" "lock"; }
     Mod+Shift+Comma hotkey-overlay-title="Noctalia Settings" { spawn "noctalia-shell" "ipc" "call" "settings" "toggle"; }
+    Mod+Shift+D hotkey-overlay-title="Dictate (Toggle)" { spawn "sh" "/home/aroman/Projects/dotfiles/local/bin/dictate"; }
 
     // Use spawn-sh to run a shell command. Do this if you need pipes, multiple commands, etc.
     // Note: the entire command goes as a single argument. It's passed verbatim to `sh -c`.
