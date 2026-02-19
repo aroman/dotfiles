@@ -137,6 +137,15 @@ in
     mimeType = [];
   };
 
+  xdg.desktopEntries.rive = {
+    name = "Rive";
+    comment = "Rive (Chrome app mode)";
+    exec = "google-chrome-stable --user-data-dir=${config.home.homeDirectory}/.config/rive-chrome --hide-crash-restore-bubble --app=https://editor.rive.app %U";
+    icon = ./rive.png;
+    terminal = false;
+    mimeType = [];
+  };
+
   xdg.mimeApps = {
     enable = true;
     defaultApplications = {
@@ -286,6 +295,28 @@ in
   };
 
   # ── Services ─────────────────────────────────────────────────────
+
+  # ── Figma auto-unzip ─────────────────────────────────────────────
+  # Figma Chrome app downloads .zips to a hidden staging dir; systemd
+  # watches it and extracts contents into ~/Downloads automatically.
+  systemd.user.paths.figma-auto-unzip = {
+    Unit.Description = "Watch Figma downloads for .zip files";
+    Path.DirectoryNotEmpty = "%h/.figma/Downloads";
+    Install.WantedBy = [ "default.target" ];
+  };
+  systemd.user.services.figma-auto-unzip = {
+    Unit.Description = "Extract Figma .zip exports into ~/Downloads";
+    Service = {
+      Type = "oneshot";
+      ExecStart = pkgs.writeShellScript "figma-auto-unzip" ''
+        for f in "$HOME/.figma/Downloads"/*.zip; do
+          [ -f "$f" ] || continue
+          sleep 0.5
+          ${pkgs.unzip}/bin/unzip -o "$f" -d "$HOME/Downloads" && rm "$f"
+        done
+      '';
+    };
+  };
 
   systemd.user.services.figma-agent = {
     Unit.Description = "Figma local font agent";

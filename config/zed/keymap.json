@@ -25,6 +25,12 @@
     },
   },
   {
+    "context": "Picker > Editor",
+    "bindings": {
+      "ctrl-w": "menu::Cancel",
+    },
+  },
+  {
     "context": "BufferSearchBar && !in_replace",
     "bindings": {
       "enter": "search::SelectNextMatch",
