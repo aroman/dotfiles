@@ -92,6 +92,16 @@
   # Firmware updates (Framework)
   services.fwupd.enable = true;
 
+  # Thunderbolt: auto-authorize devices on connect.
+  # Without a full DE (GNOME/KDE), there's no GUI prompt for Thunderbolt auth,
+  # so USB tunneling through docks (e.g. CalDigit TS3 Plus) won't work without
+  # explicit authorization. This udev rule auto-authorizes any Thunderbolt device,
+  # but only when IOMMU DMA protection is active — which means the hardware itself
+  # prevents unauthorized memory access, making the software security level redundant.
+  services.udev.extraRules = ''
+    ACTION=="add", SUBSYSTEM=="thunderbolt", ATTRS{iommu_dma_protection}=="1", ATTR{authorized}=="0", ATTR{authorized}="1"
+  '';
+
   # Keyboard
   services.xserver.xkb = {
     layout = "us";
