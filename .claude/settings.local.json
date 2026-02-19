@@ -140,7 +140,8 @@
       "WebFetch(domain:www.guitarworld.com)",
       "WebFetch(domain:guitar.com)",
       "Bash(cat:*)",
-      "Bash(nix-env:*)"
+      "Bash(nix-env:*)",
+      "Bash(direnv version:*)"
     ]
   }
 }
