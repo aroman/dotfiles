@@ -18,13 +18,11 @@ abbr --add a "rg -i"
 abbr --add hack "zed ."
 abbr --add exifscrub "exiftool -all= "
 abbr --add gg "cd ~/Projects/magiccircle.gg"
-abbr --add nw "~/Projects/magiccircle.gg/scripts/new-worktree.sh"
-abbr --add jw "~/Projects/magiccircle.gg/scripts/list-worktrees.sh --jump"
+abbr --add ggc "~/Projects/magiccircle.gg/scripts/new-worktree.sh"
+abbr --add ggcc "~/Projects/magiccircle.gg/scripts/new-worktree.sh && claude"
+abbr --add ggp "~/Projects/magiccircle.gg/scripts/cleanup-worktrees.sh"
 
-function ggs
-    set dir (ls -d ~/Projects/magiccircle-worktrees/*/ | fzf)
-    and cd $dir
-end
+abbr --add ggs "~/Projects/magiccircle.gg/scripts/list-worktrees.sh --jump"
 abbr --add serve "open 'http://127.0.0.1:8080' && bunx http-server ."
 
 abbr --add yolo "claude --dangerously-skip-permissions"
