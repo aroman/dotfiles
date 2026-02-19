@@ -16,6 +16,23 @@
   boot.initrd.systemd.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
+  # TODO: Remove when fixes land upstream (targeting 6.20+). Check:
+  #   - LKML: https://lore.kernel.org/linux-wireless/?q=mt7925+deadlock
+  #   - Tracker: https://community.frame.work/t/tracking-kernel-panic-from-wifi-mediatek-mt7925-nullptr-dereference/79301
+  #   - Patches: https://github.com/zbowling/mt7925
+  #   - To verify after reboot: modinfo mt7925e | grep filename
+  #     (should show updates/mt7925e.ko.xz, not kernel/drivers/...)
+  #
+  # MT7925 WiFi driver: patched out-of-tree module (deadlock + mutex fixes).
+  # Fixes a kernel deadlock in mt7925_roc_abort_sync that hangs the entire
+  # network subsystem during AP roaming. Also adds mutex protection in
+  # reset/suspend/PM paths and NULL checks for MLO link state transitions.
+  boot.extraModulePackages = [
+    (pkgs.callPackage ./mt7925-patched.nix {
+      kernel = config.boot.kernelPackages.kernel;
+    })
+  ];
+
   # Networking
   networking.hostName = "wizardtower";
   networking.networkmanager.enable = true;

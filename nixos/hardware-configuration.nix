@@ -35,6 +35,42 @@
     memoryPercent = 50;
   };
 
+  # Optimize sysctl parameters for zram swap.
+  #
+  # With zram, "swapping" means compressing pages in RAM rather than writing
+  # to disk, so the cost/benefit tradeoffs of these tunables change significantly.
+  #
+  # References:
+  #   - https://wiki.archlinux.org/title/Zram#Optimizing_swap_on_zram
+  #   - https://docs.kernel.org/admin-guide/sysctl/vm.html
+  #   - https://github.com/NixOS/nixpkgs/pull/351002
+  boot.kernel.sysctl = {
+    # NixOS default is 16 (remount only). Enable all SysRq functions so
+    # Alt+SysRq+REISUB can recover from kernel deadlocks and hangs.
+    "kernel.sysrq" = 1;
+    # Default is 60. Range is 0-200 (expanded from 0-100 for zram/zswap).
+    # Higher values tell the kernel to prefer compressing cold anonymous pages
+    # into zram over evicting file cache. Since zram decompression (~µs) is
+    # orders of magnitude faster than even NVMe reads (~100µs), this keeps
+    # more hot file cache in RAM at the cost of cheap compression CPU cycles.
+    "vm.swappiness" = 180;
+
+    # Default is 15000. Controls reclaim of watermark_boost pages after an
+    # external fragmentation event. Not useful with zram (no disk seek penalty
+    # to amortize), and the wakeups waste power on laptops.
+    "vm.watermark_boost_factor" = 0;
+
+    # Default is 10 (0.1% of RAM). Distance between min/low/high watermarks.
+    # Higher value gives kswapd more runway to reclaim in the background before
+    # direct reclaim stalls occur, reducing latency spikes under pressure.
+    "vm.watermark_scale_factor" = 125;
+
+    # Default is 3 (read 2^3=8 pages at a time from swap). Swap readahead
+    # helps with sequential disk access but zram has no seek penalty, so
+    # readahead just wastes memory bandwidth. 0 disables it.
+    "vm.page-cluster" = 0;
+  };
+
   # swapDevices =
   #   # [ { device = "/dev/mapper/luks-b7920935-338b-4495-aafc-0e112de2cf4d"; }
   #   ];
