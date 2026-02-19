@@ -109,41 +109,19 @@ input {
 // Find more information on the wiki:
 // https://yalter.github.io/niri/Configuration:-Outputs
 // Remember to uncomment the node by removing "/-"!
-output "eDP-1" {
-    // Uncomment this line to disable this output.
-    // off
-
-    // Resolution and, optionally, refresh rate of the output.
-    // The format is "<width>x<height>" or "<width>x<height>@<refresh rate>".
-    // If the refresh rate is omitted, niri will pick the highest refresh rate
-    // for the resolution.
-    // If the mode is omitted altogether or is invalid, niri will pick one automatically.
-    // Run `niri msg outputs` while inside a niri instance to list all outputs and their modes.
-    // mode "1920x1080@120.030"
-
-    // You can use integer or fractional scale, for example use 1.5 for 150% scale.
+output "Acer Technologies XV282K KV 13250DC7C4200" {
     scale 1.5
+    variable-refresh-rate
+    backdrop-color "#1D2029"
+    position x=0 y=0
+}
 
-    // Transform allows to rotate the output counter-clockwise, valid values are:
-    // normal, 90, 180, 270, flipped, flipped-90, flipped-180 and flipped-270.
+output "BOE NE160QDM-NZ6 Unknown" {
+    scale 1.5
     transform "normal"
-    variable-refresh-rate // on-demand=true
-
-    // backdrop-color "#111418"
-     // backdrop-color "#1D2024"
-     backdrop-color "#1D2029"
-
-
-    // Position of the output in the global coordinate space.
-    // This affects directional monitor actions like "focus-monitor-left", and cursor movement.
-    // The cursor can only move between directly adjacent outputs.
-    // Output scale and rotation has to be taken into account for positioning:
-    // outputs are sized in logical, or scaled, pixels.
-    // For example, a 3840×2160 output with scale 2.0 will have a logical size of 1920×1080,
-    // so to put another output directly adjacent to it on the right, set its x to 1920.
-    // If the position is unset or results in an overlap, the output is instead placed
-    // automatically.
-    position x=1280 y=0
+    variable-refresh-rate
+    backdrop-color "#1D2029"
+    position x=427 y=1440
 }
 
 // Settings that influence how windows are positioned and sized.
@@ -746,6 +724,8 @@ binds {
     Mod+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
 
     // The quit action will show a confirmation dialog to avoid accidental exits.
+    Ctrl+Mod+Alt+BracketLeft hotkey-overlay-title="Swap Monitors" { spawn-sh "/home/aroman/Projects/dotfiles/local/bin/swap-monitors"; }
+
     Mod+Shift+E { quit; }
     Ctrl+Alt+Delete { quit; }
 

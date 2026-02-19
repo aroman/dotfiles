@@ -3,6 +3,10 @@
 import sys
 from faster_whisper import WhisperModel
 
-model = WhisperModel("large-v3", device="cpu", compute_type="int8")
+if len(sys.argv) < 2:
+    print("Usage: dictate-transcribe <audio-file>", file=sys.stderr)
+    sys.exit(1)
+
+model = WhisperModel("base.en", device="cpu", compute_type="int8")
 segments, _ = model.transcribe(sys.argv[1], beam_size=5, language="en")
 print(" ".join(seg.text.strip() for seg in segments))

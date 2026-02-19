@@ -577,7 +577,7 @@
         "fontDefaultScale": 1.09,
         "fontFixed": "monospace",
         "fontFixedScale": 1,
-        "networkPanelView": "wifi",
+        "networkPanelView": "ethernet",
         "panelBackgroundOpacity": 0.9400000000000001,
         "panelsAttachedToBar": true,
         "settingsPanelMode": "window",

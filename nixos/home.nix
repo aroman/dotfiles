@@ -222,6 +222,7 @@ in
     playerctl
     networkmanagerapplet
     overskride
+    socat # IPC with niri socket (used by swap-monitors script)
 
     # Media & audio
     pwvucontrol # TODO: missing icons (emblem-default-symbolic) — https://github.com/saivert/pwvucontrol/issues/71

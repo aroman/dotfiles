@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Swap all workspaces between the focused monitor and the other monitor.
+# Talks directly to niri's IPC socket using workspace IDs (stable across moves).
+# Assumes exactly two monitors (picks the first non-focused one).
+
+if [ -z "${NIRI_SOCKET:-}" ]; then
+    echo "Not running inside a niri session." >&2
+    exit 1
+fi
+
+ws_json=$(niri msg --json workspaces)
+
+focused_output=$(echo "$ws_json" | jq -r '[.[] | select(.is_focused)][0].output')
+other_output=$(echo "$ws_json" | jq -r --arg fo "$focused_output" \
+    '[.[] | select(.output != $fo)][0].output')
+
+if [ -z "$other_output" ] || [ "$other_output" = "null" ]; then
+    exit 1
+fi
+
+# Build all IPC commands in one jq pass, then send via a single socat connection.
+echo "$ws_json" | jq -c --arg fo "$focused_output" --arg oo "$other_output" '
+    # Split workspaces by monitor, sorted by index
+    [ .[] | select(.output == $fo) ] | sort_by(.idx) as $ws_fo |
+    [ .[] | select(.output == $oo) ] | sort_by(.idx) as $ws_oo |
+
+    # Remember focused workspace to restore after the swap
+    ([ .[] | select(.is_focused) ][0].id // null) as $focused_id |
+
+    # Skip trailing empty workspace on each monitor (niri always keeps one)
+    ($ws_fo | if length > 1 then .[:-1] else [] end) as $move_fo |
+    ($ws_oo | if length > 1 then .[:-1] else [] end) as $move_oo |
+
+    # Move focused→other, then other→focused, then restore focus
+    ( [ $move_fo[] | {"Action":{"MoveWorkspaceToMonitor":{"output":$oo,"reference":{"Id":.id}}}} ] +
+      [ $move_oo[] | {"Action":{"MoveWorkspaceToMonitor":{"output":$fo,"reference":{"Id":.id}}}} ] +
+      if $focused_id then
+        [{"Action":{"FocusWorkspace":{"reference":{"Id":$focused_id}}}}]
+      else [] end
+    )[]
+' | socat - UNIX-CONNECT:"$NIRI_SOCKET" > /dev/null

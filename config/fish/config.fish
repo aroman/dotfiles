@@ -18,6 +18,8 @@ abbr --add a "rg -i"
 abbr --add hack "zed ."
 abbr --add exifscrub "exiftool -all= "
 abbr --add gg "cd ~/Projects/magiccircle.gg"
+abbr --add nw "~/Projects/magiccircle.gg/scripts/new-worktree.sh"
+abbr --add jw "~/Projects/magiccircle.gg/scripts/list-worktrees.sh --jump"
 
 function ggs
     set dir (ls -d ~/Projects/magiccircle-worktrees/*/ | fzf)
