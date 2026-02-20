@@ -24,7 +24,7 @@ starship init fish | source
 
 alias cat="bat --paging=never"
 alias vim="nvim"
-alias zed="zededitor"
+alias zed="zeditor"
 alias bake="sudo nixos-rebuild switch --flake ~/Projects/dotfiles/nixos"
 
 abbr --add wrangler "pnpm wrangler"
