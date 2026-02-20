@@ -176,6 +176,18 @@
   # Custom curves from Silverblue backup are in NixLifeboat/fw-fanctrl-config.json
   hardware.fw-fanctrl.enable = true;
 
+  # OOM protection — kill the biggest offender before the system freezes.
+  # With zram (50%, swappiness=180), the kernel OOM killer doesn't fire until
+  # ~35 GB virtual, by which point the CPU is saturated on zram compression
+  # and the system is unresponsive. earlyoom intervenes much earlier.
+  services.earlyoom = {
+    enable = true;
+    freeMemThreshold = 5;   # SIGTERM when <5% RAM free (~1.4 GB)
+    freeSwapThreshold = 10; # ... and <10% swap free (~1.4 GB)
+    freeMemKillThreshold = 2;   # SIGKILL when <2% RAM free (~560 MB)
+    freeSwapKillThreshold = 5;  # ... and <5% swap free (~700 MB)
+  };
+
   # Let downloaded binaries find the dynamic linker (Prisma, Playwright, etc.)
   programs.nix-ld.enable = true;
 
