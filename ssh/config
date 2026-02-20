@@ -1,9 +1,9 @@
+IgnoreUnknown UseKeychain
+
 Match host * exec "test -f ~/.orbstack/ssh/config"
   Include ~/.orbstack/ssh/config
 
 Host github.com
   AddKeysToAgent yes
-  IgnoreUnknown UseKeychain
   UseKeychain yes
   IdentityFile ~/.ssh/blue
-
