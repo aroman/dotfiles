@@ -118,11 +118,11 @@ in
 
   # Figma via Chrome app mode instead of figma-linux (Electron).
   # Chrome --app is noticeably faster on Wayland/niri.
-  # Windows user-agent tricks Figma into talking to figma-agent for local fonts.
+  # figma-open handles both launching and URL deep-linking via CDP.
   xdg.desktopEntries.figma = {
     name = "Figma";
     comment = "Figma (Chrome app mode)";
-    exec = "google-chrome-stable --user-data-dir=${config.home.homeDirectory}/.config/figma-chrome --user-agent=\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36\" --hide-crash-restore-bubble --app=https://www.figma.com %U";
+    exec = "figma-open %U";
     icon = ./figma.png;
     terminal = false;
     mimeType = [ "x-scheme-handler/figma" ];
@@ -146,11 +146,42 @@ in
     mimeType = [];
   };
 
+  # ── URL dispatcher (handlr-regex) ─────────────────────────────────
+  # Routes https:// links to the right app by domain regex.
+  # handlr.desktop is the default handler for http/https; it checks
+  # regex rules and falls through to Chrome for everything else.
+  xdg.desktopEntries.handlr = {
+    name = "URL Dispatcher";
+    comment = "Routes URLs to the right app (handlr-regex)";
+    exec = "handlr open %u";
+    terminal = false;
+    noDisplay = true;
+    mimeType = [ "x-scheme-handler/http" "x-scheme-handler/https" ];
+  };
+
+  xdg.configFile."handlr/handlr.toml".text = let
+    chrome = "google-chrome-stable";
+  in ''
+    [[handlers]]
+    exec = "figma-open %u"
+    regexes = ['https?://(www\.)?figma\.com(/.*)?']
+
+    [[handlers]]
+    exec = "${chrome} --profile-directory=\"Default\" %u"
+    regexes = ['https?://(www\.)?(youtube\.com|youtu\.be)(/.*)?']
+
+    [[handlers]]
+    exec = "${chrome} --profile-directory=\"Profile 1\" %u"
+    regexes = ['https?://.*']
+  '';
+
   xdg.mimeApps = {
     enable = true;
     defaultApplications = {
       "text/plain" = "dev.zed.Zed.desktop";
       "application/x-zerosize" = "dev.zed.Zed.desktop";
+      "x-scheme-handler/http" = "handlr.desktop";
+      "x-scheme-handler/https" = "handlr.desktop";
       "x-scheme-handler/figma" = "figma.desktop";
       "image/png" = "org.gnome.Loupe.desktop";
       "image/jpeg" = "org.gnome.Loupe.desktop";
@@ -187,6 +218,9 @@ in
     ".local/bin/dictate-transcribe" = {
       source = link "local/bin/dictate-transcribe";
     };
+    ".local/bin/figma-open" = {
+      source = link "local/bin/figma-open";
+    };
   };
 
   # ── User packages ──────────────────────────────────────────────────
@@ -196,6 +230,8 @@ in
     starship
 
     # Core CLI
+    handlr-regex # URL dispatcher — routes links to the right app by domain
+    websocat     # WebSocket CLI — used by figma-open to navigate via CDP
     bat
     fzf
     ripgrep

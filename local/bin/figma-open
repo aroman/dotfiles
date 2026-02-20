@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# Open a URL in the existing Figma Chrome app window via CDP,
+# or launch Figma if it isn't running yet.
+#
+# Used as both the handlr URL handler (for https://figma.com links)
+# and the desktop entry launcher (for opening Figma from the app menu).
+
+set -euo pipefail
+
+URL="${1:-https://www.figma.com}"
+PORT=9222
+CHROME="google-chrome-stable"
+DATA_DIR="$HOME/.config/figma-chrome"
+USER_AGENT="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+
+launch_figma() {
+  exec "$CHROME" \
+    --user-data-dir="$DATA_DIR" \
+    --user-agent="$USER_AGENT" \
+    --hide-crash-restore-bubble \
+    --remote-debugging-port="$PORT" \
+    --app="$URL"
+}
+
+# Try to talk to the existing Figma instance via CDP
+tabs=$(curl -sf --max-time 1 "http://127.0.0.1:$PORT/json/list") || launch_figma
+
+# Find the Figma tab (not an internal chrome page)
+tab=$(echo "$tabs" | jq -r '[.[] | select(.url | test("figma\\.com"))] | first // empty')
+[[ -z "$tab" ]] && launch_figma
+
+ws=$(echo "$tab" | jq -r '.webSocketDebuggerUrl // empty')
+[[ -z "$ws" ]] && launch_figma
+
+target_id=$(echo "$tab" | jq -r '.id')
+current_url=$(echo "$tab" | jq -r '.url')
+
+# Helper: send a CDP command via WebSocket
+cdp() {
+  printf '%s' "$1" | websocat -n1 "$ws" 2>/dev/null
+}
+
+# Helper: build a Runtime.evaluate CDP message
+cdp_eval() {
+  local js_json
+  js_json=$(printf '%s' "$1" | jq -Rs .)
+  cdp "$(jq -nc --argjson expr "$js_json" '{id: 1, method: "Runtime.evaluate", params: {expression: $expr, awaitPromise: true}}')"
+}
+
+# Helper: build a Page.navigate CDP message
+cdp_navigate() {
+  cdp "$(jq -nc --arg url "$1" '{id: 1, method: "Page.navigate", params: {url: $url}}')"
+}
+
+navigate() {
+  # Compare base paths (strip query params) to detect same-file navigation
+  local new_base="${URL%%\?*}"
+  local current_base="${current_url%%\?*}"
+
+  # Extract node-id from URL query params (e.g. node-id=12438-18221 -> 12438:18221)
+  local node_id=""
+  if [[ "$URL" =~ node-id=([0-9]+-[0-9]+) ]]; then
+    node_id="${BASH_REMATCH[1]//-/:}"
+  fi
+
+  if [[ "$new_base" == "$current_base" && -n "$node_id" ]]; then
+    # Same file -- try to navigate to node via Figma Plugin API (no reload)
+    local result
+    result=$(cdp_eval "
+      (async () => {
+        const node = await figma.getNodeByIdAsync('${node_id}');
+        if (!node) return 'not_found';
+        let page = node;
+        while (page.parent && page.parent.type !== 'DOCUMENT') page = page.parent;
+        if (page.type === 'PAGE' && page !== figma.currentPage) await figma.setCurrentPageAsync(page);
+        figma.currentPage.selection = [node];
+        figma.viewport.scrollAndZoomIntoView([node]);
+        return 'ok';
+      })()
+    ")
+
+    # If Plugin API succeeded, update URL bar to match
+    if echo "$result" | jq -e '.result.result.value == "ok"' >/dev/null 2>&1; then
+      local url_json
+      url_json=$(printf '%s' "$URL" | jq -Rs .)
+      cdp_eval "history.replaceState({}, '', $url_json)" >/dev/null
+      return
+    fi
+
+    # Plugin API unavailable or node not found -- fall through to full navigation
+  fi
+
+  cdp_navigate "$URL" >/dev/null
+}
+
+navigate
+
+# Activate the CDP tab and focus the niri window
+curl -sf "http://127.0.0.1:$PORT/json/activate/$target_id" >/dev/null 2>&1 || true
+win_id=$(niri msg --json windows | jq -r '[.[] | select(.app_id | startswith("chrome-www.figma.com"))][0].id // empty')
+[[ -n "$win_id" ]] && niri msg action focus-window --id "$win_id"
