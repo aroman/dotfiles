@@ -1,5 +1,19 @@
 # vim: set ts=4
 
+# If spawned by ggcc/ggr, replace this shell with claude.
+# Workaround for new.sh / list.sh ending with `exec $SHELL` — we can't chain
+# commands after exec, so instead we set an env var and intercept it here.
+# TODO: replace with trustedDirectories once available
+#       https://github.com/anthropics/claude-code/issues/23109
+if set -q __GG_EXEC_CLAUDE
+    set -e __GG_EXEC_CLAUDE
+    exec claude
+end
+if set -q __GG_EXEC_CLAUDE_RESUME
+    set -e __GG_EXEC_CLAUDE_RESUME
+    exec claude --resume
+end
+
 if status --is-interactive; and test (uname) = Darwin
   eval (/opt/homebrew/bin/brew shellenv)
 end
@@ -20,10 +34,18 @@ abbr --add exifscrub "exiftool -all= "
 
 abbr --add gg "cd ~/Projects/magiccircle.gg"
 abbr --add ggc "~/Projects/magiccircle.gg/scripts/worktrees/new.sh"
-abbr --add ggcc "~/Projects/magiccircle.gg/scripts/worktrees/new.sh && claude"
+function ggcc
+    set -gx __GG_EXEC_CLAUDE 1
+    ~/Projects/magiccircle.gg/scripts/worktrees/new.sh $argv
+    set -e __GG_EXEC_CLAUDE
+end
 abbr --add ggp "~/Projects/magiccircle.gg/scripts/worktrees/cleanup.sh"
 abbr --add ggs "~/Projects/magiccircle.gg/scripts/worktrees/list.sh --jump"
-abbr --add ggr "~/Projects/magiccircle.gg/scripts/worktrees/list.sh --jump && claude --resume"
+function ggr
+    set -gx __GG_EXEC_CLAUDE_RESUME 1
+    ~/Projects/magiccircle.gg/scripts/worktrees/list.sh --jump $argv
+    set -e __GG_EXEC_CLAUDE_RESUME
+end
 
 abbr --add serve "open 'http://127.0.0.1:8080' && bunx http-server ."
 abbr --add yolo "claude --dangerously-skip-permissions"
