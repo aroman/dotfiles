@@ -459,6 +459,8 @@ binds {
     Mod+Shift+Return { fullscreen-window; }
     Mod+N hotkey-overlay-title="Chrome (Personal)" { spawn "google-chrome-stable" "--profile-directory=Default" "--new-window" "--hide-crash-restore-bubble"; }
     Mod+M hotkey-overlay-title="Chrome (Magic Circle)" { spawn "google-chrome-stable" "--profile-directory=Profile 1" "--new-window" "--hide-crash-restore-bubble"; }
+    Mod+Shift+M hotkey-overlay-title="MC Pull Requests" { spawn "google-chrome-stable" "--profile-directory=Profile 1" "--new-window" "--hide-crash-restore-bubble" "https://github.com/magic-circle-studio/magiccircle.gg/pulls"; }
+    Mod+G hotkey-overlay-title="magiccircle.gg" { spawn "google-chrome-stable" "--profile-directory=Profile 1" "--new-window" "--hide-crash-restore-bubble" "https://magiccircle.gg"; }
     Mod+B hotkey-overlay-title="Open Browser" { spawn "xdg-open" "https://"; }
     Mod+Backslash hotkey-overlay-title="Open Browser" { spawn "xdg-open" "https://"; }
     Mod+D hotkey-overlay-title="Open Vicinae" { spawn "vicinae" "toggle"; }
