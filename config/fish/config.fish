@@ -26,6 +26,7 @@ alias cat="bat --paging=never"
 alias vim="nvim"
 alias zed="zeditor"
 alias bake="sudo nixos-rebuild switch --flake ~/Projects/dotfiles/nixos"
+alias yt-dlp="nix run nixpkgs#yt-dlp --"
 
 abbr --add wrangler "pnpm wrangler"
 abbr --add a "rg -i"

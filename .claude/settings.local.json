@@ -141,7 +141,18 @@
       "WebFetch(domain:guitar.com)",
       "Bash(cat:*)",
       "Bash(nix-env:*)",
-      "Bash(direnv version:*)"
+      "Bash(direnv version:*)",
+      "Bash(ps aux:*)",
+      "Bash(wpctl get-volume:*)",
+      "Bash(wpctl set-volume:*)",
+      "WebFetch(domain:blog.wains.be)",
+      "WebFetch(domain:wiki.gentoo.org)",
+      "Bash(gh pr view:*)",
+      "Bash(claude --version:*)",
+      "Bash(nix profile list:*)",
+      "WebFetch(domain:devenv.sh)",
+      "Bash(ssh:*)",
+      "Bash(flatpak list:*)"
     ]
   }
 }

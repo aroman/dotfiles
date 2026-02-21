@@ -5,7 +5,7 @@
 # Chain: HPF (+36 dB input stage) → Bass Enhancer → MB Compressor → Stereo → Limiter (g_out attenuates)
 #
 # The chain runs "hot" internally (+36 dB from the HPF) so the compressor and
-# limiter thresholds are hit properly. The limiter's g_out attenuates ~30 dB
+# limiter thresholds are hit properly. The limiter's g_out attenuates ~34 dB
 # before the signal reaches the speaker, replacing EasyEffects' output volume.
 { pkgs, lib, ... }:
 
@@ -61,7 +61,7 @@
                   "ft" = 1;        # Hi-pass
                   "fm" = 0;        # RLC (BT)
                   "s" = 0;         # x1 slope
-                  "f" = 40.0;      # frequency (Hz)
+                  "f" = 90.0;      # frequency (Hz) — FW16 speakers can't reproduce below ~80 Hz
                   "g" = 36.0;      # gain (dB) — drives chain hot for compressor/limiter
                   "q" = 0.0;       # quality
                   "w" = 4.0;       # width
@@ -131,7 +131,7 @@
                   "scr_1" = 10.0;
                   "sla_1" = 0.0;
 
-                  # Band 2: mid-presence (1250–5000 Hz)
+                  # Band 2: mid-presence (1250–5000 Hz) — tamed for belted vocal peaks
                   "cbe_2" = 1;
                   "sf_2" = 1250.0;
                   "ce_2" = 1;
@@ -197,7 +197,7 @@
                   "boost" = 1;        # gain boost: on
                   "slink" = 100.0;    # stereo link (%)
                   "th" = 0.0;         # threshold (dB)
-                  "g_out" = 0.03;     # output gain (linear) — attenuates ~30 dB to compensate for HPF input stage
+                  "g_out" = 0.03;     # output gain (linear) — attenuates ~30 dB
                   "scp" = 0.0;        # sidechain preamp (dB)
                   "alr" = 0;          # ALR: off
                   "extsc" = 0;        # external sidechain: off

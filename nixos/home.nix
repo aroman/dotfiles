@@ -241,7 +241,6 @@ in
     git-lfs
     gnupg
     tokei
-    yt-dlp
     unzip
 
     # Editor
@@ -329,6 +328,25 @@ in
       cursor-size = 24;
     };
     # TODO: manage Ptyxis settings declaratively (dconf module doesn't re-apply after manual changes)
+  };
+
+  # ── Idle & lock-before-sleep ──────────────────────────────────────
+  # Niri has no built-in sleep inhibitor or lock-before-sleep mechanism
+  # (only an async `switch-events { lid-close }` that races with logind's
+  # suspend — see noctalia-shell#1066). swayidle takes a logind "sleep"
+  # delay inhibitor, guaranteeing the lock command completes before the
+  # system actually suspends.
+  # Ref: https://github.com/niri-wm/niri/wiki/Example-systemd-Setup
+  # Ref: https://man.archlinux.org/man/swayidle.1
+  services.swayidle = {
+    enable = true;
+    events = [
+      # Lock the session before systemd suspends (lid close, idle, manual).
+      # swayidle's delay inhibitor holds off sleep until this returns.
+      { event = "before-sleep"; command = "noctalia-shell ipc call lockScreen lock"; }
+      # Also lock when any external caller does `loginctl lock-session`.
+      { event = "lock"; command = "noctalia-shell ipc call lockScreen lock"; }
+    ];
   };
 
   # ── Services ─────────────────────────────────────────────────────

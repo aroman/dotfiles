@@ -2,13 +2,16 @@
 set -euo pipefail
 
 # Toggle between DSP-processed and raw speaker output.
-# Syncs volume when switching so levels stay consistent.
+# Moves all active streams and syncs volume when switching.
 DSP_NODE="effect_input.fw16_speaker_dsp"
 RAW_NODE="alsa_output.pci-0000_c2_00.6.HiFi__Speaker__sink"
 
-# Get node IDs
-dsp_id=$(pw-dump | jq -r "[.[] | select(.info.props[\"node.name\"]? == \"$DSP_NODE\")] | first | .id")
-raw_id=$(pw-dump | jq -r "[.[] | select(.info.props[\"node.name\"]? == \"$RAW_NODE\")] | first | .id")
+# Get node IDs (single pw-dump call)
+dump=$(pw-dump)
+get_id() { echo "$dump" | jq -r "[.[] | select(.info.props[\"node.name\"]? == \"$1\")] | first | .id"; }
+
+dsp_id=$(get_id "$DSP_NODE")
+raw_id=$(get_id "$RAW_NODE")
 
 if [ -z "$dsp_id" ] || [ "$dsp_id" = "null" ]; then
   echo "DSP node not found"
@@ -19,20 +22,36 @@ if [ -z "$raw_id" ] || [ "$raw_id" = "null" ]; then
   exit 1
 fi
 
+# Move all application playback streams by clearing their pinned target.object
+# metadata, so WirePlumber reassigns them to the new default sink.
+move_streams() {
+  echo "$dump" | jq -r '
+    .[] | select(.info.props["media.class"]? == "Stream/Output/Audio")
+        | select(.info.props["node.name"]? // "" | startswith("effect_") | not)
+        | .id' | while read -r stream_id; do
+    [ -z "$stream_id" ] || [ "$stream_id" = "null" ] && continue
+    pw-metadata -n default -d "$stream_id" target.object 2>/dev/null || true
+  done
+}
+
+get_vol() { wpctl get-volume "$1" | awk '{print $2}'; }
+
 # Check current default sink
 default_sink=$(wpctl inspect @DEFAULT_AUDIO_SINK@ 2>/dev/null | grep "node.name" | head -1 | sed 's/.*= "\(.*\)"/\1/')
 
 if [ "$default_sink" = "$DSP_NODE" ]; then
-  # Switching DSP -> Raw: copy DSP volume to raw speaker
-  vol=$(wpctl get-volume "$dsp_id" | awk '{print $2}')
+  # Switching DSP -> Raw
+  vol=$(get_vol "$dsp_id")
   wpctl set-default "$raw_id"
+  move_streams
   wpctl set-volume "$raw_id" "$vol"
   echo "DSP OFF (raw speaker, vol=$vol)"
 else
-  # Switching Raw -> DSP: copy raw volume to DSP, max out raw speaker
-  vol=$(wpctl get-volume "$raw_id" | awk '{print $2}')
+  # Switching Raw -> DSP
+  vol=$(get_vol "$raw_id")
   wpctl set-volume "$raw_id" 1.0
   wpctl set-default "$dsp_id"
+  move_streams
   wpctl set-volume "$dsp_id" "$vol"
   echo "DSP ON (vol=$vol)"
 fi

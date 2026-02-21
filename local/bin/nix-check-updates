@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Preview what packages would change if you update nixpkgs (or all inputs).
+# Usage:
+#   nix-check-updates           # update all inputs, show diff
+#   nix-check-updates nixpkgs   # update just nixpkgs, show diff
+
+set -euo pipefail
+
+FLAKE="/home/aroman/Projects/dotfiles/nixos"
+HOST="wizardtower"
+LOCKFILE="$FLAKE/flake.lock"
+
+# Save current lock file
+cp "$LOCKFILE" "$LOCKFILE.bak"
+
+# Update inputs
+if [ $# -gt 0 ]; then
+    echo "Updating input: $*"
+    nix flake update "$@" --flake "$FLAKE"
+else
+    echo "Updating all inputs..."
+    nix flake update --flake "$FLAKE"
+fi
+
+# Build without switching
+echo "Building new system (not switching)..."
+nixos-rebuild build --flake "$FLAKE#$HOST"
+
+# Show diff
+echo ""
+nix run nixpkgs#nvd -- diff /run/current-system ./result
+
+# Clean up build result
+rm -f result
+
+# Restore original lock file
+mv "$LOCKFILE.bak" "$LOCKFILE"
+
+echo ""
+echo "Lock file restored. Run 'nix flake update --flake $FLAKE' + rebuild to apply."
