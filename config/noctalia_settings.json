@@ -46,6 +46,7 @@
         "density": "default",
         "displayMode": "always_visible",
         "floating": true,
+        "fontScale": 1,
         "frameRadius": 24,
         "frameThickness": 8,
         "hideOnOverview": true,
@@ -58,8 +59,10 @@
         "screenOverrides": [
         ],
         "showCapsule": false,
+        "showOnWorkspaceSwitch": true,
         "showOutline": false,
         "useSeparateOpacity": true,
+        "widgetSpacing": 6,
         "widgets": {
             "center": [
                 {
@@ -317,9 +320,16 @@
         "colorizeIcons": false,
         "deadOpacity": 0.6,
         "displayMode": "auto_hide",
+        "dockType": "floating",
         "enabled": false,
         "floatingRatio": 1,
+        "groupApps": false,
+        "groupClickAction": "cycle",
+        "groupContextMenuMode": "extended",
+        "groupIndicatorStyle": "dots",
         "inactiveIndicators": false,
+        "launcherIconColor": "none",
+        "launcherPosition": "end",
         "monitors": [
         ],
         "onlySameOutput": true,
@@ -327,6 +337,9 @@
         ],
         "pinnedStatic": false,
         "position": "bottom",
+        "showFrameIndicator": true,
+        "showLauncherIcon": false,
+        "sitOnFrame": false,
         "size": 1
     },
     "general": {
@@ -376,6 +389,7 @@
         "lockScreenMonitors": [
         ],
         "lockScreenTint": 0.4,
+        "passwordChars": false,
         "radiusRatio": 0.58,
         "reverseScroll": false,
         "scaleRatio": 1,
@@ -435,10 +449,12 @@
     },
     "notifications": {
         "backgroundOpacity": 0.86,
+        "clearDismissed": true,
         "criticalUrgencyDuration": 15,
         "density": "default",
         "enableBatteryToast": true,
         "enableKeyboardLayoutToast": true,
+        "enableMarkdown": false,
         "enableMediaToast": false,
         "enabled": true,
         "location": "top_right",
