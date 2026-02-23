@@ -5,11 +5,11 @@
 # commands after exec, so instead we set an env var and intercept it here.
 # TODO: replace with trustedDirectories once available
 #       https://github.com/anthropics/claude-code/issues/23109
-if set -q __GG_EXEC_CLAUDE
+if set -q __GG_EXEC_CLAUDE; and isatty stdin
     set -e __GG_EXEC_CLAUDE
     exec claude
 end
-if set -q __GG_EXEC_CLAUDE_RESUME
+if set -q __GG_EXEC_CLAUDE_RESUME; and isatty stdin
     set -e __GG_EXEC_CLAUDE_RESUME
     exec claude --resume
 end
