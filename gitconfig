@@ -3,7 +3,7 @@
 [user]
 	name = Avi Romanoff
 	email = avi@magiccircle.studio
-	signingkey = /home/aroman/.ssh/blue.pub
+	# signingkey set in ~/.gitconfig.local per machine
 [push]
 	default = simple
 [core]

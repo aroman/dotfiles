@@ -102,8 +102,16 @@ set --export PATH $BUN_INSTALL/bin $PATH
 
 # macOS-only integrations
 if test (uname) = Darwin
+    # Added by OrbStack: command-line tools and integration
+    # This won't be added again if you remove it.
     source ~/.orbstack/shell/init2.fish 2>/dev/null || :
-    test -e {$HOME}/.iterm2_shell_integration.fish; and source {$HOME}/.iterm2_shell_integration.fish; or true
+
+    test -e {$HOME}/.iterm2_shell_integration.fish ; and source {$HOME}/.iterm2_shell_integration.fish ; or true
+
+    # Added by Antigravity
+    fish_add_path /Users/aroman/.antigravity/antigravity/bin
+
+    source "$HOME/.cargo/env.fish"
 end
 
 export PATH="$HOME/.local/bin:$PATH"
