@@ -221,6 +221,9 @@ in
     ".local/bin/figma-open" = {
       source = link "local/bin/figma-open";
     };
+    ".local/bin/niri-figma-touchpad" = {
+      source = link "local/bin/niri-figma-touchpad";
+    };
   };
 
   # ── User packages ──────────────────────────────────────────────────
@@ -380,6 +383,19 @@ in
       Restart = "on-failure";
     };
     Install.WantedBy = [ "default.target" ];
+  };
+
+  systemd.user.services.niri-figma-touchpad = {
+    Unit = {
+      Description = "Disable touchpad-while-typing when Figma is focused";
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart = "%h/.local/bin/niri-figma-touchpad";
+      Restart = "on-failure";
+      RestartSec = 2;
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
   };
 
   # ── Portal permissions ────────────────────────────────────────────
