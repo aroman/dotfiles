@@ -354,23 +354,32 @@ in
 
   # ── Services ─────────────────────────────────────────────────────
 
-  # ── Figma auto-unzip ─────────────────────────────────────────────
-  # Figma Chrome app downloads .zips to a hidden staging dir; systemd
-  # watches it and extracts contents into ~/Downloads automatically.
+  # ── Figma download handler ───────────────────────────────────────
+  # Figma Chrome app downloads to a hidden staging dir; systemd
+  # watches it, extracts .zips and moves everything else into ~/Downloads.
   systemd.user.paths.figma-auto-unzip = {
-    Unit.Description = "Watch Figma downloads for .zip files";
+    Unit.Description = "Watch Figma downloads for new files";
     Path.DirectoryNotEmpty = "%h/.figma/Downloads";
     Install.WantedBy = [ "default.target" ];
   };
   systemd.user.services.figma-auto-unzip = {
-    Unit.Description = "Extract Figma .zip exports into ~/Downloads";
+    Unit.Description = "Move Figma exports into ~/Downloads";
     Service = {
       Type = "oneshot";
-      ExecStart = pkgs.writeShellScript "figma-auto-unzip" ''
-        for f in "$HOME/.figma/Downloads"/*.zip; do
-          [ -f "$f" ] || continue
+      ExecStart = pkgs.writeShellScript "figma-download-handler" ''
+        # Wait for Chrome to finish writing (no .crdownload temp files)
+        for i in $(seq 1 20); do
+          ls "$HOME/.figma/Downloads"/*.crdownload >/dev/null 2>&1 || break
           sleep 0.5
-          ${pkgs.unzip}/bin/unzip -o "$f" -d "$HOME/Downloads" && rm "$f"
+        done
+        sleep 0.3
+        for f in "$HOME/.figma/Downloads"/*; do
+          [ -f "$f" ] || continue
+          case "$f" in
+            *.crdownload) ;;
+            *.zip) ${pkgs.unzip}/bin/unzip -o "$f" -d "$HOME/Downloads" && rm "$f" ;;
+            *)     mv "$f" "$HOME/Downloads/" ;;
+          esac
         done
       '';
     };
