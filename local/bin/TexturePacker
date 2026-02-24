@@ -1,2 +1,9 @@
 #!/bin/sh
-exec flatpak run com.codeandweb.texturepacker "$@"
+case "$(uname)" in
+  Darwin)
+    exec /Applications/TexturePacker.app/Contents/MacOS/TexturePacker "$@"
+    ;;
+  *)
+    exec flatpak run com.codeandweb.texturepacker "$@"
+    ;;
+esac
