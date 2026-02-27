@@ -40,6 +40,7 @@ function ggcc
     ~/Projects/magiccircle.gg/scripts/worktrees/new.sh $argv
     set -e __GG_EXEC_CLAUDE
 end
+abbr --add ggb "~/Projects/magiccircle.gg/scripts/batmen.sh"
 abbr --add ggp "~/Projects/magiccircle.gg/scripts/worktrees/cleanup.sh"
 abbr --add ggs "~/Projects/magiccircle.gg/scripts/worktrees/list.sh --jump"
 function ggr
