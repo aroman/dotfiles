@@ -7,6 +7,7 @@ in
 {
   imports = [
     inputs.voxtype.homeManagerModules.default
+    inputs.vicinae.homeManagerModules.default
   ];
 
   home.username = "aroman";
@@ -296,12 +297,26 @@ in
     }))
 
     # Desktop shell & launcher
-    vicinae
+    # vicinae — installed via services.vicinae below
 
     # Development
     nodejs_22
     bun
   ];
+
+
+  # ── Vicinae launcher ─────────────────────────────────────────────
+
+  services.vicinae = {
+    enable = true;
+    systemd = {
+      enable = true;
+      autoStart = true;
+      environment = {
+        USE_LAYER_SHELL = 1;
+      };
+    };
+  };
 
 
   # ── GPG agent ──────────────────────────────────────────────────────
