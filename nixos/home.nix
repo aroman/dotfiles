@@ -343,6 +343,13 @@ in
   # Ref: https://man.archlinux.org/man/swayidle.1
   services.swayidle = {
     enable = true;
+    timeouts = [
+      # Power off monitors after 10 minutes idle.
+      # Any input (mouse move, keypress) wakes them back up.
+      { timeout = 600; command = "niri msg action power-off-monitors"; }
+      # Lock the session after 15 minutes idle.
+      { timeout = 900; command = "noctalia-shell ipc call lockScreen lock"; }
+    ];
     events = [
       # Lock the session before systemd suspends (lid close, idle, manual).
       # swayidle's delay inhibitor holds off sleep until this returns.
