@@ -28,6 +28,11 @@
       # inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    voxtype = {
+      url = "github:peteonrails/voxtype";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
   };
 
   outputs = inputs@{ self, nixpkgs, home-manager, nixos-hardware, niri, ... }: {

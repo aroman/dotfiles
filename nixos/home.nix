@@ -6,6 +6,7 @@ let
 in
 {
   imports = [
+    inputs.voxtype.homeManagerModules.default
   ];
 
   home.username = "aroman";
@@ -212,12 +213,6 @@ in
     ".local/bin/dsp-toggle" = {
       source = link "local/bin/dsp-toggle";
     };
-    ".local/bin/dictate" = {
-      source = link "local/bin/dictate";
-    };
-    ".local/bin/dictate-transcribe" = {
-      source = link "local/bin/dictate-transcribe";
-    };
     ".local/bin/figma-open" = {
       source = link "local/bin/figma-open";
     };
@@ -243,6 +238,8 @@ in
     gh
     git-lfs
     gnupg
+    dotool
+    btop
     tokei
     unzip
 
@@ -250,13 +247,10 @@ in
     neovim
     zed-editor
 
-    # Dictation (speech-to-text)
-    wtype
-    (python3.withPackages (ps: [ ps.faster-whisper ]))
-
     # Wayland tools
     wl-clipboard
     brightnessctl
+    ddcutil
     playerctl
     networkmanagerapplet
     overskride
@@ -447,6 +441,36 @@ in
   };
 
   # ── Programs ─────────────────────────────────────────────────────
+
+  # ── Voxtype (push-to-talk dictation) ─────────────────────────────
+  programs.voxtype = {
+    enable = true;
+    package = inputs.voxtype.packages.x86_64-linux.vulkan;
+    model.name = "base.en";
+    service.enable = true;
+    settings = {
+      hotkey = {
+        enabled = true;
+        key = "EVTEST_1";
+        modifiers = [ "SUPER" ];
+        mode = "push_to_talk";
+      };
+      audio.feedback = {
+        enabled = true;
+        theme = "default";
+        volume = 0.7;
+      };
+      # Force dotool (kernel uinput) instead of wtype (broken on niri,
+      # see https://github.com/niri-wm/niri/issues/2314).
+      output = {
+        mode = "type";
+        driver_order = [ "dotool" "clipboard" ];
+        fallback_to_clipboard = true;
+      };
+      output.notification.on_transcription = true;
+      whisper.language = "en";
+    };
+  };
 
   programs.home-manager.enable = true;
 

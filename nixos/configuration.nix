@@ -111,6 +111,7 @@
   # prevents unauthorized memory access, making the software security level redundant.
   services.udev.extraRules = ''
     ACTION=="add", SUBSYSTEM=="thunderbolt", ATTRS{iommu_dma_protection}=="1", ATTR{authorized}=="0", ATTR{authorized}="1"
+    KERNEL=="uinput", GROUP="input", MODE="0660"
   '';
 
   # Keyboard
@@ -144,7 +145,7 @@
   users.users.aroman = {
     isNormalUser = true;
     description = "aroman";
-    extraGroups = [ "wheel" "networkmanager" "video" "input" ];
+    extraGroups = [ "wheel" "networkmanager" "video" "input" "i2c" ];
     shell = pkgs.fish;
   };
 
@@ -182,6 +183,9 @@
 
   # Bluetooth
   hardware.bluetooth.enable = true;
+
+  # I2C access for DDC/CI external monitor brightness control (via ddcutil)
+  hardware.i2c.enable = true;
 
   # Fan control for Framework (using default curves for now)
   # Custom curves from Silverblue backup are in NixLifeboat/fw-fanctrl-config.json

@@ -469,7 +469,6 @@ binds {
     Ctrl+Alt+Space hotkey-overlay-title="Emoji Picker" { spawn "vicinae" "deeplink" "vicinae://extensions/vicinae/core/search-emojis"; }
     Ctrl+Mod+Q hotkey-overlay-title="Lock the Screen" { spawn "noctalia-shell" "ipc" "call" "lockScreen" "lock"; }
     Mod+Shift+Comma hotkey-overlay-title="Noctalia Settings" { spawn "noctalia-shell" "ipc" "call" "settings" "toggle"; }
-    Mod+Shift+D hotkey-overlay-title="Dictate (Toggle)" { spawn "sh" "/home/aroman/Projects/dotfiles/local/bin/dictate"; }
 
     // Use spawn-sh to run a shell command. Do this if you need pipes, multiple commands, etc.
     // Note: the entire command goes as a single argument. It's passed verbatim to `sh -c`.
@@ -492,11 +491,11 @@ binds {
     XF86AudioPrev        allow-when-locked=true { spawn-sh "playerctl previous"; }
     XF86AudioNext        allow-when-locked=true { spawn-sh "playerctl next"; }
 
-    // Example brightness key mappings for brightnessctl.
-    // You can use regular spawn with multiple arguments too (to avoid going through "sh"),
-    // but you need to manually put each argument in separate "" quotes.
-    XF86MonBrightnessUp allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "+10%"; }
-    XF86MonBrightnessDown allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "10%-"; }
+    // Brightness: brightnessctl runs instantly for the laptop backlight (Noctalia
+    // picks up the sysfs change via inotify and shows OSD). ddcutil fires in the
+    // background for external monitors via DDC/CI (~100-200ms I2C latency).
+    XF86MonBrightnessUp allow-when-locked=true { spawn-sh "brightnessctl --class=backlight set +5%; ddcutil --noverify --sleep-multiplier=0.05 setvcp 10 + 5 2>/dev/null &"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn-sh "brightnessctl --class=backlight set 5%-; ddcutil --noverify --sleep-multiplier=0.05 setvcp 10 - 5 2>/dev/null &"; }
 
     // Open/close the Overview: a zoomed-out view of workspaces and windows.
     // You can also move the mouse into the top-left hot corner,
