@@ -94,8 +94,17 @@
     };
   };
 
-  # Real-time scheduling for PipeWire (prevents audio pops/crackles)
+  # Real-time scheduling for PipeWire (prevents audio pops/crackles).
+  # rtkit is a fallback; the primary method is PAM rlimits for the @audio
+  # group, which lets PipeWire use SCHED_FIFO directly without rtkit.
+  # Without these limits PipeWire stays on SCHED_OTHER and crackles under load.
+  # Ref: https://docs.pipewire.org/page_module_rt.html
   security.rtkit.enable = true;
+  security.pam.loginLimits = [
+    { domain = "@audio"; type = "-"; item = "rtprio";  value = "95"; }
+    { domain = "@audio"; type = "-"; item = "memlock"; value = "unlimited"; }
+    { domain = "@audio"; type = "-"; item = "nice";    value = "-19"; }
+  ];
 
   # Graphics (AMD iGPU — Ryzen AI 300 series)
   hardware.graphics.enable = true;
@@ -145,7 +154,7 @@
   users.users.aroman = {
     isNormalUser = true;
     description = "aroman";
-    extraGroups = [ "wheel" "networkmanager" "video" "input" "i2c" ];
+    extraGroups = [ "wheel" "networkmanager" "video" "input" "i2c" "audio" ];
     shell = pkgs.fish;
   };
 
