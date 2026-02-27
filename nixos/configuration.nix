@@ -109,6 +109,14 @@
   # Graphics (AMD iGPU — Ryzen AI 300 series)
   hardware.graphics.enable = true;
 
+  # Zeroconf/mDNS — needed for Spotify Connect device discovery
+  services.avahi = {
+    enable = true;
+    nssmdns4 = true;
+    openFirewall = true;
+  };
+  networking.firewall.allowedTCPPorts = [ 57621 ]; # Spotify Connect
+
   # Firmware updates (Framework)
   services.fwupd.enable = true;
 
