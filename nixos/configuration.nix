@@ -62,6 +62,17 @@
     enable = true;
     alsa.enable = true;
     pulse.enable = true;
+    # Block Chromium-based apps (Vesktop, Chrome, Electron) from adjusting
+    # mic volume at the OS level. WebRTC's automatic gain control changes the
+    # PipeWire source volume directly, overriding user settings.
+    # Ref: https://github.com/Vencord/Vesktop/issues/161
+    # Ref: https://bbs.archlinux.org/viewtopic.php?id=301041
+    extraConfig.pipewire-pulse."91-block-chromium-mic-adjust" = {
+      "pulse.rules" = [{
+        matches = [{ "application.name" = "~Chromium.*"; }];
+        actions.quirks = [ "block-source-volume" ];
+      }];
+    };
     wireplumber = {
       enable = true;
       extraConfig = {
