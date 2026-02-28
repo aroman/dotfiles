@@ -234,6 +234,7 @@
   environment.systemPackages = with pkgs; [
     git
     curl
+    lsof
   ];
 
   nix.settings = {
