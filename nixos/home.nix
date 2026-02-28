@@ -217,8 +217,8 @@ in
     ".local/bin/figma-open" = {
       source = link "local/bin/figma-open";
     };
-    ".local/bin/niri-figma-touchpad" = {
-      source = link "local/bin/niri-figma-touchpad";
+    ".local/bin/niri-dwt-toggle" = {
+      source = link "local/bin/niri-dwt-toggle";
     };
   };
 
@@ -410,13 +410,13 @@ in
     Install.WantedBy = [ "default.target" ];
   };
 
-  systemd.user.services.niri-figma-touchpad = {
+  systemd.user.services.niri-dwt-toggle = {
     Unit = {
-      Description = "Disable touchpad-while-typing when Figma is focused";
+      Description = "Disable touchpad DWT for apps that need pointer during typing (Figma, Magic Garden)";
       After = [ "graphical-session.target" ];
     };
     Service = {
-      ExecStart = "%h/.local/bin/niri-figma-touchpad";
+      ExecStart = "%h/.local/bin/niri-dwt-toggle";
       Restart = "on-failure";
       RestartSec = 2;
     };

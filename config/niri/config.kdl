@@ -61,7 +61,7 @@ input {
     touchpad {
         // off
         tap
-        dwt
+        dwt // toggled by niri-dwt-toggle — do not remove
         dwtp
         // drag false
         // drag-lock

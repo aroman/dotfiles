@@ -1,0 +1,66 @@
+#!/usr/bin/env sh
+# niri-dwt-toggle — per-window disable-while-typing (DWT) for niri
+#
+# niri doesn't support DWT as a window-rule property, so this script
+# works around that by watching the focus event stream and toggling
+# the `dwt` line in the niri config via sed. niri hot-reloads the
+# config automatically.
+#
+# To add a new app/window that should disable DWT, add a pattern to
+# the should_disable_dwt() function below.
+#
+# Managed by systemd user service (niri-dwt-toggle.service in home.nix).
+# See also: ~/.config/niri/config.kdl (the `dwt` line in touchpad {})
+
+CONFIG="$HOME/.config/niri/config.kdl"
+dwt_off=false
+
+enable_dwt() {
+    sed -i 's|^\(\s*\)// dwt\b|\1dwt|' "$CONFIG"
+}
+
+disable_dwt() {
+    sed -i 's|^\(\s*\)dwt\b|\1// dwt|' "$CONFIG"
+}
+
+# Returns 0 (true) if DWT should be disabled for the focused window.
+# Add new patterns here as needed.
+should_disable_dwt() {
+    app_id="$1"
+    title="$2"
+
+    # Figma (native or Chrome PWA)
+    case "$app_id" in
+        figma-linux|chrome-www.figma.com*) return 0 ;;
+    esac
+
+    # Magic Garden (runs in Chrome)
+    case "$title" in
+        *"Magic Garden"*) return 0 ;;
+    esac
+
+    return 1
+}
+
+trap enable_dwt EXIT
+enable_dwt
+
+niri msg -j event-stream \
+  | jq --unbuffered -c 'select(.WindowFocusTimestampChanged)' \
+  | while read -r _; do
+      focused=$(niri msg -j focused-window 2>/dev/null)
+      app_id=$(printf '%s' "$focused" | jq -r '.app_id // ""')
+      title=$(printf '%s' "$focused" | jq -r '.title // ""')
+
+      if should_disable_dwt "$app_id" "$title"; then
+          if [ "$dwt_off" = false ]; then
+              dwt_off=true
+              disable_dwt
+          fi
+      else
+          if [ "$dwt_off" = true ]; then
+              dwt_off=false
+              enable_dwt
+          fi
+      fi
+    done
