@@ -220,6 +220,9 @@ in
     ".local/bin/niri-dwt-toggle" = {
       source = link "local/bin/niri-dwt-toggle";
     };
+    ".local/bin/screen-record" = {
+      source = link "local/bin/screen-record";
+    };
   };
 
   # ── User packages ──────────────────────────────────────────────────
@@ -256,6 +259,9 @@ in
     networkmanagerapplet
     overskride
     socat # IPC with niri socket (used by swap-monitors script)
+    slurp        # area selection for screen recording
+    wf-recorder  # Wayland screen recorder
+    libnotify    # notify-send for desktop notifications
 
     # Media & audio
     pwvucontrol # TODO: missing icons (emblem-default-symbolic) — https://github.com/saivert/pwvucontrol/issues/71

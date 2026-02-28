@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Toggle screen recording. First press: select area with slurp + start
+# wf-recorder. Second press: stop recording. Saves to ~/Videos/Recordings/.
+
+RECORDINGS_DIR="$HOME/Videos/Recordings"
+
+# If already recording, stop it
+if pkill -SIGINT wf-recorder; then
+  action=$(notify-send -t 5000 -A "open=Open folder" "Recording saved" "$RECORDINGS_DIR" 2>/dev/null) || true
+  [ "$action" = "open" ] && xdg-open "$RECORDINGS_DIR" &
+  exit 0
+fi
+
+# Select area
+geometry=$(slurp) || exit 0
+
+# Ensure output directory exists
+mkdir -p "$RECORDINGS_DIR"
+
+filename="$RECORDINGS_DIR/Recording $(date '+%Y-%m-%d %H-%M-%S').mp4"
+
+notify-send -t 2000 "Recording started" "Press Mod+Print to stop" 2>/dev/null || true
+
+wf-recorder -g "$geometry" -f "$filename"
