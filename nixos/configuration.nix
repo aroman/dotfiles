@@ -109,6 +109,17 @@
   # Graphics (AMD iGPU — Ryzen AI 300 series)
   hardware.graphics.enable = true;
 
+  # Workaround: MES (Micro Engine Scheduler) firmware hangs on RDNA 3.5.
+  # The MES firmware stops responding (MES ring buffer full → hung tasks →
+  # total system freeze requiring REISUB). Disabling MES falls back to the
+  # older CP scheduler. No practical downside for desktop/dev workloads;
+  # only affects heavy ROCm GPU compute.
+  # Tracker: https://github.com/ROCm/ROCm/issues/5844
+  # See also: https://community.frame.work/t/attn-critical-bugs-in-amdgpu-driver-included-with-kernel-6-18-x-6-19-x/79221
+  boot.kernelParams = [
+    "amdgpu.mes=0"
+  ];
+
   # Zeroconf/mDNS — needed for Spotify Connect device discovery
   services.avahi = {
     enable = true;
