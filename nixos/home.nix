@@ -205,40 +205,12 @@ in
     ".gitignore_global".source = link "gitignore_global";
     ".vim".source = link "vim";
     ".ssh/config".source = link "ssh/config";
-    ".local/bin/pinentry-auto" = {
-      source = link "local/bin/pinentry-auto";
-     # executable = true;
-    };
-    ".local/bin/stack-terminal" = {
-      source = link "local/bin/stack-terminal";
-    };
-    ".local/bin/dsp-toggle" = {
-      source = link "local/bin/dsp-toggle";
-    };
-    ".local/bin/figma-open" = {
-      source = link "local/bin/figma-open";
-    };
-    ".local/bin/niri-dwt-toggle" = {
-      source = link "local/bin/niri-dwt-toggle";
-    };
-    ".local/bin/screen-record" = {
-      source = link "local/bin/screen-record";
-    };
-    ".local/bin/nix-check-updates" = {
-      source = link "local/bin/nix-check-updates";
-    };
-    ".local/bin/swap-monitors" = {
-      source = link "local/bin/swap-monitors";
-    };
-    ".local/bin/toggle-center" = {
-      source = link "local/bin/toggle-center";
-    };
-    ".local/bin/worktree-picker" = {
-      source = link "local/bin/worktree-picker";
-    };
-    ".local/bin/batman-picker" = {
-      source = link "local/bin/batman-picker";
-    };
+    # On NixOS, home-manager owns most dotfiles — rcup only manages local/.
+    # On macOS there's no ~/.rcrc so rcup manages everything.
+    ".rcrc".text = ''
+      DOTFILES_DIRS="$HOME/Projects/dotfiles"
+      EXCLUDES="bin/mute-IEC958* bin/start-browser* Brewfile config gemrc gitconfig gitignore_global hooks hushlogin i3 iTerm2 Library nixos PLAN.md *.rayconfig README.md RectangleConfig.json rules.velja-rules ssh vim xterm-256color-italic.terminfo zshrc"
+    '';
   };
 
   # ── User packages ──────────────────────────────────────────────────
@@ -248,6 +220,7 @@ in
     starship
 
     # Core CLI
+    rcm          # dotfile manager — `rcup` symlinks local/bin/* → ~/.local/bin/* etc.
     handlr-regex # URL dispatcher — routes links to the right app by domain
     websocat     # WebSocket CLI — used by figma-open to navigate via CDP
     bat
