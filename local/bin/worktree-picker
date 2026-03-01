@@ -1,11 +1,23 @@
 #!/usr/bin/env bash
-# Graphical worktree picker — lists magiccircle.gg worktrees in fuzzel,
-# opens the selected one in Zed.
+#
+# worktree-picker — graphical worktree picker for magiccircle.gg
+#
+# Lists git worktrees in fuzzel (Wayland dmenu), opens the selected one
+# in Zed. Bound to Mod+I in niri config.
+#
+# Dependencies: git, fuzzel, zeditor (Zed), niri, notify-send
+#
 set -euo pipefail
 
 MAIN_REPO="$HOME/Projects/magiccircle.gg"
 
-# Parse worktrees (skip the main repo itself)
+# --- Parse worktrees ---
+# Uses `git worktree list --porcelain` which outputs blocks like:
+#   worktree /path/to/worktree
+#   HEAD <sha>
+#   branch refs/heads/<branch>
+#   <blank line>
+# We skip the main repo (not a worktree branch).
 dirs=()
 branches=()
 current_wt=""
@@ -29,14 +41,28 @@ if [[ ${#branches[@]} -eq 0 ]]; then
   exit 0
 fi
 
-# Build list for fuzzel (branch name per line)
+# --- Pick a worktree with fuzzel ---
 selected="$(printf '%s\n' "${branches[@]}" \
   | fuzzel --dmenu --prompt "Edit worktree: ")" || exit 0
 
-# Find matching directory and open in Zed
+# --- Open in Zed and maximize ---
 for i in "${!branches[@]}"; do
   if [[ "${branches[$i]}" == "$selected" ]]; then
-    exec zeditor "${dirs[$i]}"
+    zeditor --new "${dirs[$i]}" &
+
+    # Zed overrides niri's initial configure request, so the open-maximized
+    # window rule doesn't work. Instead we poll for the Zed window to appear
+    # and maximize it via niri IPC.
+    # https://github.com/niri-wm/niri/wiki/Configuration:-Window-Rules
+    # https://github.com/niri-wm/niri/issues/3144
+    for _ in $(seq 1 20); do
+      if niri msg focused-window 2>/dev/null | grep -q "dev.zed.Zed"; then
+        niri msg action maximize-column
+        break
+      fi
+      sleep 0.05
+    done
+    exit 0
   fi
 done
 
