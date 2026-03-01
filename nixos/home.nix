@@ -223,6 +223,15 @@ in
     ".local/bin/screen-record" = {
       source = link "local/bin/screen-record";
     };
+    ".local/bin/nix-check-updates" = {
+      source = link "local/bin/nix-check-updates";
+    };
+    ".local/bin/swap-monitors" = {
+      source = link "local/bin/swap-monitors";
+    };
+    ".local/bin/toggle-center" = {
+      source = link "local/bin/toggle-center";
+    };
   };
 
   # ── User packages ──────────────────────────────────────────────────
@@ -492,6 +501,9 @@ in
       whisper.language = "en";
     };
   };
+
+  # Make dotool type instantly (default 20ms per keystroke).
+  systemd.user.services.voxtype.Service.Environment = [ "DOTOOL_DELAY=0" ];
 
   programs.home-manager.enable = true;
 
