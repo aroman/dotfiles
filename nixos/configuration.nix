@@ -62,6 +62,16 @@
     enable = true;
     alsa.enable = true;
     pulse.enable = true;
+    # High-quality resampling and multi-rate support. Default resample.quality
+    # is 4 (mediocre); 10 is near-transparent and cheap on modern CPUs.
+    # Allowing 44100/96000 avoids resampling for CD and hi-res content when
+    # the hardware supports it (e.g. CalDigit TS4 → Presonus E4).
+    extraConfig.pipewire."10-audio-quality" = {
+      "context.properties" = {
+        "resample.quality" = 10;
+        "default.clock.allowed-rates" = [ 44100 48000 96000 ];
+      };
+    };
     # Block Chromium-based apps (Vesktop, Chrome, Electron) from adjusting
     # mic volume at the OS level. WebRTC's automatic gain control changes the
     # PipeWire source volume directly, overriding user settings.
@@ -139,8 +149,11 @@
   # prevents unauthorized memory access, making the software security level redundant.
   services.udev.extraRules = ''
     ACTION=="add", SUBSYSTEM=="thunderbolt", ATTRS{iommu_dma_protection}=="1", ATTR{authorized}=="0", ATTR{authorized}="1"
-    KERNEL=="uinput", GROUP="input", MODE="0660"
   '';
+
+  # uinput access for dotool (voxtype text injection).
+  # Creates the uinput group and sets /dev/uinput permissions.
+  hardware.uinput.enable = true;
 
   # Keyboard
   services.xserver.xkb = {
@@ -173,7 +186,7 @@
   users.users.aroman = {
     isNormalUser = true;
     description = "aroman";
-    extraGroups = [ "wheel" "networkmanager" "video" "input" "i2c" "audio" ];
+    extraGroups = [ "wheel" "networkmanager" "video" "input" "i2c" "audio" "uinput" ];
     shell = pkgs.fish;
   };
 
