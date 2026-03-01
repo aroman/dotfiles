@@ -296,6 +296,7 @@ in
     figma-agent # serves local fonts to Figma web (needs Windows user-agent)
     texturepacker
     adwaita-qt6
+    adw-gtk3 # libadwaita look for GTK3 apps (Nemo, Thunar, etc.)
 
     nautilus
     file-roller
@@ -346,7 +347,7 @@ in
   dconf.settings = {
     "org/gnome/desktop/interface" = {
       color-scheme = "prefer-dark";
-      gtk-theme = "Adwaita-dark";
+      gtk-theme = "adw-gtk3-dark";
       accent-color = "blue";
       font-name = "Inter 11";
       monospace-font-name = "CaskaydiaCove Nerd Font 12";
@@ -355,6 +356,10 @@ in
       cursor-size = 24;
     };
     # TODO: manage Ptyxis settings declaratively (dconf module doesn't re-apply after manual changes)
+    "org/gnome/nautilus/preferences" = {
+      default-sort-order = "mtime";
+      default-sort-in-reverse-order = true;
+    };
   };
 
   # ── Idle & lock-before-sleep ──────────────────────────────────────
