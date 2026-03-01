@@ -6,7 +6,7 @@
 # batman (start_tmux_services.sh) in the selected worktree.
 # Bound to Mod+U in niri config.
 #
-# Dependencies: git, fuzzel, niri, notify-send, and a terminal emulator
+# Dependencies: git, fuzzel, niri, notify-send, worktree-list
 # See also: worktree-picker (same picker but opens Zed)
 #
 set -euo pipefail
@@ -15,47 +15,29 @@ MAIN_REPO="$HOME/Projects/magiccircle.gg"
 BATMAN_SCRIPT="$MAIN_REPO/scripts/start_tmux_services.sh"
 KILL_ZOMBIES="$MAIN_REPO/scripts/kill-zombie-servers.sh"
 
-# --- Parse worktrees ---
-# Uses `git worktree list --porcelain` which outputs blocks like:
-#   worktree /path/to/worktree
-#   HEAD <sha>
-#   branch refs/heads/<branch>
-#   <blank line>
-# Includes the main repo (batman can run on main too).
-dirs=()
-branches=()
-current_wt=""
+# Read worktrees (including main) sorted by mtime
+mapfile -t entries < <(worktree-list --include-main)
 
-while IFS= read -r line; do
-  if [[ "$line" == worktree\ * ]]; then
-    current_wt="${line#worktree }"
-  elif [[ "$line" == branch\ * ]]; then
-    branch="${line#branch refs/heads/}"
-    dirs+=("$current_wt")
-    branches+=("$branch")
-  elif [[ -z "$line" ]]; then
-    current_wt=""
-  fi
-done < <(git -C "$MAIN_REPO" worktree list --porcelain)
-
-if [[ ${#branches[@]} -eq 0 ]]; then
+if [[ ${#entries[@]} -eq 0 ]]; then
   notify-send "Batman Picker" "No worktrees found."
   exit 0
 fi
 
-# --- Pick a worktree with fuzzel ---
-selected="$(printf '%s\n' "${branches[@]}" \
+# Pick a worktree with fuzzel
+selected="$(printf '%s\n' "${entries[@]}" | cut -f1 \
   | fuzzel --dmenu --prompt "Start batman in: ")" || exit 0
 
-# --- Open terminal running batman in the selected worktree ---
-for i in "${!branches[@]}"; do
-  if [[ "${branches[$i]}" == "$selected" ]]; then
+# Open terminal running batman in the selected worktree
+for entry in "${entries[@]}"; do
+  branch="${entry%%	*}"
+  dir="${entry#*	}"
+  if [[ "$branch" == "$selected" ]]; then
     # Kill zombie dev servers on known ports and clean up any previous
     # batman session before starting a new one.
     "$KILL_ZOMBIES" 2>/dev/null || true
 
     # Runs inside `nix develop` to get the devshell (provides zellij, pnpm, etc.)
-    exec xdg-terminal-exec nix develop "${dirs[$i]}" --command bash -c "cd '${dirs[$i]}' && exec '$BATMAN_SCRIPT'"
+    exec xdg-terminal-exec nix develop "$dir" --command bash -c "cd $(printf '%q' "$dir") && exec $(printf '%q' "$BATMAN_SCRIPT")"
   fi
 done
 

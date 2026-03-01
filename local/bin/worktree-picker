@@ -5,50 +5,28 @@
 # Lists git worktrees in fuzzel (Wayland dmenu), opens the selected one
 # in Zed. Bound to Mod+I in niri config.
 #
-# Dependencies: git, fuzzel, zeditor (Zed), niri, notify-send
+# Dependencies: git, fuzzel, zeditor (Zed), niri, notify-send, worktree-list
 #
 set -euo pipefail
 
-MAIN_REPO="$HOME/Projects/magiccircle.gg"
+# Read worktrees (excluding main) sorted by mtime
+mapfile -t entries < <(worktree-list)
 
-# --- Parse worktrees ---
-# Uses `git worktree list --porcelain` which outputs blocks like:
-#   worktree /path/to/worktree
-#   HEAD <sha>
-#   branch refs/heads/<branch>
-#   <blank line>
-# We skip the main repo (not a worktree branch).
-dirs=()
-branches=()
-current_wt=""
-
-while IFS= read -r line; do
-  if [[ "$line" == worktree\ * ]]; then
-    current_wt="${line#worktree }"
-  elif [[ "$line" == branch\ * ]]; then
-    branch="${line#branch refs/heads/}"
-    if [[ "$current_wt" != "$MAIN_REPO" ]]; then
-      dirs+=("$current_wt")
-      branches+=("$branch")
-    fi
-  elif [[ -z "$line" ]]; then
-    current_wt=""
-  fi
-done < <(git -C "$MAIN_REPO" worktree list --porcelain)
-
-if [[ ${#branches[@]} -eq 0 ]]; then
+if [[ ${#entries[@]} -eq 0 ]]; then
   notify-send "Worktree Picker" "No active worktrees."
   exit 0
 fi
 
-# --- Pick a worktree with fuzzel ---
-selected="$(printf '%s\n' "${branches[@]}" \
+# Pick a worktree with fuzzel
+selected="$(printf '%s\n' "${entries[@]}" | cut -f1 \
   | fuzzel --dmenu --prompt "Edit worktree: ")" || exit 0
 
-# --- Open in Zed and maximize ---
-for i in "${!branches[@]}"; do
-  if [[ "${branches[$i]}" == "$selected" ]]; then
-    zeditor --new "${dirs[$i]}" &
+# Open in Zed and maximize
+for entry in "${entries[@]}"; do
+  branch="${entry%%	*}"
+  dir="${entry#*	}"
+  if [[ "$branch" == "$selected" ]]; then
+    zeditor --new "$dir" &
 
     # Zed overrides niri's initial configure request, so the open-maximized
     # window rule doesn't work. Instead we poll for the Zed window to appear

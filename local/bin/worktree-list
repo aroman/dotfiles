@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+#
+# worktree-list — list magiccircle.gg worktrees sorted by mtime (newest first)
+#
+# Output: one line per worktree, tab-separated: branch<TAB>dir
+# Flags:
+#   --include-main  Include the main repo (default: exclude)
+#
+set -euo pipefail
+
+MAIN_REPO="$HOME/Projects/magiccircle.gg"
+include_main=false
+
+for arg in "$@"; do
+  case "$arg" in
+    --include-main) include_main=true ;;
+  esac
+done
+
+# Parse worktrees from git
+dirs=()
+branches=()
+current_wt=""
+
+while IFS= read -r line; do
+  if [[ "$line" == worktree\ * ]]; then
+    current_wt="${line#worktree }"
+  elif [[ "$line" == branch\ * ]]; then
+    branch="${line#branch refs/heads/}"
+    if [[ "$include_main" == true ]] || [[ "$current_wt" != "$MAIN_REPO" ]]; then
+      dirs+=("$current_wt")
+      branches+=("$branch")
+    fi
+  elif [[ -z "$line" ]]; then
+    current_wt=""
+  fi
+done < <(git -C "$MAIN_REPO" worktree list --porcelain)
+
+# Sort by modification time (most recent first) and output
+for i in "${!dirs[@]}"; do
+  mtime="$(stat -c %Y "${dirs[$i]}" 2>/dev/null)" || continue
+  printf '%s\t%s\t%s\n' "$mtime" "${branches[$i]}" "${dirs[$i]}"
+done | sort -t$'\t' -k1,1nr | cut -f2,3
