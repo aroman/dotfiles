@@ -361,13 +361,13 @@ in
       # Lock the session after 15 minutes idle.
       { timeout = 900; command = "noctalia-shell ipc call lockScreen lock"; }
     ];
-    events = [
+    events = {
       # Lock the session before systemd suspends (lid close, idle, manual).
       # swayidle's delay inhibitor holds off sleep until this returns.
-      { event = "before-sleep"; command = "noctalia-shell ipc call lockScreen lock"; }
+      before-sleep = "noctalia-shell ipc call lockScreen lock";
       # Also lock when any external caller does `loginctl lock-session`.
-      { event = "lock"; command = "noctalia-shell ipc call lockScreen lock"; }
-    ];
+      lock = "noctalia-shell ipc call lockScreen lock";
+    };
   };
 
   # ── Services ─────────────────────────────────────────────────────
