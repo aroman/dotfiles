@@ -61,7 +61,9 @@ input {
     touchpad {
         // off
         tap
-        // dwt // toggled by niri-dwt-toggle — do not remove
+        // Disable-while-typing: on by default, off for Figma & Magic Garden.
+        // niri-dwt-toggle.service comments/uncomments this line at runtime.
+        dwt
         dwtp
         // drag false
         // drag-lock
