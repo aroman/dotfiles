@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# Graphical worktree picker — lists magiccircle.gg worktrees in fuzzel,
+# opens the selected one in Zed.
+set -euo pipefail
+
+MAIN_REPO="$HOME/Projects/magiccircle.gg"
+
+# Parse worktrees (skip the main repo itself)
+dirs=()
+branches=()
+current_wt=""
+
+while IFS= read -r line; do
+  if [[ "$line" == worktree\ * ]]; then
+    current_wt="${line#worktree }"
+  elif [[ "$line" == branch\ * ]]; then
+    branch="${line#branch refs/heads/}"
+    if [[ "$current_wt" != "$MAIN_REPO" ]]; then
+      dirs+=("$current_wt")
+      branches+=("$branch")
+    fi
+  elif [[ -z "$line" ]]; then
+    current_wt=""
+  fi
+done < <(git -C "$MAIN_REPO" worktree list --porcelain)
+
+if [[ ${#branches[@]} -eq 0 ]]; then
+  notify-send "Worktree Picker" "No active worktrees."
+  exit 0
+fi
+
+# Build list for fuzzel (branch name per line)
+selected="$(printf '%s\n' "${branches[@]}" \
+  | fuzzel --dmenu --prompt "Edit worktree: ")" || exit 0
+
+# Find matching directory and open in Zed
+for i in "${!branches[@]}"; do
+  if [[ "${branches[$i]}" == "$selected" ]]; then
+    exec zeditor "${dirs[$i]}"
+  fi
+done
+
+notify-send "Worktree Picker" "Could not find worktree for '$selected'"
+exit 1

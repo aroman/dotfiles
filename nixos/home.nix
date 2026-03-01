@@ -29,6 +29,7 @@ in
     "fish".source = link "config/fish";
     "bat".source = link "config/bat";
     "noctalia/settings.json".source = link "config/noctalia_settings.json";
+    "fuzzel".source = link "config/fuzzel";
   };
 
   xdg.desktopEntries."dev.zed.Zed" = {
@@ -232,6 +233,9 @@ in
     ".local/bin/toggle-center" = {
       source = link "local/bin/toggle-center";
     };
+    ".local/bin/worktree-picker" = {
+      source = link "local/bin/worktree-picker";
+    };
   };
 
   # ── User packages ──────────────────────────────────────────────────
@@ -268,6 +272,7 @@ in
     networkmanagerapplet
     overskride
     socat # IPC with niri socket (used by swap-monitors script)
+    fuzzel       # Wayland dmenu/rofi — used for worktree picker etc.
     slurp        # area selection for screen recording
     wf-recorder  # Wayland screen recorder
     libnotify    # notify-send for desktop notifications
@@ -318,6 +323,7 @@ in
     # Development
     nodejs_22
     bun
+    inputs.codex-cli.packages.x86_64-linux.default
   ];
 
 
