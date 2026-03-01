@@ -109,6 +109,18 @@ input {
 // Find more information on the wiki:
 // https://yalter.github.io/niri/Configuration:-Outputs
 // Remember to uncomment the node by removing "/-"!
+// External monitors are configured individually because niri doesn't support
+// output-rule matching (see https://github.com/niri-wm/niri/discussions/2966).
+//
+// External: Home monitor (LG 27GN950 4K) — to the left, vertically centered
+output "LG Electronics 27GN950 203NTCZC4835" {
+    scale 1.5
+    variable-refresh-rate
+    backdrop-color "#1D2029"
+    position x=0 y=0
+}
+
+// External: Work monitor (Acer XV282K 4K) — to the left, vertically centered
 output "Acer Technologies XV282K KV 13250DC7C4200" {
     scale 1.5
     variable-refresh-rate
@@ -116,12 +128,15 @@ output "Acer Technologies XV282K KV 13250DC7C4200" {
     position x=0 y=0
 }
 
+// Internal: Framework 16 laptop display (BOE 2560x1600)
+// Both known externals are 4K@1.5x = 2560 logical wide, so x=2560 puts this to the right.
+// y=187 vertically centers against the taller 1440-logical-tall externals.
 output "BOE NE160QDM-NZ6 Unknown" {
     scale 1.5
     transform "normal"
     variable-refresh-rate
     backdrop-color "#1D2029"
-    position x=427 y=1440
+    position x=2560 y=187
 }
 
 // Settings that influence how windows are positioned and sized.
