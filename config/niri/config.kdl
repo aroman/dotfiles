@@ -462,6 +462,7 @@ binds {
 
     Mod+Shift+Semicolon hotkey-overlay-title="Toggle DSP" { spawn "sh" "-c" "~/.local/bin/dsp-toggle"; }
     Mod+I hotkey-overlay-title="Edit Worktree" { spawn "sh" "-c" "~/.local/bin/worktree-picker"; }
+    Mod+U hotkey-overlay-title="Start Batman" { spawn "sh" "-c" "~/.local/bin/batman-picker"; }
     Mod+G hotkey-overlay-title="magiccircle.gg" { spawn "google-chrome-stable" "--profile-directory=Profile 1" "--new-window" "--hide-crash-restore-bubble" "https://magiccircle.gg"; }
     Mod+B hotkey-overlay-title="Open Browser" { spawn "xdg-open" "https://"; }
     Mod+Backslash hotkey-overlay-title="Open Browser" { spawn "xdg-open" "https://"; }

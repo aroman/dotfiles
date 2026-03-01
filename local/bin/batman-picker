@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+#
+# batman-picker — graphical worktree picker for magiccircle.gg dev servers
+#
+# Lists git worktrees in fuzzel (Wayland dmenu), opens a terminal running
+# batman (start_tmux_services.sh) in the selected worktree.
+# Bound to Mod+U in niri config.
+#
+# Dependencies: git, fuzzel, niri, notify-send, and a terminal emulator
+# See also: worktree-picker (same picker but opens Zed)
+#
+set -euo pipefail
+
+MAIN_REPO="$HOME/Projects/magiccircle.gg"
+BATMAN_SCRIPT="$MAIN_REPO/scripts/start_tmux_services.sh"
+KILL_ZOMBIES="$MAIN_REPO/scripts/kill-zombie-servers.sh"
+
+# --- Parse worktrees ---
+# Uses `git worktree list --porcelain` which outputs blocks like:
+#   worktree /path/to/worktree
+#   HEAD <sha>
+#   branch refs/heads/<branch>
+#   <blank line>
+# Includes the main repo (batman can run on main too).
+dirs=()
+branches=()
+current_wt=""
+
+while IFS= read -r line; do
+  if [[ "$line" == worktree\ * ]]; then
+    current_wt="${line#worktree }"
+  elif [[ "$line" == branch\ * ]]; then
+    branch="${line#branch refs/heads/}"
+    dirs+=("$current_wt")
+    branches+=("$branch")
+  elif [[ -z "$line" ]]; then
+    current_wt=""
+  fi
+done < <(git -C "$MAIN_REPO" worktree list --porcelain)
+
+if [[ ${#branches[@]} -eq 0 ]]; then
+  notify-send "Batman Picker" "No worktrees found."
+  exit 0
+fi
+
+# --- Pick a worktree with fuzzel ---
+selected="$(printf '%s\n' "${branches[@]}" \
+  | fuzzel --dmenu --prompt "Start batman in: ")" || exit 0
+
+# --- Open terminal running batman in the selected worktree ---
+for i in "${!branches[@]}"; do
+  if [[ "${branches[$i]}" == "$selected" ]]; then
+    # Kill zombie dev servers on known ports and clean up any previous
+    # batman session before starting a new one.
+    "$KILL_ZOMBIES" 2>/dev/null || true
+
+    # Runs inside `nix develop` to get the devshell (provides zellij, pnpm, etc.)
+    exec xdg-terminal-exec nix develop "${dirs[$i]}" --command bash -c "cd '${dirs[$i]}' && exec '$BATMAN_SCRIPT'"
+  fi
+done
+
+notify-send "Batman Picker" "Could not find worktree for '$selected'"
+exit 1

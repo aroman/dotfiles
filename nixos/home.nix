@@ -236,6 +236,9 @@ in
     ".local/bin/worktree-picker" = {
       source = link "local/bin/worktree-picker";
     };
+    ".local/bin/batman-picker" = {
+      source = link "local/bin/batman-picker";
+    };
   };
 
   # ── User packages ──────────────────────────────────────────────────
@@ -273,6 +276,7 @@ in
     overskride
     socat # IPC with niri socket (used by swap-monitors script)
     fuzzel       # Wayland dmenu/rofi — used for worktree picker etc.
+    xdg-terminal-exec # XDG default terminal launcher — used by batman-picker
     slurp        # area selection for screen recording
     wf-recorder  # Wayland screen recorder
     libnotify    # notify-send for desktop notifications
@@ -323,7 +327,6 @@ in
     # Development
     nodejs_22
     bun
-    inputs.codex-cli.packages.x86_64-linux.default
   ];
 
 
