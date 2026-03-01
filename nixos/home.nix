@@ -495,7 +495,7 @@ in
     settings = {
       hotkey = {
         enabled = true;
-        key = "EVTEST_1";
+        key = "EVTEST_43";
         modifiers = [ "SUPER" ];
         mode = "push_to_talk";
       };
