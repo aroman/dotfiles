@@ -197,7 +197,7 @@
                   "boost" = 1;        # gain boost: on
                   "slink" = 100.0;    # stereo link (%)
                   "th" = 0.0;         # threshold (dB)
-                  "g_out" = 0.01;     # output gain (linear) — attenuates ~40 dB
+                  "g_out" = 0.03;     # output gain (linear) — attenuates ~30 dB
                   "scp" = 0.0;        # sidechain preamp (dB)
                   "alr" = 0;          # ALR: off
                   "extsc" = 0;        # external sidechain: off
