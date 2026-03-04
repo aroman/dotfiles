@@ -232,6 +232,7 @@ in
     git-lfs
     gnupg
     dotool
+    cloudflared
     btop
     tokei
     unzip

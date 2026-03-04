@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+token=$(op read "op://Private/Cloudflare Tunnel - avi.magiccircle.dev/token")
+exec cloudflared tunnel run --token "$token"
