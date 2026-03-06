@@ -35,7 +35,24 @@
 
   # Networking
   networking.hostName = "wizardtower";
-  networking.networkmanager.enable = true;
+  networking.networkmanager = {
+    enable = true;
+
+    # Seamless ethernet↔WiFi failover (like macOS):
+    # Both interfaces stay connected simultaneously. Route metrics control which
+    # one carries traffic — lower metric = higher priority. When ethernet is
+    # unplugged, the kernel routing table already has WiFi routes so traffic
+    # fails over instantly (sub-second) with no reconnection needed.
+    connectionConfig = {
+      "ethernet.route-metric" = "100"; # ethernet preferred when available
+      "wifi.route-metric" = "600";     # WiFi as fallback
+    };
+
+    # Disable WiFi power saving so the radio stays associated with the AP even
+    # when ethernet is active. Without this, WiFi may sleep and need to
+    # re-associate on failover, adding seconds of downtime.
+    wifi.powersave = false;
+  };
 
   # Locale
   time.timeZone = "America/Los_Angeles";
