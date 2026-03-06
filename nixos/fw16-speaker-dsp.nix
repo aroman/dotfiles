@@ -61,7 +61,7 @@
                   "ft" = 1;        # Hi-pass
                   "fm" = 0;        # RLC (BT)
                   "s" = 0;         # x1 slope
-                  "f" = 90.0;      # frequency (Hz) — FW16 speakers can't reproduce below ~80 Hz
+                  "f" = 40.0;      # frequency (Hz) — low cutoff so bass enhancer has sub-bass to work with
                   "g" = 36.0;      # gain (dB) — drives chain hot for compressor/limiter
                   "q" = 0.0;       # quality
                   "w" = 4.0;       # width
