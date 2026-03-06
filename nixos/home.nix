@@ -3,6 +3,25 @@
 let
   dotfiles = "${config.home.homeDirectory}/Projects/dotfiles";
   link = path: config.lib.file.mkOutOfStoreSymlink "${dotfiles}/${path}";
+
+  # Patch voxtype to fix duplicate transcription notifications.
+  # Both the daemon and each output driver send notify-send on transcription;
+  # this removes the per-driver call. https://github.com/peteonrails/voxtype/issues/XXX
+  voxtypePatched = let
+    unwrapped = inputs.voxtype.packages.x86_64-linux.voxtype-vulkan-unwrapped.overrideAttrs (prev: {
+      patches = (prev.patches or []) ++ [ ./patches/voxtype-fix-duplicate-notification.patch ];
+    });
+    runtimeDeps = with pkgs; [ wtype dotool wl-clipboard ydotool xdotool xclip libnotify pciutils ];
+  in pkgs.symlinkJoin {
+    name = "${unwrapped.pname}-wrapped-${unwrapped.version}";
+    paths = [ unwrapped ];
+    buildInputs = [ pkgs.makeWrapper ];
+    postBuild = ''
+      wrapProgram $out/bin/voxtype \
+        --prefix PATH : ${pkgs.lib.makeBinPath runtimeDeps}
+    '';
+    inherit (unwrapped) meta;
+  };
 in
 {
   imports = [
@@ -465,7 +484,7 @@ in
   # ── Voxtype (push-to-talk dictation) ─────────────────────────────
   programs.voxtype = {
     enable = true;
-    package = inputs.voxtype.packages.x86_64-linux.vulkan;
+    package = voxtypePatched;
     model.name = "base.en";
     service.enable = true;
     settings = {

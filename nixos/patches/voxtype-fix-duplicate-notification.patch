@@ -1,0 +1,65 @@
+Remove per-driver transcription notifications that duplicate the
+daemon-level send_transcription_notification() call (daemon.rs:1401).
+
+Every output driver (dotool, clipboard, xclip, ydotool) fires its own
+notify-send when self.notify is true, but the daemon *also* sends one
+after output_with_fallback() succeeds — both gated on the same
+on_transcription config flag. Result: two identical notifications.
+
+Fix: remove the per-driver notifications; the daemon's is sufficient.
+
+--- a/src/output/dotool.rs
++++ b/src/output/dotool.rs
+@@ -185,11 +185,6 @@ impl TextOutput for DotoolOutput {
+
+         tracing::info!("Text typed via dotool ({} chars)", text.len());
+
+-        // Send notification if enabled
+-        if self.notify {
+-            self.send_notification(text).await;
+-        }
+-
+         Ok(())
+     }
+
+--- a/src/output/clipboard.rs
++++ b/src/output/clipboard.rs
+@@ -103,11 +103,6 @@ impl TextOutput for ClipboardOutput {
+             ));
+         }
+
+-        // Send notification if enabled
+-        if self.notify {
+-            self.send_notification(&text).await;
+-        }
+-
+         tracing::info!("Text copied to clipboard ({} chars)", text.len());
+         Ok(())
+     }
+--- a/src/output/xclip.rs
++++ b/src/output/xclip.rs
+@@ -103,11 +103,6 @@ impl TextOutput for XclipOutput {
+             ));
+         }
+
+-        // Send notification if enabled
+-        if self.notify {
+-            self.send_notification(&text).await;
+-        }
+-
+         tracing::info!("Text copied to X11 clipboard ({} chars)", text.len());
+         Ok(())
+     }
+--- a/src/output/ydotool.rs
++++ b/src/output/ydotool.rs
+@@ -212,11 +212,6 @@ impl TextOutput for YdotoolOutput {
+         }
+
+-        // Send notification if enabled
+-        if self.notify {
+-            self.send_notification(text).await;
+-        }
+-
+         Ok(())
+     }
+
