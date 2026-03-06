@@ -12,7 +12,7 @@ index 1e44e96..2899608 100644
  		mt76_connac_mcu_uni_add_dev(&dev->mphy, bss_conf, &mconf->mt76,
  					    &mvif->sta.deflink.wcid, true);
  		mt7925_mcu_set_tx(dev, bss_conf);
-@@ -1324,14 +1327,13 @@ void mt7925_mac_reset_work(struct work_struct *work)
+@@ -1324,8 +1327,10 @@ void mt7925_mac_reset_work(struct work_struct *work)
  	dev->hw_full_reset = false;
  	pm->suspended = false;
  	ieee80211_wake_queues(hw);
@@ -20,12 +20,8 @@ index 1e44e96..2899608 100644
  	ieee80211_iterate_active_interfaces(hw,
  					    IEEE80211_IFACE_ITER_RESUME_ALL,
  					    mt7925_vif_connect_iter, NULL);
--	mt76_connac_power_save_sched(&dev->mt76.phy, pm);
--
--	mt792x_mutex_acquire(dev);
- 	mt7925_mcu_set_clc(dev, "00", ENVIRON_INDOOR);
- 	mt792x_mutex_release(dev);
-+	mt76_connac_power_save_sched(&dev->mt76.phy, pm);
++	mt792x_mutex_release(dev);
+ 	mt76_connac_power_save_sched(&dev->mt76.phy, pm);
  }
  
  void mt7925_coredump_work(struct work_struct *work)
