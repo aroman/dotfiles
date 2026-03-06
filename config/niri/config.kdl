@@ -532,8 +532,10 @@ binds {
     // You can also move the mouse into the top-left hot corner,
     // or do a four-finger swipe up on a touchpad.
     Mod+O repeat=false { toggle-overview; }
-    MouseBack repeat=false { toggle-overview; }
-    MouseForward repeat=false { toggle-overview; }
+    MouseBack repeat=false { focus-window-or-workspace-down; }
+    MouseForward repeat=false { focus-window-or-workspace-up; }
+    // TODO: bind unmodified WheelScrollRight/Left to focus-column-right/left
+    // Blocked by: https://github.com/YaLTeR/niri/issues/1584
 
     Mod+Q repeat=false { close-window; }
 
