@@ -240,6 +240,7 @@ in
     # Editor
     neovim
     zed-editor
+    typescript-language-server
 
     # Wayland tools
     wl-clipboard
