@@ -165,6 +165,14 @@
     ACTION=="add", SUBSYSTEM=="thunderbolt", ATTRS{iommu_dma_protection}=="1", ATTR{authorized}=="0", ATTR{authorized}="1"
   '';
 
+  # Disable the airplane mode key (FW16 keyboard wireless radio button).
+  # It triggers rfkill at the kernel level and kills WiFi/Bluetooth with no undo UX.
+  # Remap its HID scancode (Generic Desktop page 0x01, usage 0xC6) to nothing.
+  services.udev.extraHwdb = ''
+    evdev:input:b0003v32ACp0012*
+      KEYBOARD_KEY_100c6=reserved
+  '';
+
   # uinput access for dotool (voxtype text injection).
   # Creates the uinput group and sets /dev/uinput permissions.
   hardware.uinput.enable = true;
