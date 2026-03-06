@@ -14,6 +14,20 @@
   boot.kernelModules = [ "kvm-amd" ];
   boot.kernelParams = [
     "amdgpu.cwsr_enable=0"
+
+    # Workaround: disable VPE (Video Processing Engine) IP block to prevent
+    # s2idle suspend hard-hang. vpe_v6_1 fails to quiesce during s2idle on
+    # RDNA 3.5 — the VPE queue reset times out on resume ("IB test failed on
+    # vpe (-110)"), and a subsequent suspend freezes the SoC entirely (no panic,
+    # no log, requires hard power-off).
+    # VPE handles video scaling/color offload and is non-essential.
+    # Bit 11 = vpe_v6_1 on this ASIC (indices vary per ASIC; verify with
+    #   `journalctl -k | grep "detected ip block"`).
+    # Bug: https://bugzilla.kernel.org/show_bug.cgi?id=220812
+    # Patch: https://lore.kernel.org/amd-gfx/20251130014631.29755-1-superm1@kernel.org/
+    # AMD says the underlying fix will come in a BIOS update (BIOS 03.04 does
+    # not include it yet). Remove this once a fixed BIOS ships for FW16 AI 300.
+    "amdgpu.ip_block_mask=0xFFFFF7FF"
   ];
   boot.extraModulePackages = [ ];
 
