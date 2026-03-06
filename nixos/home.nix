@@ -276,6 +276,7 @@ in
     slack
 
     # Design
+    gradia
     figma-agent # serves local fonts to Figma web (needs Windows user-agent)
     texturepacker
     adwaita-qt6

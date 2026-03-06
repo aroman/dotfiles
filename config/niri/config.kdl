@@ -332,13 +332,9 @@ hotkey-overlay {
 // Apps need to be restarted after changing this.
 prefer-no-csd
 
-// You can change the path where screenshots are saved.
-// A ~ at the front will be expanded to the home directory.
-// The path is formatted with strftime(3) to give you the screenshot date and time.
-screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
-
-// You can also set this to null to disable saving screenshots to disk.
-// screenshot-path null
+// Screenshots save to Downloads. The screenshot script (local/bin/screenshot)
+// auto-opens saved screenshots in Gradia for editing.
+screenshot-path "~/Downloads/Screenshot from %Y-%m-%d %H-%M-%S.png"
 
 // Allow apps to steal focus (e.g. clicking a link in ptyxis opens and focuses Firefox)
 debug {
@@ -434,6 +430,11 @@ window-rule {
     match app-id=r#"^vesktop$"#
     match title="^TexturePacker$"
     open-maximized true
+}
+
+window-rule {
+    match app-id=r#"^be\.alexandervanhee\.gradia$"#
+    default-column-width { proportion 1.0; }
 }
 
 window-rule {
@@ -738,9 +739,9 @@ binds {
     // Mod+Space       { switch-layout "next"; }
     // Mod+Shift+Space { switch-layout "prev"; }
 
-    Print { screenshot; }
-    Ctrl+Print { screenshot-screen; }
-    Alt+Print { screenshot-window; }
+    Print { spawn "sh" "-c" "~/.local/bin/screenshot region"; }
+    Ctrl+Print { spawn "sh" "-c" "~/.local/bin/screenshot output"; }
+    Alt+Print { spawn "sh" "-c" "~/.local/bin/screenshot window"; }
     Mod+Print hotkey-overlay-title="Screen Record" { spawn "sh" "-c" "~/.local/bin/screen-record"; }
 
     // Applications such as remote-desktop clients and software KVM switches may
