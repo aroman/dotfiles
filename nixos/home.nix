@@ -513,20 +513,15 @@ in
         theme = "default";
         volume = 0.7;
       };
-      # Force dotool (kernel uinput) instead of wtype (broken on niri,
-      # see https://github.com/niri-wm/niri/issues/2314).
       output = {
         mode = "type";
-        driver_order = [ "dotool" "clipboard" ];
+        driver_order = [ "wtype" "clipboard" ];
         fallback_to_clipboard = true;
       };
       output.notification.on_transcription = true;
       whisper.language = "en";
     };
   };
-
-  # Make dotool type instantly (default 20ms per keystroke).
-  systemd.user.services.voxtype.Service.Environment = [ "DOTOOL_DELAY=0" ];
 
   programs.home-manager.enable = true;
 
