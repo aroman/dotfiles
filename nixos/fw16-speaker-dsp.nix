@@ -61,7 +61,7 @@
                   "ft" = 1;        # Hi-pass
                   "fm" = 0;        # RLC (BT)
                   "s" = 0;         # x1 slope
-                  "f" = 40.0;      # frequency (Hz) — low cutoff so bass enhancer has sub-bass to work with
+                  "f" = 60.0;      # frequency (Hz) — preserves 60-90 Hz for bass enhancer harmonics
                   "g" = 36.0;      # gain (dB) — drives chain hot for compressor/limiter
                   "q" = 0.0;       # quality
                   "w" = 4.0;       # width
@@ -77,7 +77,7 @@
                   "amount" = 8.0;
                   "drive" = 10.0;       # harmonics
                   "freq" = 200.0;       # scope
-                  "floor" = 10.0;
+                  "floor" = 85.0;   # filter sub-bass from enhancer output to protect speakers
                   "floor_active" = 1;
                   "blend" = 0.0;
                   "listen" = 0;
@@ -197,7 +197,7 @@
                   "boost" = 1;        # gain boost: on
                   "slink" = 100.0;    # stereo link (%)
                   "th" = 0.0;         # threshold (dB)
-                  "g_out" = 0.03;     # output gain (linear) — attenuates ~30 dB
+                  "g_out" = 0.015;    # output gain (linear) — attenuates ~36 dB
                   "scp" = 0.0;        # sidechain preamp (dB)
                   "alr" = 0;          # ALR: off
                   "extsc" = 0;        # external sidechain: off

@@ -526,8 +526,8 @@ binds {
     // Brightness: brightnessctl runs instantly for the laptop backlight (Noctalia
     // picks up the sysfs change via inotify and shows OSD). ddcutil fires in the
     // background for external monitors via DDC/CI (~100-200ms I2C latency).
-    XF86MonBrightnessUp allow-when-locked=true { spawn-sh "brightnessctl --class=backlight set +5%; ddcutil --noverify --sleep-multiplier=0.05 setvcp 10 + 5 2>/dev/null &"; }
-    XF86MonBrightnessDown allow-when-locked=true { spawn-sh "brightnessctl --class=backlight set 5%-; ddcutil --noverify --sleep-multiplier=0.05 setvcp 10 - 5 2>/dev/null &"; }
+    XF86MonBrightnessUp allow-when-locked=true { spawn-sh "brightnessctl -e --class=backlight set +10%; ddcutil --noverify --sleep-multiplier=0.05 setvcp 10 + 10 2>/dev/null &"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn-sh "brightnessctl -e --class=backlight set 10%-; ddcutil --noverify --sleep-multiplier=0.05 setvcp 10 - 10 2>/dev/null &"; }
 
     // Open/close the Overview: a zoomed-out view of workspaces and windows.
     // You can also move the mouse into the top-left hot corner,

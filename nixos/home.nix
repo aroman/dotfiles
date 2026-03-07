@@ -75,6 +75,20 @@ in
 
   xdg.configFile."mimeapps.list".force = true;
   xdg.dataFile."applications/mimeapps.list".force = true;
+  # Override the flatpak-exported desktop file (which lacks -platform wayland)
+  # by placing ours in ~/.local/share/applications/ where it takes XDG priority.
+  xdg.dataFile."applications/com.codeandweb.texturepacker.desktop".force = true;
+  xdg.dataFile."applications/com.codeandweb.texturepacker.desktop".text = ''
+    [Desktop Entry]
+    Name=TexturePacker
+    GenericName=Sprite Sheet Creator
+    Exec=TexturePacker -platform wayland --gui %F
+    Icon=com.codeandweb.texturepacker
+    Terminal=false
+    Type=Application
+    Categories=Development
+    MimeType=application/vnd.codeandweb.de.tps;application/vnd.codeandweb.de.pvr;application/vnd.codeandweb.de.pvr.ccz;application/vnd.codeandweb.de.pvr.gz
+  '';
   xdg.dataFile."org.gnome.Ptyxis/palettes/everblush-custom.palette".text = ''
     [Palette]
     Name=Everblush Custom
