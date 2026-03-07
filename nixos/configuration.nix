@@ -155,6 +155,9 @@
   # Firmware updates (Framework)
   services.fwupd.enable = true;
 
+  # Flatpak (TexturePacker, etc.)
+  services.flatpak.enable = true;
+
   # Thunderbolt: auto-authorize devices on connect.
   # Without a full DE (GNOME/KDE), there's no GUI prompt for Thunderbolt auth,
   # so USB tunneling through docks (e.g. CalDigit TS3 Plus) won't work without
