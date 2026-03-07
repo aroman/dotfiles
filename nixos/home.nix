@@ -325,8 +325,13 @@ in
     font-manager
     adwaita-icon-theme
 
-    # Terminal
+    # Terminal (50.rc for enable-zoom-scroll-ctrl setting)
     (ptyxis.overrideAttrs (old: {
+      version = "50.rc";
+      src = old.src.override {
+        tag = "50.rc";
+        hash = "sha256-0StYVSQt0LCAW9WUugIQuBKac1dri+96XE69fMracPo=";
+      };
       patches = (old.patches or []) ++ [ ./ptyxis-no-headerbar.patch ];
     }))
 
@@ -374,6 +379,9 @@ in
       cursor-size = 24;
     };
     # TODO: manage Ptyxis settings declaratively (dconf module doesn't re-apply after manual changes)
+    "org/gnome/Ptyxis" = {
+      enable-zoom-scroll-ctrl = false;
+    };
     "org/gnome/nautilus/preferences" = {
       default-sort-order = "mtime";
       default-sort-in-reverse-order = true;
