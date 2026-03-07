@@ -319,6 +319,7 @@ layout {
 // vicinae is managed by its systemd service (home-manager module)
 spawn-at-startup "noctalia-shell"
 spawn-at-startup "easyeffects" "--gapplication-service"
+spawn-at-startup "localsend_app" "--hidden"
 // To run a shell command (with variables, pipes, etc.), use spawn-sh-at-startup:
 // spawn-sh-at-startup "qs -c ~/source/qs/MyAwesomeShell"
 

@@ -271,6 +271,7 @@
 
   # Let downloaded binaries find the dynamic linker (Prisma, Playwright, etc.)
   programs.nix-ld.enable = true;
+  programs.localsend.enable = true;
 
   # Allow unfree packages (Spotify, 1Password, Chrome, etc.)
   nixpkgs.config.allowUnfree = true;
