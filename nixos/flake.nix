@@ -29,8 +29,15 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Using niri blur branch (PR #3483). Remove once blur is merged to main.
+    niri-blur = {
+      url = "github:niri-wm/niri/wip/branch";
+      flake = false;
+    };
+
     niri = {
       url = "github:sodiboo/niri-flake";
+      inputs.niri-unstable.follows = "niri-blur";
       # inputs.nixpkgs.follows = "nixpkgs";
     };
 
