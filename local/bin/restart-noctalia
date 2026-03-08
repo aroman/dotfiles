@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+pkill -f noctalia-shell 2>/dev/null || true
+niri msg action spawn -- noctalia-shell
