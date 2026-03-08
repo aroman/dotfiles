@@ -7,11 +7,7 @@ Item {
     id: root
 
     property var pluginApi: null
-    property var cfg: pluginApi?.pluginSettings || ({})
-    property var defaults: pluginApi?.manifest?.metadata?.defaultSettings || ({})
-
     property string statusState: "disconnected"
-    property string statusTooltip: "Cloudflare Tunnel: disconnected"
 
     Timer {
         id: pollTimer
@@ -34,26 +30,35 @@ Item {
                 } else {
                     root.statusState = "disconnected";
                 }
-                root.statusTooltip = "Cloudflare Tunnel: " + root.statusState;
             }
         }
 
         onExited: function(exitCode, exitStatus) {
             if (exitCode !== 0) {
                 root.statusState = "disconnected";
-                root.statusTooltip = "Cloudflare Tunnel: disconnected";
             }
         }
     }
 
     Process {
         id: startProc
-        command: ["ptyxis", "--new-window", "-x", "cloudflare-tunnel start"]
+        command: ["cloudflare-tunnel", "start"]
+
+        onExited: function(exitCode, exitStatus) {
+            if (exitCode !== 0) {
+                root.statusState = "error";
+            }
+            pollTimer.restart();
+        }
     }
 
     Process {
         id: stopProc
         command: ["cloudflare-tunnel", "stop"]
+
+        onExited: function(exitCode, exitStatus) {
+            pollTimer.restart();
+        }
     }
 
     function start() {
@@ -62,8 +67,6 @@ Item {
 
     function stop() {
         stopProc.running = true;
-        // Poll sooner to update state
-        pollTimer.restart();
     }
 
     IpcHandler {

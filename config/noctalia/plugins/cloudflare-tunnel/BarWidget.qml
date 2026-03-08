@@ -21,48 +21,48 @@ Item {
 
     readonly property var main: pluginApi?.mainInstance
     readonly property string statusState: main?.statusState ?? "disconnected"
-    readonly property string statusTooltip: main?.statusTooltip ?? "Cloudflare Tunnel"
 
-    readonly property string iconText: {
+    readonly property string iconName: statusState === "disconnected" ? "broadcast-off" : "broadcast"
+
+    readonly property string labelText: {
         switch (statusState) {
-        case "connected":
-            return "󰛳";
-        case "starting":
-            return "󰛳";
-        default:
-            return "󰛵";
+        case "connected": return "Connected";
+        case "starting": return "Connecting...";
+        case "error": return "Error";
+        default: return "Disconnected";
         }
     }
 
-    readonly property color stateColor: {
-        switch (statusState) {
-        case "connected":
-            return Color.mPrimary;
-        case "starting":
-            return Color.mTertiary;
-        default:
-            return Color.mOutline;
-        }
-    }
+    readonly property color stateColor: statusState === "error" ? Color.mError : Color.mOnSurface
 
-    readonly property real contentWidth: isVertical ? capsuleHeight : layout.implicitWidth + Style.marginS * 2
-    readonly property real contentHeight: isVertical ? layout.implicitHeight + Style.marginS * 2 : capsuleHeight
-    implicitWidth: contentWidth
+    property bool expanded: false
+    readonly property real capsuleWidth: isVertical ? capsuleHeight : iconLayout.implicitWidth + Style.marginS * 2
+    readonly property real contentHeight: isVertical ? iconLayout.implicitHeight + Style.marginS * 2 : capsuleHeight
+
+    implicitWidth: visualCapsule.width
     implicitHeight: contentHeight
 
     Rectangle {
         id: visualCapsule
         x: Style.pixelAlignCenter(parent.width, width)
         y: Style.pixelAlignCenter(parent.height, height)
-        width: root.contentWidth
+        width: root.capsuleWidth
         height: root.contentHeight
         color: mouseArea.containsMouse ? Color.mHover : Style.capsuleColor
         radius: Style.radiusM
         border.color: Style.capsuleBorderColor
         border.width: Style.capsuleBorderWidth
+        clip: true
+
+        Behavior on width {
+            NumberAnimation {
+                duration: 150
+                easing.type: Easing.InOutQuad
+            }
+        }
 
         RowLayout {
-            id: layout
+            id: iconLayout
             anchors.centerIn: parent
             spacing: Style.marginS
 
@@ -71,11 +71,11 @@ Item {
                 implicitWidth: statusIcon.implicitWidth
                 implicitHeight: statusIcon.implicitHeight
 
-                NText {
+                NIcon {
                     id: statusIcon
                     anchors.centerIn: parent
-                    text: root.iconText
-                    color: root.stateColor
+                    icon: root.iconName
+                    color: mouseArea.containsMouse ? Color.mOnHover : root.stateColor
                     pointSize: root.barFontSize
                 }
 
@@ -105,6 +105,14 @@ Item {
                     }
                 }
             }
+
+            NText {
+                id: hoverLabel
+                text: root.labelText
+                color: Color.mOnHover
+                pointSize: Style.fontSizeXS
+                visible: root.expanded
+            }
         }
 
         MouseArea {
@@ -113,18 +121,25 @@ Item {
             hoverEnabled: true
             acceptedButtons: Qt.LeftButton | Qt.RightButton
 
+            onEntered: expandTimer.running = true
+            onExited: {
+                expandTimer.running = false;
+                root.expanded = false;
+            }
+
             onClicked: function(mouse) {
                 if (mouse.button === Qt.LeftButton) {
-                    if (root.statusState === "disconnected") {
-                        root.main?.start();
-                    } else {
-                        root.main?.stop();
+                    if (root.pluginApi) {
+                        root.pluginApi.togglePanel(root.screen, root);
                     }
                 }
             }
+        }
 
-            onEntered: TooltipService.show(root, root.statusTooltip, BarService.getTooltipDirection())
-            onExited: TooltipService.hide()
+        Timer {
+            id: expandTimer
+            interval: 1000
+            onTriggered: root.expanded = true
         }
     }
 }

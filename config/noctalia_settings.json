@@ -113,11 +113,6 @@
                     "textColor": "none",
                     "useFixedWidth": false,
                     "visualizerType": "linear"
-                },
-                {
-                    "defaultSettings": {
-                    },
-                    "id": "plugin:cloudflare-tunnel"
                 }
             ],
             "right": [
@@ -153,6 +148,11 @@
                     "textColor": "none",
                     "useMonospaceFont": true,
                     "usePadding": false
+                },
+                {
+                    "defaultSettings": {
+                    },
+                    "id": "plugin:cloudflare-tunnel"
                 },
                 {
                     "displayMode": "onhover",

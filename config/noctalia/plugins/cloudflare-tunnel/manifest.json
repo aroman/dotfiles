@@ -9,7 +9,8 @@
   "tags": ["Bar", "Indicator"],
   "entryPoints": {
     "main": "Main.qml",
-    "barWidget": "BarWidget.qml"
+    "barWidget": "BarWidget.qml",
+    "panel": "Panel.qml"
   },
   "dependencies": {
     "plugins": []

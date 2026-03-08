@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
 UNIT_NAME="cloudflare-tunnel"
 METRICS_ADDR="127.0.0.1:20241"
@@ -7,28 +7,24 @@ METRICS_ADDR="127.0.0.1:20241"
 case "${1:-start}" in
   start)
     if systemctl --user is-active --quiet "$UNIT_NAME" 2>/dev/null; then
-      echo "Cloudflare tunnel is already running."
       exit 0
     fi
 
-    echo "Fetching tunnel token from 1Password..."
-    token=$(op read "op://Private/Cloudflare Tunnel - avi.magiccircle.dev/token")
+    token=$(op read "op://Private/Cloudflare Tunnel - avi.magiccircle.dev/token") || exit 1
 
-    echo "Starting cloudflare tunnel as user service..."
     systemd-run --user \
       --unit="$UNIT_NAME" \
       --description="Cloudflare Tunnel" \
       --property=Restart=on-failure \
       --property=RestartSec=5 \
-      cloudflared tunnel run --metrics "$METRICS_ADDR" --token "$token"
-
-    echo "Tunnel started. You can close this terminal."
+      --setenv="TUNNEL_TOKEN=$token" \
+      -- cloudflared tunnel --metrics "$METRICS_ADDR" run
     ;;
   stop)
     systemctl --user stop "$UNIT_NAME" 2>/dev/null && echo "Tunnel stopped." || echo "Tunnel is not running."
     ;;
   status)
-    if curl -sf "http://$METRICS_ADDR/ready" >/dev/null 2>&1; then
+    if curl -sf --max-time 2 "http://$METRICS_ADDR/ready" >/dev/null 2>&1; then
       echo "connected"
     elif systemctl --user is-active --quiet "$UNIT_NAME" 2>/dev/null; then
       echo "starting"
