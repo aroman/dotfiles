@@ -176,9 +176,6 @@
       KEYBOARD_KEY_100c6=reserved
   '';
 
-  # uinput access for dotool (voxtype text injection).
-  # Creates the uinput group and sets /dev/uinput permissions.
-  hardware.uinput.enable = true;
 
   # Keyboard
   services.xserver.xkb = {
@@ -211,7 +208,7 @@
   users.users.aroman = {
     isNormalUser = true;
     description = "aroman";
-    extraGroups = [ "wheel" "networkmanager" "video" "input" "i2c" "audio" "uinput" ];
+    extraGroups = [ "wheel" "networkmanager" "video" "input" "i2c" "audio" ];
     shell = pkgs.fish;
   };
 

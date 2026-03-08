@@ -6,15 +6,12 @@ let
 
   # Patch voxtype to fix duplicate transcription notifications.
   # Both the daemon and each output driver send notify-send on transcription;
-  # this removes the per-driver call. https://github.com/peteonrails/voxtype/issues/XXX
+  # this removes the per-driver call.
   voxtypePatched = let
     unwrapped = inputs.voxtype.packages.x86_64-linux.voxtype-vulkan-unwrapped.overrideAttrs (prev: {
-      patches = (prev.patches or []) ++ [
-        ./patches/voxtype-fix-duplicate-notification.patch
-        ./patches/voxtype-meeting-vad-threshold-config.patch
-      ];
+      patches = (prev.patches or []) ++ [ ./patches/voxtype-fix-duplicate-notification.patch ];
     });
-    runtimeDeps = with pkgs; [ wtype dotool wl-clipboard ydotool xdotool xclip libnotify pciutils pulseaudio ];
+    runtimeDeps = with pkgs; [ wtype wl-clipboard libnotify ];
   in pkgs.symlinkJoin {
     name = "${unwrapped.pname}-wrapped-${unwrapped.version}";
     paths = [ unwrapped ];
@@ -277,7 +274,6 @@ in
     gh
     git-lfs
     gnupg
-    dotool
     cloudflared
     btop
     tokei
@@ -541,7 +537,6 @@ in
       };
       output.notification.on_transcription = false;
       text.spoken_punctuation = true;
-      meeting.enabled = true;
       whisper.language = "en";
     };
   };
