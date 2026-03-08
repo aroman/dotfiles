@@ -1,0 +1,22 @@
+{
+  "id": "voxtype",
+  "name": "Voxtype",
+  "version": "1.0.0",
+  "minNoctaliaVersion": "3.6.0",
+  "author": "aroman",
+  "license": "MIT",
+  "description": "Voice-to-text status indicator for Voxtype",
+  "tags": ["Bar", "Indicator"],
+  "entryPoints": {
+    "main": "Main.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "dependencies": {
+    "plugins": []
+  },
+  "metadata": {
+    "defaultSettings": {
+      "iconTheme": "nerd-font"
+    }
+  }
+}

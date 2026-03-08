@@ -90,12 +90,18 @@
             "left": [
                 {
                     "colorizeDistroLogo": false,
-                    "colorizeSystemIcon": "primary",
+                    "colorizeSystemIcon": "error",
                     "customIconPath": "",
                     "enableColorization": true,
                     "icon": "noctalia",
                     "id": "ControlCenter",
                     "useDistroLogo": true
+                },
+                {
+                    "defaultSettings": {
+                        "iconTheme": "nerd-font"
+                    },
+                    "id": "plugin:voxtype"
                 },
                 {
                     "id": "Spacer",
@@ -151,15 +157,6 @@
                     "textColor": "none",
                     "useMonospaceFont": true,
                     "usePadding": false
-                },
-                {
-                    "defaultSettings": {
-                        "activeColor": "primary",
-                        "hideInactive": false,
-                        "inactiveColor": "none",
-                        "removeMargins": false
-                    },
-                    "id": "plugin:privacy-indicator"
                 },
                 {
                     "displayMode": "onhover",

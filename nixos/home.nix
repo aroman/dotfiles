@@ -507,7 +507,7 @@ in
   programs.voxtype = {
     enable = true;
     package = voxtypePatched;
-    model.name = "base.en";
+    model.name = "small.en";
     service.enable = true;
     settings = {
       hotkey = {
@@ -518,7 +518,7 @@ in
       };
       audio.feedback = {
         enabled = true;
-        theme = "default";
+        theme = "${config.home.homeDirectory}/.local/share/voxtype/sounds/lcars";
         volume = 0.7;
       };
       output = {
@@ -526,7 +526,9 @@ in
         driver_order = [ "wtype" "clipboard" ];
         fallback_to_clipboard = true;
       };
-      output.notification.on_transcription = true;
+      output.notification.on_transcription = false;
+      text.spoken_punctuation = true;
+      meeting.enabled = true;
       whisper.language = "en";
     };
   };
