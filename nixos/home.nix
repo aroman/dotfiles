@@ -92,6 +92,15 @@ in
     Categories=Development
     MimeType=application/vnd.codeandweb.de.tps;application/vnd.codeandweb.de.pvr;application/vnd.codeandweb.de.pvr.ccz;application/vnd.codeandweb.de.pvr.gz
   '';
+  xdg.dataFile."applications/flatpak-install.desktop".text = ''
+    [Desktop Entry]
+    Name=Flatpak Install
+    Exec=flatpak-install %u
+    Terminal=true
+    Type=Application
+    NoDisplay=true
+    MimeType=application/vnd.flatpak.ref
+  '';
   xdg.dataFile."org.gnome.Ptyxis/palettes/everblush-custom.palette".text = ''
     [Palette]
     Name=Everblush Custom
@@ -232,6 +241,7 @@ in
       "image/tiff" = "org.gnome.Loupe.desktop";
       "image/heic" = "org.gnome.Loupe.desktop";
       "image/vnd.microsoft.icon" = "org.gnome.Loupe.desktop";
+      "application/vnd.flatpak.ref" = "flatpak-install.desktop";
     };
   };
 
@@ -343,7 +353,6 @@ in
 
     # Development
     nodejs_22
-    bun
   ];
 
 
@@ -533,7 +542,6 @@ in
       output.notification.on_transcription = false;
       text.spoken_punctuation = true;
       meeting.enabled = true;
-      meeting.vad_threshold = 0.0001;
       whisper.language = "en";
     };
   };

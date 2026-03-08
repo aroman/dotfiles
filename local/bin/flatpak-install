@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Handler for .flatpakref files/URLs — used by xdg-open
+exec flatpak install --user "$1"
