@@ -4,7 +4,7 @@ set -euo pipefail
 # Wraps niri's screenshot: if the user saves (Space), open in Gradia.
 # Ctrl+C in niri's UI copies without saving, so this won't trigger.
 
-DIR="$HOME/Downloads"
+DIR="$HOME/Pictures/Screenshots"
 MODE="${1:-region}"
 
 before=$(ls -t "$DIR"/Screenshot*.png 2>/dev/null | head -1)

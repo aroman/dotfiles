@@ -333,9 +333,9 @@ hotkey-overlay {
 // Apps need to be restarted after changing this.
 prefer-no-csd
 
-// Screenshots save to Downloads. The screenshot script (local/bin/screenshot)
+// Screenshots save to ~/Screenshots. The screenshot script (local/bin/screenshot)
 // auto-opens saved screenshots in Gradia for editing.
-screenshot-path "~/Downloads/Screenshot from %Y-%m-%d %H-%M-%S.png"
+screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 
 // Allow apps to steal focus (e.g. clicking a link in ptyxis opens and focuses Firefox)
 debug {
