@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Wraps niri's screenshot: if the user saves (Space), open in Gradia.
-# Ctrl+C in niri's UI copies without saving, so this won't trigger.
+# Take a niri screenshot, then open in Gradia if saved.
 
 DIR="$HOME/Pictures/Screenshots"
-MODE="${1:-region}"
+marker=$(mktemp)
+trap 'rm -f "$marker"' EXIT
 
-before=$(ls -t "$DIR"/Screenshot*.png 2>/dev/null | head -1)
-
-case "$MODE" in
+case "${1:-region}" in
   region) niri msg action screenshot ;;
   output) niri msg action screenshot-screen ;;
   window) niri msg action screenshot-window ;;
@@ -17,9 +15,6 @@ esac
 
 for _ in $(seq 1 60); do
   sleep 0.1
-  after=$(ls -t "$DIR"/Screenshot*.png 2>/dev/null | head -1)
-  [ -n "$after" ] && [ "$after" != "$before" ] && break
+  file=$(find "$DIR" -maxdepth 1 -name 'Screenshot*.png' -newer "$marker" -print -quit)
+  [ -n "$file" ] && exec gradia "$file"
 done
-[ -n "$after" ] && [ "$after" != "$before" ] || exit 0
-
-gradia "$after" &
