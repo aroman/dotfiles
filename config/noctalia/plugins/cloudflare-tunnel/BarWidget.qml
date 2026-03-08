@@ -76,7 +76,8 @@ Item {
                     anchors.centerIn: parent
                     icon: root.iconName
                     color: mouseArea.containsMouse ? Color.mOnHover : root.stateColor
-                    pointSize: root.barFontSize
+                    // Match built-in bar pill icon sizing (BarPillHorizontal.qml)
+                    pointSize: Style.toOdd(root.capsuleHeight * 0.48)
                 }
 
                 // Pulse during starting
