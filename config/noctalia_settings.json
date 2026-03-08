@@ -40,7 +40,7 @@
     "bar": {
         "autoHideDelay": 500,
         "autoShowDelay": 150,
-        "backgroundOpacity": 0.93,
+        "backgroundOpacity": 0.49,
         "barType": "floating",
         "capsuleColorKey": "none",
         "capsuleOpacity": 0.5,
@@ -88,15 +88,6 @@
                 }
             ],
             "left": [
-                {
-                    "colorizeDistroLogo": false,
-                    "colorizeSystemIcon": "error",
-                    "customIconPath": "",
-                    "enableColorization": true,
-                    "icon": "noctalia",
-                    "id": "ControlCenter",
-                    "useDistroLogo": true
-                },
                 {
                     "defaultSettings": {
                         "iconTheme": "nerd-font"
@@ -365,12 +356,12 @@
         "clockFormat": "hh\\nmm",
         "clockStyle": "digital",
         "compactLockScreen": true,
-        "dimmerOpacity": 0.66,
+        "dimmerOpacity": 0.74,
         "enableBlurBehind": true,
         "enableLockScreenCountdown": true,
         "enableLockScreenMediaControls": false,
         "enableShadows": false,
-        "forceBlackScreenCorners": false,
+        "forceBlackScreenCorners": true,
         "iRadiusRatio": 1,
         "keybinds": {
             "keyDown": [
@@ -408,13 +399,13 @@
         "radiusRatio": 0.58,
         "reverseScroll": false,
         "scaleRatio": 1,
-        "screenRadiusRatio": 1,
+        "screenRadiusRatio": 0.48,
         "shadowDirection": "bottom",
         "shadowOffsetX": 0,
         "shadowOffsetY": 3,
         "showChangelogOnStartup": true,
         "showHibernateOnLockScreen": false,
-        "showScreenCorners": false,
+        "showScreenCorners": true,
         "showSessionButtonsOnLockScreen": false,
         "telemetryEnabled": false
     },
