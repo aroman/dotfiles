@@ -9,9 +9,12 @@ let
   # this removes the per-driver call. https://github.com/peteonrails/voxtype/issues/XXX
   voxtypePatched = let
     unwrapped = inputs.voxtype.packages.x86_64-linux.voxtype-vulkan-unwrapped.overrideAttrs (prev: {
-      patches = (prev.patches or []) ++ [ ./patches/voxtype-fix-duplicate-notification.patch ];
+      patches = (prev.patches or []) ++ [
+        ./patches/voxtype-fix-duplicate-notification.patch
+        ./patches/voxtype-meeting-vad-threshold-config.patch
+      ];
     });
-    runtimeDeps = with pkgs; [ wtype dotool wl-clipboard ydotool xdotool xclip libnotify pciutils ];
+    runtimeDeps = with pkgs; [ wtype dotool wl-clipboard ydotool xdotool xclip libnotify pciutils pulseaudio ];
   in pkgs.symlinkJoin {
     name = "${unwrapped.pname}-wrapped-${unwrapped.version}";
     paths = [ unwrapped ];
@@ -365,7 +368,7 @@ in
     pinentry.package = pkgs.pinentry-gnome3;
   };
 
-  # ── Dark mode (dconf/gsettings) ────────────────────────────────────
+  # ── Dark mode & GTK settings (dconf/gsettings) ─────────────────────
 
   dconf.settings = {
     "org/gnome/desktop/interface" = {
@@ -377,6 +380,7 @@ in
       icon-theme = "Adwaita";
       cursor-theme = "Adwaita";
       cursor-size = 24;
+      gtk-enable-primary-paste = false;
     };
     # TODO: manage Ptyxis settings declaratively (dconf module doesn't re-apply after manual changes)
     "org/gnome/Ptyxis" = {
@@ -529,6 +533,7 @@ in
       output.notification.on_transcription = false;
       text.spoken_punctuation = true;
       meeting.enabled = true;
+      meeting.vad_threshold = 0.0001;
       whisper.language = "en";
     };
   };
