@@ -25,10 +25,12 @@ starship init fish | source
 alias cat="bat --paging=never"
 alias vim="nvim"
 alias zed="zeditor"
-alias bake="sudo nixos-rebuild switch --flake ~/Projects/dotfiles/nixos && rcup -K"
-alias yt-dlp="nix run nixpkgs#yt-dlp --"
-alias codex="nix run github:sadjow/codex-cli-nix --"
-alias claude="nix run github:sadjow/claude-code-nix --"
+if test (uname) = Linux
+    alias bake="sudo nixos-rebuild switch --flake ~/Projects/dotfiles/nixos && rcup -K"
+    alias yt-dlp="nix run nixpkgs#yt-dlp --"
+    alias codex="nix run github:sadjow/codex-cli-nix --"
+    alias claude="nix run github:sadjow/claude-code-nix --"
+end
 
 abbr --add wrangler "pnpm wrangler"
 abbr --add a "rg -i"
