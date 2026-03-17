@@ -1,32 +1,39 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-UNIT_NAME="cloudflare-tunnel"
 METRICS_ADDR="127.0.0.1:20241"
+PIDFILE="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/cloudflare-tunnel.pid"
+
+is_running() {
+  [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null
+}
 
 case "${1:-start}" in
   start)
-    if systemctl --user is-active --quiet "$UNIT_NAME" 2>/dev/null; then
+    if is_running; then
       exit 0
     fi
 
     token=$(op read "op://Private/Cloudflare Tunnel - avi.magiccircle.dev/token") || exit 1
 
-    systemd-run --user \
-      --unit="$UNIT_NAME" \
-      --description="Cloudflare Tunnel" \
-      --property=Restart=on-failure \
-      --property=RestartSec=5 \
-      --setenv="TUNNEL_TOKEN=$token" \
-      -- cloudflared tunnel --metrics "$METRICS_ADDR" run
+    TUNNEL_TOKEN="$token" cloudflared tunnel --metrics "$METRICS_ADDR" run &
+    echo $! > "$PIDFILE"
+    disown
     ;;
   stop)
-    systemctl --user stop "$UNIT_NAME" 2>/dev/null && echo "Tunnel stopped." || echo "Tunnel is not running."
+    if is_running; then
+      kill "$(cat "$PIDFILE")" 2>/dev/null
+      rm -f "$PIDFILE"
+      echo "Tunnel stopped."
+    else
+      rm -f "$PIDFILE"
+      echo "Tunnel is not running."
+    fi
     ;;
   status)
     if curl -sf --max-time 2 "http://$METRICS_ADDR/ready" >/dev/null 2>&1; then
       echo "connected"
-    elif systemctl --user is-active --quiet "$UNIT_NAME" 2>/dev/null; then
+    elif is_running; then
       echo "starting"
     else
       echo "disconnected"
