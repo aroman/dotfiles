@@ -11,10 +11,7 @@
   "when_closing_with_no_tabs": "platform_default",
   "on_last_window_closed": "platform_default",
   "git_panel": {
-    "tree_view": true
-  },
-  "features": {
-    "edit_prediction_provider": "copilot",
+    "tree_view": true,
   },
   "edit_predictions": {
     "provider": "copilot",
@@ -50,6 +47,11 @@
     "model_parameters": [],
     "dock": "left",
     "button": false,
+  },
+  "agent_servers": {
+    "claude-acp": {
+      "type": "registry",
+    },
   },
   "outline_panel": {
     "button": false,
