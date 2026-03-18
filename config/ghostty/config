@@ -42,6 +42,10 @@ macos-window-buttons = hidden
 macos-icon = chalkboard
 macos-option-as-alt = true
 
+# Splits
+unfocused-split-opacity = 1
+split-divider-color = #38393E
+
 # Behavior
 mouse-hide-while-typing = true
 link-url = true
