@@ -349,6 +349,20 @@ in
 
     # Development
     nodejs_22
+
+    # Clipboard sharing
+    (pkgs.buildGoModule {
+      pname = "uniclip";
+      version = "unstable-2024-03-09";
+      src = pkgs.fetchFromGitHub {
+        owner = "quackduck";
+        repo = "uniclip";
+        rev = "02f28f13455e219deb3c2d0be6352e405bb415ba";
+        hash = "sha256-K8ssVF1CFgBXsmLso095mq9ZYrFoc78GiloM34FqpeA=";
+      };
+      vendorHash = "sha256-ugrWrB0YVs/oWAR3TC3bEpt1VXQC1c3oLrvFJxlR8pw=";
+      meta.description = "Cross-platform shared clipboard";
+    })
   ];
 
 
@@ -364,6 +378,7 @@ in
       };
     };
   };
+
 
 
   # ── GPG agent ──────────────────────────────────────────────────────

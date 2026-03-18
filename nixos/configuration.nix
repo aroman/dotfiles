@@ -149,8 +149,19 @@
     enable = true;
     nssmdns4 = true;
     openFirewall = true;
+    publish = {
+      enable = true;
+      addresses = true;
+    };
   };
-  networking.firewall.allowedTCPPorts = [ 57621 ]; # Spotify Connect
+  networking.firewall.allowedTCPPorts = [
+    22     # SSH
+    53701  # uniclip
+    57621  # Spotify Connect
+  ];
+
+  # SSH
+  services.openssh.enable = true;
 
   # Firmware updates (Framework)
   services.fwupd.enable = true;
