@@ -3,7 +3,7 @@
 # batman-picker — graphical worktree picker for magiccircle.gg dev servers
 #
 # Lists git worktrees in fuzzel (Wayland dmenu), opens a terminal running
-# batman (start_tmux_services.sh) in the selected worktree.
+# batman (batman.sh) in the selected worktree.
 # Bound to Mod+U in niri config.
 #
 # Dependencies: git, fuzzel, niri, notify-send, worktree-list
@@ -12,7 +12,7 @@
 set -euo pipefail
 
 MAIN_REPO="$HOME/Projects/magiccircle.gg"
-BATMAN_SCRIPT="$MAIN_REPO/scripts/start_tmux_services.sh"
+BATMAN_SCRIPT="$MAIN_REPO/scripts/batman.sh"
 KILL_ZOMBIES="$MAIN_REPO/scripts/kill-zombie-servers.sh"
 
 # Read worktrees (including main) sorted by mtime
