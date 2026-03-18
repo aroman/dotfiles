@@ -1,0 +1,54 @@
+# Font
+font-family = CaskaydiaCove Nerd Font Mono
+font-size = 16
+font-thicken = false
+
+# Use P3 color space to match iTerm2
+window-colorspace = display-p3
+
+# Colors (custom One Dark variant from iTerm2, in P3 hex)
+background = #15161c
+foreground = #acb2bf
+cursor-color = #c7c7c7
+cursor-text = #ffffff
+selection-background = #3f4451
+
+# ANSI palette
+palette = 0=#292c33
+palette = 1=#d17377
+palette = 2=#a1c281
+palette = 3=#dfc184
+palette = 4=#74adea
+palette = 5=#bb7cd7
+palette = 6=#6fb4c0
+palette = 7=#acb2be
+palette = 8=#3f4451
+palette = 9=#b1574b
+palette = 10=#a1c281
+palette = 11=#c99c6e
+palette = 12=#74adea
+palette = 13=#bb7cd7
+palette = 14=#6fb4c0
+palette = 15=#5e666f
+
+# Cursor
+cursor-style = bar
+cursor-style-blink = true
+adjust-cursor-thickness = 4
+
+# Window
+macos-titlebar-style = transparent
+macos-window-buttons = hidden
+macos-icon = chalkboard
+macos-option-as-alt = true
+
+# Behavior
+mouse-hide-while-typing = true
+link-url = true
+link-previews = true
+
+# Quick terminal (like iTerm2 Ctrl+` hotkey window)
+keybind = global:ctrl+grave_accent=toggle_quick_terminal
+
+# Cmd+Delete sends Ctrl+U (kill line, matches iTerm2)
+keybind = super+backspace=text:\x15
