@@ -67,6 +67,13 @@ defaults write com.apple.Dock showhidden -bool true
 
 # Enable tap-to-click
 defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
+
+# Touch ID for sudo (works in Ghostty, tmux, etc.)
+# pam-reattach is needed for tmux sessions; ignore_ssh falls back to password for SSH
+# sudo_local survives macOS upgrades (unlike /etc/pam.d/sudo which gets overwritten)
+# See: https://sixcolors.com/post/2023/08/in-macos-sonoma-touch-id-for-sudo-can-survive-updates/
+brew install pam-reattach
+printf 'auth       optional       /opt/homebrew/lib/pam/pam_reattach.so ignore_ssh\nauth       sufficient     pam_tid.so\n' | sudo tee /etc/pam.d/sudo_local > /dev/null
 ```
 
 Finally... reboot to apply everything
