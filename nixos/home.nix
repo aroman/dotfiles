@@ -359,9 +359,9 @@ in
         owner = "labi-le";
         repo = "belphegor";
         rev = "v3.6.2";
-        hash = "sha256-FIXME";
+        hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
       };
-      vendorHash = "sha256-FIXME";
+      vendorHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
       subPackages = [ "cmd/cli" ];
       postInstall = ''
         mv $out/bin/cli $out/bin/belphegor
