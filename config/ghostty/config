@@ -46,6 +46,9 @@ macos-option-as-alt = true
 unfocused-split-opacity = 1
 split-divider-color = #38393E
 
+# Terminal
+term = xterm-256color
+
 # Behavior
 mouse-hide-while-typing = true
 mouse-scroll-multiplier = precision:2
