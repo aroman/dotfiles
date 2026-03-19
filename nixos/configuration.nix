@@ -156,8 +156,10 @@
   };
   networking.firewall.allowedTCPPorts = [
     22     # SSH
-    53701  # uniclip
     57621  # Spotify Connect
+  ];
+  networking.firewall.allowedUDPPorts = [
+    7460   # belphegor (QUIC clipboard sharing)
   ];
 
   # SSH

@@ -48,6 +48,7 @@ split-divider-color = #38393E
 
 # Behavior
 mouse-hide-while-typing = true
+mouse-scroll-multiplier = precision:2
 link-url = true
 link-previews = true
 

@@ -350,18 +350,23 @@ in
     # Development
     nodejs_22
 
-    # Clipboard sharing
+    # Clipboard sharing (text + images, native Wayland via ext-data-control-v1)
+    # Update hashes: nix build will show the correct hash on first failure
     (pkgs.buildGoModule {
-      pname = "uniclip";
-      version = "unstable-2024-03-09";
+      pname = "belphegor";
+      version = "3.6.2";
       src = pkgs.fetchFromGitHub {
-        owner = "quackduck";
-        repo = "uniclip";
-        rev = "02f28f13455e219deb3c2d0be6352e405bb415ba";
-        hash = "sha256-K8ssVF1CFgBXsmLso095mq9ZYrFoc78GiloM34FqpeA=";
+        owner = "labi-le";
+        repo = "belphegor";
+        rev = "v3.6.2";
+        hash = "sha256-FIXME";
       };
-      vendorHash = "sha256-ugrWrB0YVs/oWAR3TC3bEpt1VXQC1c3oLrvFJxlR8pw=";
-      meta.description = "Cross-platform shared clipboard";
+      vendorHash = "sha256-FIXME";
+      subPackages = [ "cmd/cli" ];
+      postInstall = ''
+        mv $out/bin/cli $out/bin/belphegor
+      '';
+      meta.description = "P2P clipboard sharing with image support";
     })
   ];
 
@@ -469,6 +474,20 @@ in
         done
       '';
     };
+  };
+
+  # ── Belphegor (clipboard sharing) ────────────────────────────────
+  systemd.user.services.belphegor = {
+    Unit = {
+      Description = "Belphegor P2P clipboard sharing";
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart = "%h/.nix-profile/bin/belphegor --port 7460 --secret clipboard-sync";
+      Restart = "on-failure";
+      RestartSec = 5;
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
   };
 
   systemd.user.services.figma-agent = {
