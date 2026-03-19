@@ -395,7 +395,7 @@ in
       port = 4242;
       clients = [
         {
-          hostname = "Moonbinder";
+          hostname = "Moonbinder.local";
           position = "left";
           activate_on_startup = true;
         }
