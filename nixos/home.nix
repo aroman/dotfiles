@@ -361,7 +361,7 @@ in
         rev = "v3.6.1";
         hash = "sha256-NyDpSz0Zzk1FzG1F3WXV2aYZGXloyMHZqmTEBG/Oz+4=";
       };
-      vendorHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+      vendorHash = "sha256-t/hg0umkEGIawgZ/AKNvGXvmxQph71qbQbIoIQ7UfV0=";
       subPackages = [ "cmd/cli" ];
       postInstall = ''
         mv $out/bin/cli $out/bin/belphegor
