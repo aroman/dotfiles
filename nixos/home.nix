@@ -359,7 +359,7 @@ in
         owner = "labi-le";
         repo = "belphegor";
         rev = "v3.6.1";
-        hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+        hash = "sha256-NyDpSz0Zzk1FzG1F3WXV2aYZGXloyMHZqmTEBG/Oz+4=";
       };
       vendorHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
       subPackages = [ "cmd/cli" ];
