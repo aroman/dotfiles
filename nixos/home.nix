@@ -398,6 +398,7 @@ in
           hostname = "Moonbinder.local";
           position = "left";
           activate_on_startup = true;
+          ips = [ "192.168.4.172" ];
         }
       ];
     };
