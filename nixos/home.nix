@@ -27,6 +27,7 @@ in
   imports = [
     inputs.voxtype.homeManagerModules.default
     inputs.vicinae.homeManagerModules.default
+    inputs.lan-mouse.homeManagerModules.default
   ];
 
   home.username = "aroman";
@@ -385,6 +386,22 @@ in
   };
 
 
+
+  # ── lan-mouse (mouse/keyboard sharing with macOS) ────────────────
+  programs.lan-mouse = {
+    enable = true;
+    systemd = true;
+    settings = {
+      port = 4242;
+      clients = [
+        {
+          hostname = "Moonbinder";
+          position = "left";
+          activate_on_startup = true;
+        }
+      ];
+    };
+  };
 
   # ── GPG agent ──────────────────────────────────────────────────────
 

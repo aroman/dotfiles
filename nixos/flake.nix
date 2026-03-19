@@ -48,6 +48,11 @@
 
     vicinae.url = "github:vicinaehq/vicinae";
 
+    lan-mouse = {
+      url = "github:feschber/lan-mouse";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
   };
 
   outputs = inputs@{ self, nixpkgs, home-manager, nixos-hardware, niri, ... }: {
