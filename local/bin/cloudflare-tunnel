@@ -31,12 +31,12 @@ case "${1:-start}" in
     fi
     ;;
   status)
-    if curl -sf --max-time 2 "http://$METRICS_ADDR/ready" >/dev/null 2>&1; then
-      echo "connected"
-    elif is_running; then
-      echo "starting"
-    else
+    if ! is_running; then
       echo "disconnected"
+    elif curl -sf --connect-timeout 0.5 --max-time 1 "http://$METRICS_ADDR/ready" >/dev/null 2>&1; then
+      echo "connected"
+    else
+      echo "starting"
     fi
     ;;
   *)
