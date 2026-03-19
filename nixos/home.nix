@@ -483,7 +483,7 @@ in
       After = [ "graphical-session.target" ];
     };
     Service = {
-      ExecStart = "%h/.nix-profile/bin/belphegor --port 7460 --secret clipboard-sync";
+      ExecStart = "/etc/profiles/per-user/aroman/bin/belphegor --port 7460 --secret clipboard-sync";
       Restart = "on-failure";
       RestartSec = 5;
     };
