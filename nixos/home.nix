@@ -354,12 +354,12 @@ in
     # Update hashes: nix build will show the correct hash on first failure
     (pkgs.buildGoModule {
       pname = "belphegor";
-      version = "3.6.2";
+      version = "3.6.1";
       src = pkgs.fetchFromGitHub {
         owner = "labi-le";
         repo = "belphegor";
-        rev = "v3.6.2";
-        hash = "sha256-MgS0edb84Ef6RDZzClisDadOdiD9iOSm1kcekV0MNig=";
+        rev = "v3.6.1";
+        hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
       };
       vendorHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
       subPackages = [ "cmd/cli" ];
