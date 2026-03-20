@@ -3,6 +3,9 @@ font-family = CaskaydiaCove Nerd Font Mono
 font-size = 16
 font-thicken = false
 
+# Inner padding
+window-padding-x = 2
+
 # Use P3 color space to match iTerm2
 window-colorspace = display-p3
 
