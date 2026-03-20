@@ -1,0 +1,39 @@
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "permissions": {
+    "allow": [
+      "mcp__linear-server__get_issue"
+    ]
+  },
+  "enabledPlugins": {
+    "swift-lsp@claude-plugins-official": false,
+    "rust-analyzer-lsp@claude-plugins-official": false
+  },
+  "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/aroman/.claude/hooks/tab-notify.sh"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/aroman/.claude/hooks/tab-notify.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "effortLevel": "high",
+  "voiceEnabled": false,
+  "skipDangerousModePermissionPrompt": true
+}
