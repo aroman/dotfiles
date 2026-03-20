@@ -61,6 +61,7 @@ abbr --add hack "zed ."
 abbr --add exifscrub "exiftool -all= "
 
 abbr --add gg "cd ~/Projects/magiccircle.gg"
+alias jj="/Users/aroman/Projects/magiccircle-worktrees/ar-mc-6785-add-dawn-amber-moon-eggs/scripts/jj/target/release/jj"
 
 if test (uname) = Darwin
     abbr --add serve "open 'http://127.0.0.1:8080' && bunx http-server ."
