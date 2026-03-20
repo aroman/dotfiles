@@ -1,4 +1,6 @@
 #!/bin/sh
+[ "$(uname)" = "Linux" ] || exit 0
+
 # Run gsettings on the host when inside a container (distrobox/toolbox)
 if [ -f /run/.containerenv ] && command -v flatpak-spawn >/dev/null 2>&1; then
   gsettings() { flatpak-spawn --host gsettings "$@"; }
