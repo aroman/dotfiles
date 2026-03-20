@@ -1,3 +1,8 @@
+-- Ghostty filetype detection (must be before lazy.nvim)
+vim.filetype.add({
+  pattern = { [".*ghostty/config"] = "ghostty" },
+})
+
 -- Bootstrap lazy.nvim
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
@@ -45,27 +50,50 @@ require("lazy").setup({
     "lewis6991/gitsigns.nvim",
     opts = {},
   },
+  {
+    "saghen/blink.cmp",
+    version = "1.*",
+    lazy = false,
+    opts = {
+      keymap = { preset = "super-tab" },
+      sources = { default = { "lsp", "path", "snippets", "buffer" } },
+    },
+  },
 })
 
--- No swap/backup files
+-- Ghostty vim runtime for syntax highlighting (after lazy.setup which rebuilds rtp)
+local ghostty_res = vim.env.GHOSTTY_RESOURCES_DIR
+if ghostty_res then
+  local ghostty_vim = vim.fn.fnamemodify(ghostty_res, ":h") .. "/vim/vimfiles"
+  if vim.fn.isdirectory(ghostty_vim) == 1 then
+    vim.opt.rtp:prepend(ghostty_vim)
+  end
+end
+
+-- Ghostty LSP
+vim.lsp.config.ghostty = {
+  cmd = { "ghostty-ls" },
+  filetypes = { "ghostty" },
+  capabilities = require("blink.cmp").get_lsp_capabilities(),
+}
+vim.lsp.enable("ghostty")
+
+-- Options
 vim.opt.swapfile = false
 vim.opt.backup = false
 vim.opt.writebackup = false
-
--- Search
+vim.opt.undofile = true
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
-
--- Display
 vim.opt.number = true
 vim.opt.scrolloff = 8
 vim.opt.termguicolors = true
-
--- System clipboard
 vim.opt.clipboard = "unnamedplus"
-
--- Mouse scroll speed (default is 3 lines per tick)
 vim.opt.mousescroll = "ver:1,hor:1"
+
+-- Emacs-style nav in command line
+vim.keymap.set("c", "<C-a>", "<Home>")
+vim.keymap.set("c", "<C-e>", "<End>")
 
 -- Reopen file at last position
 vim.api.nvim_create_autocmd("BufReadPost", {
