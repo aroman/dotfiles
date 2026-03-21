@@ -9,8 +9,8 @@
       "appearance": "dark",
       "style": {
         "accents": ["#67b0e8", "#c47fd5", "#e5c76b", "#8ccf7e", "#6cbfbf", "#e57474"],
-        "border": "#232a2d",
-        "border.variant": "#141b1e",
+        "border": "#2a3538",
+        "border.variant": "#232d30",
         "border.focused": "#67b0e8",
         "border.selected": "#67b0e8",
         "border.transparent": "#00000000",
