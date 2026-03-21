@@ -8,7 +8,7 @@ set -euo pipefail
 
 # Derive dotfiles root from this script's location (local/bin/ inside the repo)
 FLAKE="$(cd "$(dirname "$(readlink -f "$0")")/../.." && pwd)/nixos"
-HOST="wizardtower"
+HOST="moonbinder"
 LOCKFILE="$FLAKE/flake.lock"
 
 # Save current lock file

@@ -81,8 +81,8 @@
       };
   in {
     nixosConfigurations = {
-      wizardtower = mkSystem {
-        hostname = "wizardtower";
+      moonbinder = mkSystem {
+        hostname = "moonbinder";
         extraSpecialArgs = {
           pkgs-kernel = import inputs.nixpkgs-kernel { system = "x86_64-linux"; };
         };

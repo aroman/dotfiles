@@ -6,7 +6,7 @@
     ../../fw16-speaker-dsp.nix
   ];
 
-  networking.hostName = "wizardtower";
+  networking.hostName = "moonbinder";
 
   # TODO: Remove when fixes land upstream (targeting 6.20+). Check:
   #   - LKML: https://lore.kernel.org/linux-wireless/?q=mt7925+deadlock

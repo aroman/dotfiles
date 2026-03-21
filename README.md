@@ -223,7 +223,7 @@ exec = "google-chrome-stable --profile-directory=\"Profile 1\" %u"
 regexes = ['https?://(www\.)?example\.com(/.*)?']
 ```
 
-Then rebuild: `sudo nixos-rebuild switch --flake ./nixos#wizardtower`
+Then rebuild: `sudo nixos-rebuild switch --flake ./nixos#moonbinder`
 
 ### Questions? Comments?
 
