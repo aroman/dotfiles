@@ -7,10 +7,6 @@
       "mcp__linear-server__get_issue"
     ]
   },
-  "enabledPlugins": {
-    "swift-lsp@claude-plugins-official": false,
-    "rust-analyzer-lsp@claude-plugins-official": false
-  },
   "hooks": {
     "Notification": [
       {
@@ -33,7 +29,10 @@
       }
     ]
   },
-  "effortLevel": "high",
+  "enabledPlugins": {
+    "swift-lsp@claude-plugins-official": false,
+    "rust-analyzer-lsp@claude-plugins-official": false
+  },
   "voiceEnabled": false,
   "skipDangerousModePermissionPrompt": true
 }

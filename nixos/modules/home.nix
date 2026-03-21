@@ -3,29 +3,9 @@
 let
   dotfiles = "${config.home.homeDirectory}/Projects/dotfiles";
   link = path: config.lib.file.mkOutOfStoreSymlink "${dotfiles}/${path}";
-
-  # Patch voxtype to fix duplicate transcription notifications.
-  # Both the daemon and each output driver send notify-send on transcription;
-  # this removes the per-driver call.
-  voxtypePatched = let
-    unwrapped = inputs.voxtype.packages.x86_64-linux.voxtype-vulkan-unwrapped.overrideAttrs (prev: {
-      patches = (prev.patches or []) ++ [ ./patches/voxtype-fix-duplicate-notification.patch ];
-    });
-    runtimeDeps = with pkgs; [ wtype wl-clipboard libnotify ];
-  in pkgs.symlinkJoin {
-    name = "${unwrapped.pname}-wrapped-${unwrapped.version}";
-    paths = [ unwrapped ];
-    buildInputs = [ pkgs.makeWrapper ];
-    postBuild = ''
-      wrapProgram $out/bin/voxtype \
-        --prefix PATH : ${pkgs.lib.makeBinPath runtimeDeps}
-    '';
-    inherit (unwrapped) meta;
-  };
 in
 {
   imports = [
-    inputs.voxtype.homeManagerModules.default
     inputs.vicinae.homeManagerModules.default
     inputs.lan-mouse.homeManagerModules.default
   ];
@@ -147,38 +127,11 @@ in
     SuperuserBackground=#1C0A0C
     SuperuserForeground=#DADADA
   '';
-  xdg.desktopEntries."com.codeandweb.texturepacker" = {
-    name = "TexturePacker";
-    genericName = "Sprite Sheet Creator";
-    exec = "TexturePacker -platform wayland --gui %F";
-    icon = "com.codeandweb.texturepacker";
-    terminal = false;
-    categories = [ "Development" ];
-    mimeType = [
-      "application/vnd.codeandweb.de.tps"
-      "application/vnd.codeandweb.de.pvr"
-      "application/vnd.codeandweb.de.pvr.ccz"
-      "application/vnd.codeandweb.de.pvr.gz"
-    ];
-  };
-
-  # Figma via Chrome app mode instead of figma-linux (Electron).
-  # Chrome --app is noticeably faster on Wayland/niri.
-  # figma-open handles both launching and URL deep-linking via CDP.
-  xdg.desktopEntries.figma = {
-    name = "Figma";
-    comment = "Figma (Chrome app mode)";
-    exec = "figma-open %U";
-    icon = ./figma.png;
-    terminal = false;
-    mimeType = [ "x-scheme-handler/figma" ];
-  };
-
   xdg.desktopEntries.linear = {
     name = "Linear";
     comment = "Linear (Chrome app mode)";
     exec = "google-chrome-stable --user-data-dir=${config.home.homeDirectory}/.config/linear-chrome --hide-crash-restore-bubble --app=https://linear.app %U";
-    icon = ./linear.png;
+    icon = ../linear.png;
     terminal = false;
     mimeType = [];
   };
@@ -187,7 +140,7 @@ in
     name = "Rive";
     comment = "Rive (Chrome app mode)";
     exec = "google-chrome-stable --user-data-dir=${config.home.homeDirectory}/.config/rive-chrome --hide-crash-restore-bubble --app=https://editor.rive.app %U";
-    icon = ./rive.png;
+    icon = ../rive.png;
     terminal = false;
     mimeType = [];
   };
@@ -209,10 +162,6 @@ in
     chrome = "google-chrome-stable";
   in ''
     [[handlers]]
-    exec = "figma-open %u"
-    regexes = ['https?://(www\.)?figma\.com(/.*)?']
-
-    [[handlers]]
     exec = "${chrome} --profile-directory=\"Default\" %u"
     regexes = ['https?://(www\.)?(youtube\.com|youtu\.be)(/.*)?']
 
@@ -228,7 +177,6 @@ in
       "application/x-zerosize" = "dev.zed.Zed.desktop";
       "x-scheme-handler/http" = "handlr.desktop";
       "x-scheme-handler/https" = "handlr.desktop";
-      "x-scheme-handler/figma" = "figma.desktop";
       "image/png" = "org.gnome.Loupe.desktop";
       "image/jpeg" = "org.gnome.Loupe.desktop";
       "image/gif" = "org.gnome.Loupe.desktop";
@@ -266,7 +214,6 @@ in
     # Core CLI
     rcm          # dotfile manager — `rcup` symlinks local/bin/* → ~/.local/bin/* etc.
     handlr-regex # URL dispatcher — routes links to the right app by domain
-    websocat     # WebSocket CLI — used by figma-open to navigate via CDP
     bat
     fzf
     ripgrep
@@ -287,7 +234,6 @@ in
 
     # Wayland tools
     wl-clipboard
-    brightnessctl
     ddcutil
     playerctl
     networkmanagerapplet
@@ -315,13 +261,8 @@ in
       ];
     })
 
-    # Communication
-    vesktop
-    slack
-
     # Design
     gradia
-    figma-agent # serves local fonts to Figma web (needs Windows user-agent)
     texturepacker
     adwaita-qt6
     adw-gtk3 # libadwaita look for GTK3 apps (Nemo, Thunar, etc.)
@@ -342,7 +283,7 @@ in
         tag = "50.rc";
         hash = "sha256-0StYVSQt0LCAW9WUugIQuBKac1dri+96XE69fMracPo=";
       };
-      patches = (old.patches or []) ++ [ ./ptyxis-no-headerbar.patch ];
+      patches = (old.patches or []) ++ [ ../ptyxis-no-headerbar.patch ];
     }))
 
     # Desktop shell & launcher
@@ -466,37 +407,6 @@ in
 
   # ── Services ─────────────────────────────────────────────────────
 
-  # ── Figma download handler ───────────────────────────────────────
-  # Figma Chrome app downloads to a hidden staging dir; systemd
-  # watches it, extracts .zips and moves everything else into ~/Downloads.
-  systemd.user.paths.figma-auto-unzip = {
-    Unit.Description = "Watch Figma downloads for new files";
-    Path.DirectoryNotEmpty = "%h/.figma/Downloads";
-    Install.WantedBy = [ "default.target" ];
-  };
-  systemd.user.services.figma-auto-unzip = {
-    Unit.Description = "Move Figma exports into ~/Downloads";
-    Service = {
-      Type = "oneshot";
-      ExecStart = pkgs.writeShellScript "figma-download-handler" ''
-        # Wait for Chrome to finish writing (no .crdownload temp files)
-        for i in $(seq 1 20); do
-          ls "$HOME/.figma/Downloads"/*.crdownload >/dev/null 2>&1 || break
-          sleep 0.5
-        done
-        sleep 0.3
-        for f in "$HOME/.figma/Downloads"/*; do
-          [ -f "$f" ] || continue
-          case "$f" in
-            *.crdownload) ;;
-            *.zip) ${pkgs.unzip}/bin/unzip -o "$f" -d "$HOME/Downloads" && rm "$f" ;;
-            *)     mv "$f" "$HOME/Downloads/" ;;
-          esac
-        done
-      '';
-    };
-  };
-
   # ── Belphegor (clipboard sharing) ────────────────────────────────
   systemd.user.services.belphegor = {
     Unit = {
@@ -507,28 +417,6 @@ in
       ExecStart = "/etc/profiles/per-user/aroman/bin/belphegor --port 7460 --secret clipboard-sync";
       Restart = "on-failure";
       RestartSec = 5;
-    };
-    Install.WantedBy = [ "graphical-session.target" ];
-  };
-
-  systemd.user.services.figma-agent = {
-    Unit.Description = "Figma local font agent";
-    Service = {
-      ExecStart = "${pkgs.figma-agent}/bin/figma-agent";
-      Restart = "on-failure";
-    };
-    Install.WantedBy = [ "default.target" ];
-  };
-
-  systemd.user.services.niri-dwt-toggle = {
-    Unit = {
-      Description = "Disable touchpad DWT for apps that need pointer during typing (Figma, Magic Garden)";
-      After = [ "graphical-session.target" ];
-    };
-    Service = {
-      ExecStart = "%h/.local/bin/niri-dwt-toggle";
-      Restart = "on-failure";
-      RestartSec = 2;
     };
     Install.WantedBy = [ "graphical-session.target" ];
   };
@@ -563,37 +451,6 @@ in
       '';
     };
     Install.WantedBy = [ "default.target" ];
-  };
-
-  # ── Programs ─────────────────────────────────────────────────────
-
-  # ── Voxtype (push-to-talk dictation) ─────────────────────────────
-  programs.voxtype = {
-    enable = true;
-    package = voxtypePatched;
-    model.name = "small.en";
-    service.enable = true;
-    settings = {
-      hotkey = {
-        enabled = true;
-        key = "EVTEST_43";
-        modifiers = [ "SUPER" ];
-        mode = "push_to_talk";
-      };
-      audio.feedback = {
-        enabled = true;
-        theme = "${config.home.homeDirectory}/.local/share/voxtype/sounds/lcars";
-        volume = 0.7;
-      };
-      output = {
-        mode = "type";
-        driver_order = [ "wtype" "clipboard" ];
-        fallback_to_clipboard = true;
-      };
-      output.notification.on_transcription = false;
-      text.spoken_punctuation = true;
-      whisper.language = "en";
-    };
   };
 
   programs.home-manager.enable = true;

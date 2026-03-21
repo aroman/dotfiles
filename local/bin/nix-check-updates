@@ -6,7 +6,8 @@
 
 set -euo pipefail
 
-FLAKE="/home/aroman/Projects/dotfiles/nixos"
+# Derive dotfiles root from this script's location (local/bin/ inside the repo)
+FLAKE="$(cd "$(dirname "$(readlink -f "$0")")/../.." && pwd)/nixos"
 HOST="wizardtower"
 LOCKFILE="$FLAKE/flake.lock"
 

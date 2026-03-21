@@ -1,7 +1,3 @@
 function dot
-    if test -d ~/.dotfiles
-        cd ~/.dotfiles
-    else
-        cd ~/Projects/dotfiles
-    end
+    cd $DOTFILES_DIR
 end

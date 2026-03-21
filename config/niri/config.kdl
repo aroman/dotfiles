@@ -698,7 +698,7 @@ binds {
     Mod+Ctrl+F { expand-column-to-available-width; }
 
     Mod+C { center-column; }
-    Mod+Shift+C hotkey-overlay-title="Toggle Auto-Center" { spawn "sh" "/home/aroman/Projects/dotfiles/local/bin/toggle-center"; }
+    Mod+Shift+C hotkey-overlay-title="Toggle Auto-Center" { spawn "sh" "toggle-center"; }
 
     // Center all fully visible columns on screen.
     Mod+Ctrl+C { center-visible-columns; }
@@ -757,7 +757,7 @@ binds {
     Mod+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
 
     // The quit action will show a confirmation dialog to avoid accidental exits.
-    Ctrl+Mod+Alt+BracketLeft hotkey-overlay-title="Swap Monitors" { spawn-sh "/home/aroman/Projects/dotfiles/local/bin/swap-monitors"; }
+    Ctrl+Mod+Alt+BracketLeft hotkey-overlay-title="Swap Monitors" { spawn-sh "swap-monitors"; }
 
     Mod+Shift+E { quit; }
     Ctrl+Alt+Delete { quit; }

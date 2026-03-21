@@ -55,28 +55,41 @@
 
   };
 
-  outputs = inputs@{ self, nixpkgs, home-manager, nixos-hardware, niri, ... }: {
-    nixosConfigurations.wizardtower = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      specialArgs = {
-        inherit inputs;
-        pkgs-kernel = import inputs.nixpkgs-kernel { system = "x86_64-linux"; };
+  outputs = inputs@{ self, nixpkgs, home-manager, nixos-hardware, niri, ... }:
+  let
+    mkSystem = { hostname, system ? "x86_64-linux", extraModules ? [], extraSpecialArgs ? {} }:
+      nixpkgs.lib.nixosSystem {
+        inherit system;
+        specialArgs = {
+          inherit inputs;
+        } // extraSpecialArgs;
+        modules = [
+          niri.nixosModules.niri
+          { nixpkgs.overlays = [ niri.overlays.niri ]; }
+          ./noctalia.nix
+          home-manager.nixosModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.users.aroman = import ./hosts/${hostname}/home.nix;
+            home-manager.extraSpecialArgs = { inherit inputs; };
+          }
+          ./modules/common.nix
+          ./hosts/${hostname}/default.nix
+          ./hosts/${hostname}/hardware-configuration.nix
+        ] ++ extraModules;
       };
-      modules = [
-        nixos-hardware.nixosModules.framework-16-amd-ai-300-series
-        niri.nixosModules.niri
-        { nixpkgs.overlays = [ niri.overlays.niri ]; }
-        ./noctalia.nix
-        home-manager.nixosModules.home-manager
-        {
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
-          home-manager.users.aroman = import ./home.nix;
-          home-manager.extraSpecialArgs = { inherit inputs; };
-        }
-        ./configuration.nix
-        ./hardware-configuration.nix
-      ];
+  in {
+    nixosConfigurations = {
+      wizardtower = mkSystem {
+        hostname = "wizardtower";
+        extraSpecialArgs = {
+          pkgs-kernel = import inputs.nixpkgs-kernel { system = "x86_64-linux"; };
+        };
+        extraModules = [
+          nixos-hardware.nixosModules.framework-16-amd-ai-300-series
+        ];
+      };
     };
   };
 }

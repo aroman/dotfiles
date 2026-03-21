@@ -7,6 +7,12 @@ end
 
 set fish_greeting ""
 
+if test (uname) = Darwin
+    set -g DOTFILES_DIR ~/.dotfiles
+else
+    set -g DOTFILES_DIR ~/Projects/dotfiles
+end
+
 # Solarized color theme
 set -g fish_color_autosuggestion 586e75
 set -g fish_color_cancel -r
@@ -49,7 +55,7 @@ if test (uname) = Linux
     alias zed="zeditor"
 end
 if test (uname) = Linux
-    alias bake="sudo nixos-rebuild switch --flake ~/Projects/dotfiles/nixos && rcup -K"
+    alias bake="sudo nixos-rebuild switch --flake $DOTFILES_DIR/nixos && rcup -K"
     alias yt-dlp="nix run nixpkgs#yt-dlp --"
     alias codex="nix run github:sadjow/codex-cli-nix --"
     alias claude="nix run github:sadjow/claude-code-nix --"
@@ -61,13 +67,14 @@ abbr --add hack "zed ."
 abbr --add exifscrub "exiftool -all= "
 
 abbr --add gg "cd ~/Projects/magiccircle.gg"
-alias jj="/Users/aroman/Projects/magiccircle-worktrees/ar-mc-6785-add-dawn-amber-moon-eggs/scripts/jj/target/release/jj"
 
 if test (uname) = Darwin
     abbr --add serve "open 'http://127.0.0.1:8080' && bunx http-server ."
 else
     abbr --add serve "xdg-open 'http://127.0.0.1:8080' && bunx http-server ."
 end
+abbr --add c "claude --dangerously-skip-permissions"
+abbr --add dotc "cd $DOTFILES_DIR && claude --dangerously-skip-permissions"
 abbr --add yolo "claude --dangerously-skip-permissions"
 abbr --add gs "git status"
 abbr --add gl "git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
@@ -107,3 +114,21 @@ end
 source "$HOME/.cargo/env.fish" 2>/dev/null
 
 export PATH="$HOME/.local/bin:$PATH"
+
+
+
+
+
+# jj-wrapper
+function jj
+    set -l out ('/Users/aroman/Projects/magiccircle-worktrees/ar-mc-6785-add-dawn-amber-moon-eggs/scripts/jj/target/release/jj' $argv)
+    or return
+    for line in $out
+        if test -d "$line"
+            cd "$line"
+        else if string match -q 'CLAUDE:*' "$line"
+            eval claude (string sub -s 8 "$line")
+        end
+    end
+end
+# jj-wrapper
