@@ -84,15 +84,6 @@
   "base_keymap": "VSCode",
   "window_decorations": "server",
   "vim_mode": true,
-  "icon_theme": {
-    "mode": "system",
-    "light": "Base Charmed Icons",
-    // "dark": "Zed (Default)",
-    "dark": "Soft Charmed Icons",
-  },
-  "theme": {
-    "mode": "dark",
-    "light": "GitHub Light",
-    "dark": "Everblush",
-  },
+  "icon_theme": "Colored Zed Icons Theme Dark",
+  "theme": "Everblush",
 }
