@@ -2,12 +2,13 @@
   "$schema": "https://zed.dev/schema/themes/v0.2.0.json",
   "name": "Everblush",
   "author": "saxophone-dev",
-  "description": "Modified from original: lightened chrome (#0e1618 → #141b1e) and editor (#151e21 → #1e2528) backgrounds to match standard Everblush palette.",
+  "description": "Modified from original: lightened chrome (#0e1618 → #141b1e) and editor (#151e21 → #1e2528) backgrounds to match standard Everblush palette. Increased elevated surface contrast. Added Everblush accents for indent guides and bracket colorization.",
   "themes": [
     {
       "name": "Everblush",
       "appearance": "dark",
       "style": {
+        "accents": ["#67b0e8", "#c47fd5", "#e5c76b", "#8ccf7e", "#6cbfbf", "#e57474"],
         "border": "#232a2d",
         "border.variant": "#141b1e",
         "border.focused": "#67b0e8",

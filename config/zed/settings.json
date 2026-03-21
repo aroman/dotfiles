@@ -31,6 +31,11 @@
   },
   "project_panel": {
     "bold_folder_labels": false,
+    "auto_fold_dirs": true,
+  },
+  "double_click_in_multibuffer": "open",
+  "indent_guides": {
+    "coloring": "indent_aware",
   },
   "buffer_line_height": "comfortable",
   // "scroll_sensitivity": 1.25,
