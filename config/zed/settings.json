@@ -14,7 +14,7 @@
     "tree_view": true,
   },
   "edit_predictions": {
-    "provider": "copilot",
+    "provider": "none",
   },
   "scroll_beyond_last_line": "one_page",
   "buffer_font_size": 15.0,
@@ -82,7 +82,9 @@
     "show_tab_bar_buttons": false,
   },
   "base_keymap": "VSCode",
-  "window_decorations": "server",
+  "linux": {
+    "window_decorations": "server",
+  },
   "vim_mode": true,
   "icon_theme": "Colored Zed Icons Theme Dark",
   "theme": "Everblush",
