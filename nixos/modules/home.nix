@@ -408,18 +408,8 @@ in
   # ── Services ─────────────────────────────────────────────────────
 
   # ── Belphegor (clipboard sharing) ────────────────────────────────
-  systemd.user.services.belphegor = {
-    Unit = {
-      Description = "Belphegor P2P clipboard sharing";
-      After = [ "graphical-session.target" ];
-    };
-    Service = {
-      ExecStart = "/etc/profiles/per-user/aroman/bin/belphegor --port 7460 --secret clipboard-sync";
-      Restart = "on-failure";
-      RestartSec = 5;
-    };
-    Install.WantedBy = [ "graphical-session.target" ];
-  };
+  # Belphegor disabled as auto-start service (memory leak ~5GB).
+  # Run manually via `clipboard-sync` fish function instead.
 
   # ── Portal permissions ────────────────────────────────────────────
   # xdg-desktop-portal-gnome can't show the "allow camera?" dialog
