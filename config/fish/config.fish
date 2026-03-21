@@ -109,6 +109,9 @@ if test (uname) = Darwin
 
     # Added by Antigravity
     fish_add_path /Users/aroman/.antigravity/antigravity/bin
+
+    # psql client (libpq is keg-only)
+    fish_add_path /opt/homebrew/opt/libpq/bin
 end
 
 source "$HOME/.cargo/env.fish" 2>/dev/null
