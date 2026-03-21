@@ -121,7 +121,6 @@ export PATH="$HOME/.local/bin:$PATH"
 
 
 
-
 # jj-wrapper
 function jj
     set -l out ('/Users/aroman/Projects/magiccircle-worktrees/ar-mc-6785-add-dawn-amber-moon-eggs/scripts/jj/target/release/jj' $argv)
@@ -131,6 +130,10 @@ function jj
             cd "$line"
         else if string match -q 'CLAUDE:*' "$line"
             eval claude (string sub -s 8 "$line")
+        else if string match -q 'CLAUDE_RESUME:*' "$line"
+            set -l branch (string sub -s 16 "$line")
+            claude --dangerously-skip-permissions --continue 2>/dev/null
+            or claude --dangerously-skip-permissions --name "$branch"
         end
     end
 end
