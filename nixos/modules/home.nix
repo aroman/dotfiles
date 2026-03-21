@@ -335,11 +335,11 @@ in
     settings = {
       port = 4242;
       authorized_fingerprints = {
-        "ee:93:9b:4d:29:f0:d7:1c:10:3a:a3:7a:9d:08:da:64:18:ee:4a:4c:6f:e3:91:10:95:4d:f2:5e:ef:0e:10:8a" = "Dawnbinder";
+        "ee:93:9b:4d:29:f0:d7:1c:10:3a:a3:7a:9d:08:da:64:18:ee:4a:4c:6f:e3:91:10:95:4d:f2:5e:ef:0e:10:8a" = "dawnbinder";
       };
       clients = [
         {
-          hostname = "Dawnbinder.local";
+          hostname = "dawnbinder.local";
           position = "left";
           activate_on_startup = true;
           ips = [ "192.168.4.172" ];
