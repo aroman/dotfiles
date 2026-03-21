@@ -35,5 +35,8 @@
   },
   "effortLevel": "high",
   "voiceEnabled": false,
-  "skipDangerousModePermissionPrompt": true
+  "skipDangerousModePermissionPrompt": true,
+  "attribution": {
+    "commit": ""
+  }
 }
