@@ -1,3 +1,4 @@
 result
 config/niri/*.backup*
 config/fish/fish_variables
+.DS_Store
