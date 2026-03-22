@@ -37,6 +37,3 @@
 	difftool = true
 [rerere]
 	enabled = true
-[maintenance]
-	auto = true
-	strategy = incremental
