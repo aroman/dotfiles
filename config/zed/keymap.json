@@ -18,6 +18,7 @@
       "ctrl-b": "workspace::ToggleLeftDock",
       "ctrl-t": "project_symbols::Toggle",
       "ctrl-w": "pane::CloseActiveItem",
+      "ctrl-shift-t": "pane::ReopenClosedItem",
       "ctrl--": "zed::DecreaseBufferFontSize",
       "ctrl-=": "zed::IncreaseBufferFontSize",
       "ctrl-[": "pane::GoBack",
