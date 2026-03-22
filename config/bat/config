@@ -1,1 +1,4 @@
 --theme="Everblush"
+--style="numbers,changes"
+--italic-text=always
+--map-syntax=".env*:Bourne Again Shell (bash)"
