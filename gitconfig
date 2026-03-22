@@ -9,6 +9,7 @@
 [core]
 	excludesfile = ~/.gitignore_global
 	editor = vim
+	pager = less -RFX --mouse
 [pull]
 	rebase = true
 [filter "lfs"]
@@ -23,3 +24,14 @@
 	format = ssh
 [commit]
 	gpgsign = true
+[alias]
+	dlog = -c diff.external=difft log -p --ext-diff
+[diff]
+	tool = difftastic
+	external = difft
+[difftool]
+	prompt = false
+[difftool "difftastic"]
+	cmd = difft "$LOCAL" "$REMOTE"
+[pager]
+	difftool = true

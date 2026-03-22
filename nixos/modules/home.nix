@@ -217,6 +217,7 @@ in
     bat
     fzf
     ripgrep
+    difftastic
     fd
     jq
     gh

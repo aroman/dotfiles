@@ -94,6 +94,7 @@ end
 
 # GPG Key Setup
 set -x GPG_TTY (tty)
+set -x DFT_DISPLAY side-by-side-show-both
 
 # bun
 set --export BUN_INSTALL "$HOME/.bun"
@@ -121,9 +122,12 @@ export PATH="$HOME/.local/bin:$PATH"
 
 
 
+
+
+
 # jj-wrapper
 function jj
-    set -l out ('/Users/aroman/Projects/magiccircle-worktrees/ar-mc-6785-add-dawn-amber-moon-eggs/scripts/jj/target/release/jj' $argv)
+    set -l out ('/Users/aroman/Projects/magiccircle-worktrees/ar-batman-oracle/scripts/jj/target/release/jj' $argv)
     or return
     for line in $out
         if test -d "$line"
@@ -131,7 +135,7 @@ function jj
         else if string match -q 'CLAUDE:*' "$line"
             eval claude (string sub -s 8 "$line")
         else if string match -q 'CLAUDE_RESUME:*' "$line"
-            set -l branch (string sub -s 16 "$line")
+            set -l branch (string sub -s 15 "$line")
             claude --dangerously-skip-permissions --continue 2>/dev/null
             or claude --dangerously-skip-permissions --name "$branch"
         end
