@@ -51,6 +51,56 @@ require("lazy").setup({
     opts = {},
   },
   {
+    "lukas-reineke/indent-blankline.nvim",
+    main = "ibl",
+    dependencies = { "HiPhish/rainbow-delimiters.nvim", "nvim-treesitter/nvim-treesitter" },
+    config = function()
+      local dim = { "RbDimRed", "RbDimYellow", "RbDimBlue", "RbDimOrange", "RbDimGreen", "RbDimViolet", "RbDimCyan" }
+      local bright = { "RbRed", "RbYellow", "RbBlue", "RbOrange", "RbGreen", "RbViolet", "RbCyan" }
+      local hooks = require("ibl.hooks")
+      hooks.register(hooks.type.HIGHLIGHT_SETUP, function()
+        vim.api.nvim_set_hl(0, "RbDimRed", { fg = "#513636" })
+        vim.api.nvim_set_hl(0, "RbDimYellow", { fg = "#514D36" })
+        vim.api.nvim_set_hl(0, "RbDimBlue", { fg = "#364051" })
+        vim.api.nvim_set_hl(0, "RbDimOrange", { fg = "#514136" })
+        vim.api.nvim_set_hl(0, "RbDimGreen", { fg = "#3B5136" })
+        vim.api.nvim_set_hl(0, "RbDimViolet", { fg = "#453651" })
+        vim.api.nvim_set_hl(0, "RbDimCyan", { fg = "#365151" })
+        vim.api.nvim_set_hl(0, "RbRed", { fg = "#B4585F" })
+        vim.api.nvim_set_hl(0, "RbYellow", { fg = "#B49C64" })
+        vim.api.nvim_set_hl(0, "RbBlue", { fg = "#4F8EC2" })
+        vim.api.nvim_set_hl(0, "RbOrange", { fg = "#AB7D53" })
+        vim.api.nvim_set_hl(0, "RbGreen", { fg = "#7C9E62" })
+        vim.api.nvim_set_hl(0, "RbViolet", { fg = "#A163B4" })
+        vim.api.nvim_set_hl(0, "RbCyan", { fg = "#47939A" })
+      end)
+      vim.g.rainbow_delimiters = { highlight = bright }
+      require("ibl").setup({
+        indent = { char = "▏", highlight = dim },
+        scope = {
+          enabled = true, show_start = false, show_end = false, highlight = bright,
+          include = { node_type = { ["*"] = { "*" } } },
+        },
+      })
+      hooks.register(hooks.type.SCOPE_HIGHLIGHT, hooks.builtin.scope_highlight_from_extmark)
+    end,
+  },
+  {
+    "nvim-treesitter/nvim-treesitter",
+    build = ":TSUpdate",
+    config = function()
+      vim.api.nvim_create_autocmd("FileType", {
+        callback = function(args)
+          local lang = vim.treesitter.language.get_lang(args.match) or args.match
+          if not pcall(vim.treesitter.language.inspect, lang) then
+            pcall(require("nvim-treesitter").install, { lang })
+          end
+          pcall(vim.treesitter.start, args.buf, lang)
+        end,
+      })
+    end,
+  },
+  {
     "saghen/blink.cmp",
     version = "1.*",
     lazy = false,
