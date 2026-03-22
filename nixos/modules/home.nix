@@ -201,7 +201,7 @@ in
     # On macOS there's no ~/.rcrc so rcup manages everything.
     ".rcrc".text = ''
       DOTFILES_DIRS="$HOME/Projects/dotfiles"
-      EXCLUDES="bin/mute-IEC958* bin/start-browser* Brewfile config gemrc gitconfig gitignore_global hooks hushlogin i3 iTerm2 Library nixos PLAN.md *.rayconfig README.md RectangleConfig.json rules.velja-rules ssh vim xterm-256color-italic.terminfo zshrc"
+      EXCLUDES="Brewfile config gemrc gitconfig gitignore_global hooks hushlogin iTerm2 Library nixos PLAN.md README.md rules.velja-rules ssh vim xterm-256color-italic.terminfo zshrc"
     '';
   };
 
