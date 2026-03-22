@@ -4,7 +4,7 @@ font-size = 16
 font-thicken = false
 
 # Inner padding
-window-padding-x = 2
+window-padding-x = 4
 
 # Use P3 color space to match iTerm2
 window-colorspace = display-p3
@@ -47,7 +47,10 @@ keybind = global:ctrl+grave_accent=toggle_quick_terminal
 keybind = super+backspace=text:\x15
 
 # Bell: emoji in tab title + dock bounce
-bell-features = title,attention
+bell-features = title,attention,border
 
 # Notify when long-running commands finish in unfocused tabs
 notify-on-command-finish = never
+
+# Undo close tab: extend recovery window from 5s default
+undo-timeout = 30s

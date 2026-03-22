@@ -18,5 +18,5 @@ background = #141b1e
 foreground = #dadada
 cursor-color = #dadada
 cursor-text = #141b1e
-selection-background = #2d3437
-selection-foreground = #dadada
+selection-foreground = cell-foreground
+selection-background = #3f515a
