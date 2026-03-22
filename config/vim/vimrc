@@ -14,28 +14,6 @@ set noswapfile
 set nobackup
 set nowb
 
-" Plugins
-call plug#begin('~/.vim/plugged')
-
-Plug 'tpope/vim-commentary'
-Plug 'tpope/vim-sleuth'
-Plug 'terryma/vim-multiple-cursors'
-Plug 'airblade/vim-gitgutter'
-Plug 'ntpeters/vim-better-whitespace'
-Plug 'rking/ag.vim'
-Plug 'bling/vim-airline'
-Plug 'joshdick/onedark.vim', { 'branch': 'main' }
-Plug 'vim-airline/vim-airline-themes'
-Plug 'fatih/vim-go', { 'for': 'go' }
-Plug 'elzr/vim-json', { 'for': 'json' }
-Plug 'pangloss/vim-javascript', { 'for': 'js' }
-Plug 'leafgarland/typescript-vim', { 'for': 'ts' }
-Plug 'Matt-Deacalion/vim-systemd-syntax'
-Plug 'dag/vim-fish'
-" Plug 'jszakmeister/vim-togglecursor'
-
-call plug#end()
-
 " BASH-like autocompletion
 set wildmode=longest:full
 set wildmenu
@@ -62,23 +40,17 @@ set sidescroll=1
 cnoremap <C-A>      <Home>
 cnoremap <C-E>      <End>
 
-"" Unfuck my pinky [disabled]
-"nore ; :
-"nore , ;
-
 " Line numbers
 set number
 
 " Sync X and Vim clipboards
 set clipboard=unnamed
-set pastetoggle=<F2>
-" set paste
 
 " Show the filename in the titlebar, don't set 'Thanks for flying' message
 set title
 let &titleold=''
 
-" Don’t show the intro message when starting Vim
+" Don't show the intro message when starting Vim
 set shortmess=atI
 
 " Mouse support
@@ -91,20 +63,6 @@ let &t_SR = "\e[4 q"  " replace mode: underline
 
 " Colors
 syntax on
-let g:onedark_termcolors=16
-let g:onedark_terminal_italics=1
-colorscheme onedark
-
-" Airline
-set noruler
-set noshowmode
-set statusline=
-set laststatus=2
-let g:airline_theme='onedark'
-let g:airline_powerline_fonts = 1
-" un-comment when not using powerline-patched font
-" let g:airline_left_sep=''
-" let g:airline_right_sep=''
 
 " Folding
 set nofoldenable
@@ -121,14 +79,3 @@ set autoindent
 if has("autocmd")
     au BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
 endif
-
-" Force myself to learn
-" noremap  <Up>     <NOP>
-" inoremap  <Down>   <NOP>
-" inoremap  <Left>   <NOP>
-" inoremap  <Right>  <NOP>
-" noremap   <Up>     <NOP>
-" noremap   <Down>   <NOP>
-" noremap   <Left>   <NOP>
-" noremap   <Right>  <NOP>
-
