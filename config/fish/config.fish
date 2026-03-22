@@ -95,6 +95,7 @@ end
 # GPG Key Setup
 set -x GPG_TTY (tty)
 set -x DFT_DISPLAY side-by-side-show-both
+set -x MANPAGER "sh -c 'col -bx | bat -l man -p'"
 
 # bun
 set --export BUN_INSTALL "$HOME/.bun"

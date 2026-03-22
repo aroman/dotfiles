@@ -35,3 +35,8 @@
 	cmd = difft "$LOCAL" "$REMOTE"
 [pager]
 	difftool = true
+[rerere]
+	enabled = true
+[maintenance]
+	auto = true
+	strategy = incremental
