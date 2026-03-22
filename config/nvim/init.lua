@@ -5,7 +5,7 @@ vim.filetype.add({
 
 -- Bootstrap lazy.nvim
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-if not vim.loop.fs_stat(lazypath) then
+if not vim.uv.fs_stat(lazypath) then
   vim.fn.system({
     "git", "clone", "--filter=blob:none",
     "https://github.com/folke/lazy.nvim.git",
@@ -101,6 +101,10 @@ require("lazy").setup({
     end,
   },
   {
+    "mason-org/mason.nvim",
+    opts = {},
+  },
+  {
     "saghen/blink.cmp",
     version = "1.*",
     lazy = false,
@@ -120,13 +124,27 @@ if ghostty_res then
   end
 end
 
--- Ghostty LSP
+-- LSP
+local caps = require("blink.cmp").get_lsp_capabilities()
 vim.lsp.config.ghostty = {
   cmd = { "ghostty-ls" },
   filetypes = { "ghostty" },
-  capabilities = require("blink.cmp").get_lsp_capabilities(),
+  capabilities = caps,
 }
-vim.lsp.enable("ghostty")
+vim.lsp.config.ts_ls = {
+  cmd = { vim.fn.stdpath("data") .. "/mason/bin/typescript-language-server", "--stdio" },
+  filetypes = { "typescript", "typescriptreact", "javascript", "javascriptreact" },
+  root_markers = { "tsconfig.json", "package.json" },
+  capabilities = caps,
+}
+vim.lsp.config.biome = {
+  cmd = { vim.fn.stdpath("data") .. "/mason/bin/biome", "lsp-proxy" },
+  filetypes = { "typescript", "typescriptreact", "javascript", "javascriptreact", "json", "jsonc", "css" },
+  root_markers = { ".git" },
+  capabilities = caps,
+}
+vim.lsp.enable({ "ghostty", "ts_ls", "biome" })
+vim.diagnostic.config({ virtual_text = true })
 
 -- Options
 vim.opt.swapfile = false
@@ -136,10 +154,15 @@ vim.opt.undofile = true
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
 vim.opt.number = true
+vim.opt.tabstop = 2
+vim.opt.shiftwidth = 2
+vim.opt.expandtab = true
 vim.opt.scrolloff = 8
-vim.opt.termguicolors = true
 vim.opt.clipboard = "unnamedplus"
 vim.opt.mousescroll = "ver:1,hor:1"
+
+-- Format buffer
+vim.keymap.set("n", "<leader>f", function() vim.lsp.buf.format({ name = "biome", timeout_ms = 1000 }) end)
 
 -- Emacs-style nav in command line
 vim.keymap.set("c", "<C-a>", "<Home>")
