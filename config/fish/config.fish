@@ -49,6 +49,12 @@ else
 end
 starship init fish | source
 
+# fzf.fish keybindings
+fzf_configure_bindings
+set fzf_preview_dir_cmd eza --color=always --icons -la
+set fzf_preview_file_cmd fzf-preview.sh
+set fzf_diff_highlighter delta --paging=never
+
 alias cat="bat --paging=never"
 alias tree="eza --tree --color=always --icons --hyperlink"
 alias ls="eza --color=always --icons --hyperlink --git"
@@ -137,6 +143,7 @@ fish_add_path ~/.local/bin
 
 
 
+
 # jj-wrapper
 function jj
     set -l out ('/Users/aroman/Projects/magiccircle-worktrees/ar-batman-batmen/scripts/jj/target/release/jj' $argv)
@@ -145,7 +152,15 @@ function jj
         if test -d "$line"
             cd "$line"
         else if string match -q 'CLAUDE:*' "$line"
-            eval claude (string sub -s 8 "$line")
+            set -l payload (string sub -s 8 "$line")
+            set -l parts (string split -m 1 \t "$payload")
+            set -l branch $parts[1]
+            set -l prompt $parts[2]
+            if test -n "$prompt"
+                claude --dangerously-skip-permissions --name "$branch" "$prompt"
+            else
+                claude --dangerously-skip-permissions --name "$branch"
+            end
         else if string match -q 'CLAUDE_RESUME:*' "$line"
             set -l branch (string sub -s 15 "$line")
             claude --dangerously-skip-permissions --continue 2>/dev/null
