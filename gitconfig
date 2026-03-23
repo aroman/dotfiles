@@ -9,7 +9,35 @@
 [core]
 	excludesfile = ~/.gitignore_global
 	editor = vim
-	pager = less -RFX --mouse
+	pager = delta
+[delta]
+	syntax-theme = Everblush
+	navigate = true
+	side-by-side = false
+	line-numbers = true
+	hyperlinks = true
+	file-style = bold yellow
+	file-decoration-style = none
+	file-modified-label = "M "
+	file-removed-label = "D "
+	file-added-label = "A "
+	file-renamed-label = "R "
+	hunk-header-style = omit
+	line-numbers-minus-style = red
+	line-numbers-plus-style = green
+	line-numbers-left-format = "{nm:>3} "
+	line-numbers-right-format = "{np:>3}│"
+	line-numbers-left-style = dim
+	line-numbers-right-style = dim
+	line-numbers-zero-style = dim
+	width = variable
+	minus-style = syntax "#2d1b1e"
+	minus-emph-style = syntax "#4a2428"
+	plus-style = syntax "#1b2d1e"
+	plus-emph-style = syntax "#244a28"
+	map-styles = bold purple => syntax "#2d1b2d", bold cyan => syntax "#1b2d2d"
+[interactive]
+	diffFilter = delta --color-only
 [pull]
 	rebase = true
 [filter "lfs"]
@@ -24,16 +52,7 @@
 	format = ssh
 [commit]
 	gpgsign = true
-[alias]
-	dlog = -c diff.external=difft log -p --ext-diff
 [diff]
-	tool = difftastic
-	external = difft
-[difftool]
-	prompt = false
-[difftool "difftastic"]
-	cmd = difft "$LOCAL" "$REMOTE"
-[pager]
-	difftool = true
+	colorMoved = default
 [rerere]
 	enabled = true
