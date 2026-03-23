@@ -220,6 +220,7 @@ in
     kitty   # for `kitten icat` (image previews in fzf)
     tree
     ripgrep
+    delta
     difftastic
     fd
     jq
