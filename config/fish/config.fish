@@ -52,7 +52,7 @@ starship init fish | source
 # fzf.fish keybindings
 fzf_configure_bindings
 set fzf_preview_dir_cmd eza --color=always --icons -la
-set fzf_preview_file_cmd fzf-preview.sh
+command -q fzf-preview.sh; and set fzf_preview_file_cmd fzf-preview.sh
 set fzf_diff_highlighter delta --paging=never
 
 alias cat="bat --paging=never"
