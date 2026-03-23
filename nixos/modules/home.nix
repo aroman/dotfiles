@@ -215,7 +215,10 @@ in
     rcm          # dotfile manager — `rcup` symlinks local/bin/* → ~/.local/bin/* etc.
     handlr-regex # URL dispatcher — routes links to the right app by domain
     bat
+    eza
     fzf
+    kitty   # for `kitten icat` (image previews in fzf)
+    tree
     ripgrep
     difftastic
     fd

@@ -50,6 +50,8 @@ end
 starship init fish | source
 
 alias cat="bat --paging=never"
+alias tree="eza --tree --color=always --icons --hyperlink"
+alias ls="eza --color=always --icons --hyperlink --git"
 alias vim="nvim"
 if test (uname) = Linux
     alias zed="zeditor"
@@ -61,6 +63,10 @@ if test (uname) = Linux
     alias claude="nix run github:sadjow/claude-code-nix --"
 end
 
+abbr --add -- - "cd -"
+abbr --add .. "cd .."
+abbr --add ... "cd ../.."
+abbr --add .... "cd ../../.."
 abbr --add wrangler "pnpm wrangler"
 abbr --add a "rg -i"
 abbr --add hack "zed ."
@@ -116,7 +122,14 @@ end
 
 source "$HOME/.cargo/env.fish" 2>/dev/null
 
-export PATH="$HOME/.local/bin:$PATH"
+fish_add_path ~/.local/bin
+
+
+
+
+
+
+
 
 
 
@@ -126,7 +139,7 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # jj-wrapper
 function jj
-    set -l out ('/Users/aroman/Projects/magiccircle-worktrees/ar-batman-oracle/scripts/jj/target/release/jj' $argv)
+    set -l out ('/Users/aroman/Projects/magiccircle-worktrees/ar-batman-batmen/scripts/jj/target/release/jj' $argv)
     or return
     for line in $out
         if test -d "$line"
@@ -137,6 +150,8 @@ function jj
             set -l branch (string sub -s 15 "$line")
             claude --dangerously-skip-permissions --continue 2>/dev/null
             or claude --dangerously-skip-permissions --name "$branch"
+        else
+            echo "$line"
         end
     end
 end
