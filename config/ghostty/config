@@ -1,5 +1,5 @@
 # Font
-font-family = CaskaydiaCove Nerd Font Mono
+font-family = Cascadia Code
 font-size = 16
 font-thicken = false
 
@@ -14,7 +14,7 @@ theme = Everblush
 
 # Cursor
 cursor-style = bar
-cursor-style-blink = true
+cursor-style-blink = false
 adjust-cursor-thickness = 4
 
 # Window
@@ -47,7 +47,8 @@ keybind = global:ctrl+grave_accent=toggle_quick_terminal
 keybind = super+backspace=text:\x15
 
 # Bell: emoji in tab title + dock bounce
-bell-features = title,attention,border
+bell-features = title,attention,border,audio
+bell-audio-path = /Users/aroman/Library/Sounds/ghostty-bell-options/2-blop.mp3
 
 # Notify when long-running commands finish in unfocused tabs
 notify-on-command-finish = never
