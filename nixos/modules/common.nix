@@ -109,8 +109,9 @@
     7460   # belphegor (QUIC clipboard sharing)
   ];
 
-  # SSH
+  # SSH + Mosh
   services.openssh.enable = true;
+  programs.mosh.enable = true;
 
   # Flatpak (TexturePacker, etc.)
   services.flatpak.enable = true;
