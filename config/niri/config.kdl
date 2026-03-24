@@ -488,14 +488,14 @@ binds {
     Mod+U hotkey-overlay-title="Start Batman" { spawn "sh" "-c" "~/.local/bin/batman-picker"; }
     Mod+G hotkey-overlay-title="magiccircle.gg" { spawn "google-chrome-stable" "--profile-directory=Profile 1" "--new-window" "--hide-crash-restore-bubble" "https://magiccircle.gg"; }
     Mod+B hotkey-overlay-title="Open Browser" { spawn "xdg-open" "https://"; }
-    // No-op binding to suppress Mod+\ from reaching the focused app.
+    // No-op binding to suppress Mod+' from reaching the focused app.
     // Voxtype (push-to-talk dictation) listens for this hotkey via evdev, which
     // works independently of the compositor. But without a niri binding to consume
-    // the keypress, the "\" character passes through to the focused window.
+    // the keypress, the "'" character passes through to the focused window.
     // Evdev has no per-key grab — EVIOCGRAB is all-or-nothing for the entire
     // device — so this workaround is needed. Niri also lacks --release bindings
     // (unlike Sway), which would let us drive voxtype entirely from the compositor.
-    Mod+Backslash hotkey-overlay-title="Dictation" { spawn "true"; }
+    Mod+Apostrophe hotkey-overlay-title="Dictation" { spawn "true"; }
     Mod+D hotkey-overlay-title="Open Vicinae" { spawn "vicinae" "toggle"; }
     Ctrl+Alt+Space hotkey-overlay-title="Emoji Picker" { spawn "vicinae" "deeplink" "vicinae://extensions/vicinae/core/search-emojis"; }
     Ctrl+Mod+Q hotkey-overlay-title="Lock the Screen" { spawn "noctalia-shell" "ipc" "call" "lockScreen" "lock"; }
