@@ -75,6 +75,9 @@ defaults write com.apple.Dock showhidden -bool true
 # Trackpad
 defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
 
+# Velja (disable App Nap so link routing stays fast)
+defaults write com.sindresorhus.Velja NSAppSleepDisabled -bool true
+
 # Touch ID for sudo (survives macOS upgrades)
 # pam-reattach is needed for tmux sessions; ignore_ssh falls back to password for SSH
 # See: https://sixcolors.com/post/2023/08/in-macos-sonoma-touch-id-for-sudo-can-survive-updates/
