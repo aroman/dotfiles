@@ -13,28 +13,28 @@ else
     set -g DOTFILES_DIR ~/Projects/dotfiles
 end
 
-# Solarized color theme
-set -g fish_color_autosuggestion 586e75
+# Everblush color theme
+set -g fish_color_autosuggestion 3b4548
 set -g fish_color_cancel -r
-set -g fish_color_command 93a1a1
-set -g fish_color_comment 586e75
-set -g fish_color_end 268bd2
-set -g fish_color_error dc322f
-set -g fish_color_escape 00a6b2
+set -g fish_color_command 8ccf7e
+set -g fish_color_comment 3b4548
+set -g fish_color_end 6cbfbf
+set -g fish_color_error e57474
+set -g fish_color_escape c47fd5
 set -g fish_color_history_current --bold
-set -g fish_color_match --background=brblue
-set -g fish_color_normal normal
-set -g fish_color_operator 00a6b2
-set -g fish_color_param 839496
-set -g fish_color_quote 657b83
-set -g fish_color_redirection 6c71c4
-set -g fish_color_search_match bryellow --background=black
-set -g fish_color_selection white --bold --background=brblack
+set -g fish_color_match --background=232a2d
+set -g fish_color_normal dadada
+set -g fish_color_operator 6cbfbf
+set -g fish_color_param b3b9b8
+set -g fish_color_quote e5c76b
+set -g fish_color_redirection c47fd5
+set -g fish_color_search_match --background=232a2d
+set -g fish_color_selection dadada --bold --background=232a2d
 set -g fish_color_valid_path --underline
-set -g fish_pager_color_completion B3A06D
-set -g fish_pager_color_description B3A06D
-set -g fish_pager_color_prefix cyan --underline
-set -g fish_pager_color_progress brwhite --background=cyan
+set -g fish_pager_color_completion b3b9b8
+set -g fish_pager_color_description 3b4548
+set -g fish_pager_color_prefix 67b0e8 --underline
+set -g fish_pager_color_progress dadada --background=232a2d
 
 # nvm
 set -g nvm_default_version lts
@@ -56,7 +56,7 @@ set fzf_preview_file_cmd _fzf_preview_file_cmd
 set fzf_diff_highlighter delta --paging=never
 
 # Everblush LS_COLORS — calm palette: only dirs/symlinks/executables get accents
-set -x LS_COLORS "di=38;2;141;181;200:ln=38;2;137;181;181:or=38;2;184;138;138:ex=38;2;153;184;152"
+set -x LS_COLORS "di=38;2;141;181;200:ln=38;2;137;181;181:or=38;2;184;138;138:ex=1;38;2;140;207;126"
 
 # fzf Everblush theme
 set -x FZF_DEFAULT_OPTS \
