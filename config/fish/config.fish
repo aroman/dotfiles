@@ -14,25 +14,25 @@ else
 end
 
 # Everblush color theme
-set -g fish_color_autosuggestion 3b4548
+set -g fish_color_autosuggestion 6e7679
 set -g fish_color_cancel -r
-set -g fish_color_command 8ccf7e
-set -g fish_color_comment 3b4548
+set -g fish_color_command 67b0e8
+set -g fish_color_comment 5c6568
 set -g fish_color_end 6cbfbf
 set -g fish_color_error e57474
 set -g fish_color_escape c47fd5
 set -g fish_color_history_current --bold
-set -g fish_color_match --background=232a2d
+set -g fish_color_match --background=3f515a
 set -g fish_color_normal dadada
 set -g fish_color_operator 6cbfbf
-set -g fish_color_param b3b9b8
+set -g fish_color_param dadada
 set -g fish_color_quote e5c76b
 set -g fish_color_redirection c47fd5
-set -g fish_color_search_match --background=232a2d
-set -g fish_color_selection dadada --bold --background=232a2d
+set -g fish_color_search_match --background=3f515a
+set -g fish_color_selection dadada --bold --background=3f515a
 set -g fish_color_valid_path --underline
 set -g fish_pager_color_completion b3b9b8
-set -g fish_pager_color_description 3b4548
+set -g fish_pager_color_description 8a9294
 set -g fish_pager_color_prefix 67b0e8 --underline
 set -g fish_pager_color_progress dadada --background=232a2d
 
@@ -163,11 +163,13 @@ fish_add_path ~/.local/bin
 
 
 
+
+
 # bud-wrapper
 fish_add_path -g /Users/aroman/.local/bin
 function bud
     set -l cd_file (mktemp -t bud-cd.XXXXXX)
-    BUD_CD_FILE=$cd_file command '/Users/aroman/Projects/magiccircle-worktrees/ar-bud-improvements-pt6/bud/target/release/bud' $argv
+    BUD_CD_FILE=$cd_file command '/Users/aroman/Projects/magiccircle-worktrees/ar-bud-improvements-pt7/bud/target/release/bud' $argv
     set -l code $status
     if test -s $cd_file
         cd (cat $cd_file)
