@@ -12,7 +12,7 @@ function _fzf_search_git_status --description "Search the output of git status. 
             git -c color.status=always status --short |
             _fzf_wrapper --ansi \
                 --multi \
-                --prompt="Git Status> " \
+                --prompt=" " \
                 --query=(commandline --current-token) \
                 --preview=$preview_cmd \
                 --nth="2.." \

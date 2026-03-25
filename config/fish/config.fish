@@ -55,6 +55,14 @@ set fzf_preview_dir_cmd eza --color=always --icons -la
 set fzf_preview_file_cmd _fzf_preview_file_cmd
 set fzf_diff_highlighter delta --paging=never
 
+# Everblush LS_COLORS — calm palette: only dirs/symlinks/executables get accents
+set -x LS_COLORS "di=38;2;141;181;200:ln=38;2;137;181;181:or=38;2;184;138;138:ex=38;2;153;184;152"
+
+# fzf Everblush theme
+set -x FZF_DEFAULT_OPTS \
+    --cycle --layout=reverse --border --height=90% --preview-window=wrap --marker='*' --scrollbar='█' --input-border --info=inline-right \
+    --color='fg:#dadada,bg:-1,hl:#67b0e8,fg+:#b3b9b8,bg+:#232a2d,hl+:#6cbfbf,info:#b3b9b8,prompt:#8ccf7e,pointer:#8ccf7e,marker:#8ccf7e,spinner:#e5c76b,header:#67b0e8,border:#2a3538,list-border:#2a3538,scrollbar:#3a4548,separator:#2a3538,gutter:#1e2528'
+
 alias cat="bat --paging=never"
 alias tree="eza --tree --color=always --icons --hyperlink"
 alias ls="eza --color=always --icons --hyperlink --git"
@@ -146,10 +154,19 @@ fish_add_path ~/.local/bin
 
 
 
-# jj-wrapper
-function jj
-    set -l cd_file (mktemp -t jj-cd.XXXXXX)
-    JJ_CD_FILE=$cd_file command '/Users/aroman/Projects/magiccircle.gg/scripts/jj/target/release/jj' $argv
+
+
+
+
+
+
+
+
+# bud-wrapper
+fish_add_path -g /Users/aroman/.local/bin
+function bud
+    set -l cd_file (mktemp -t bud-cd.XXXXXX)
+    BUD_CD_FILE=$cd_file command '/Users/aroman/Projects/magiccircle-worktrees/ar-bud-improvements-pt6/bud/target/release/bud' $argv
     set -l code $status
     if test -s $cd_file
         cd (cat $cd_file)
@@ -157,4 +174,4 @@ function jj
     rm -f $cd_file
     return $code
 end
-# jj-wrapper
+# bud-wrapper
