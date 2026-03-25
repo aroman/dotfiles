@@ -12,6 +12,8 @@
   "on_last_window_closed": "platform_default",
   "git_panel": {
     "tree_view": true,
+    "show_count_badge": true,
+    "file_icons": true,
   },
   "edit_predictions": {
     "provider": "none",
