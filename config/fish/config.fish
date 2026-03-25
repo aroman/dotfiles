@@ -60,7 +60,8 @@ set -x LS_COLORS "di=38;2;141;181;200:ln=38;2;137;181;181:or=38;2;184;138;138:ex
 
 # fzf Everblush theme
 set -x FZF_DEFAULT_OPTS \
-    --cycle --layout=reverse --border --height=90% --preview-window=wrap --marker='*' --scrollbar='█' --input-border --info=inline-right \
+    --cycle --layout=reverse --border=none --height=90% --preview-window=wrap,border-left --marker='*' --scrollbar='█' --input-border --no-separator --info=inline-right \
+    --bind='ctrl-/:toggle-preview,ctrl-a:select-all,ctrl-d:deselect-all,ctrl-y:preview-up,ctrl-e:preview-down' \
     --color='fg:#dadada,bg:-1,hl:#67b0e8,fg+:#b3b9b8,bg+:#232a2d,hl+:#6cbfbf,info:#b3b9b8,prompt:#8ccf7e,pointer:#8ccf7e,marker:#8ccf7e,spinner:#e5c76b,header:#67b0e8,border:#2a3538,list-border:#2a3538,scrollbar:#3a4548,separator:#2a3538,gutter:#1e2528'
 
 alias cat="bat --paging=never"
