@@ -21,3 +21,9 @@ gui:
       - "#dadada"
     searchingActiveBorderColor:
       - "#e5c76b"
+customCommands:
+  - key: "<c-a>"
+    description: "AI commit message"
+    context: "files"
+    command: "bash -c 'diff=$(git diff --cached); if [ -z \"$diff\" ]; then echo \"No staged changes.\"; read -n1; exit 1; fi; msg=$(echo \"$diff\" | head -c 50000 | claude -p --no-session-persistence --model haiku --tools \"\" --system-prompt \"Write a single-line git commit message for this diff. Be concise and specific. Use imperative mood. Output ONLY the message, no quotes, no explanation, no markdown, no trailing period.\"); if [ -z \"$msg\" ]; then echo \"Failed to generate message.\"; read -n1; exit 1; fi; echo \"$msg\" > .git/COMMIT_EDITMSG_AI; git commit -e -F .git/COMMIT_EDITMSG_AI; rm -f .git/COMMIT_EDITMSG_AI'"
+    output: terminal

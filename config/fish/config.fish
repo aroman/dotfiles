@@ -1,5 +1,6 @@
 # vim: set ts=4
 
+set -gx LG_CONFIG_FILE ~/.config/lazygit/config.yml
 
 alias cat="bat --paging=never"
 alias tree="eza --tree --color=always --icons --hyperlink"
@@ -25,6 +26,7 @@ end
 abbr --add c "claude --dangerously-skip-permissions"
 abbr --add dotc "cd $DOTFILES_DIR && claude --dangerously-skip-permissions"
 abbr --add yolo "claude --dangerously-skip-permissions"
+abbr --add lg lazygit
 abbr --add gs "git status"
 abbr --add gl "git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
 
