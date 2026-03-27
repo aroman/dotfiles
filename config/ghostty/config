@@ -18,7 +18,7 @@ cursor-style-blink = false
 adjust-cursor-thickness = 4
 
 # Window
-macos-titlebar-style = transparent
+macos-titlebar-style = tabs
 macos-window-buttons = hidden
 macos-icon = chalkboard
 # macos-icon-ghost-color = #ffffff
