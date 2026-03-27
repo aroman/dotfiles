@@ -29,6 +29,7 @@ style = "#3b4548"
 
 [nodejs]
 style = "#8ccf7e"
+version_format = "v${major}"
 
 [python]
 style = "#e5c76b"
