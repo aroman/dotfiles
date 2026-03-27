@@ -33,6 +33,10 @@
     "swift-lsp@claude-plugins-official": false,
     "rust-analyzer-lsp@claude-plugins-official": false
   },
+  "statusLine": {
+    "type": "command",
+    "command": "bud statusline"
+  },
   "effortLevel": "high",
   "voiceEnabled": false,
   "skipDangerousModePermissionPrompt": true,
