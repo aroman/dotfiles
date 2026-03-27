@@ -40,16 +40,3 @@ function killport
         echo "No process found listening on port $port"
     end
 end
-
-# bud-wrapper
-function bud
-    set -l cd_file (mktemp -t bud-cd.XXXXXX)
-    BUD_CD_FILE=$cd_file command '/Users/aroman/Projects/magiccircle-worktrees/ar-spring-testing/bud/target/release/bud' $argv
-    set -l code $status
-    if test -s $cd_file
-        cd (cat $cd_file)
-    end
-    rm -f $cd_file
-    return $code
-end
-# bud-wrapper
