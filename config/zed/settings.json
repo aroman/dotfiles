@@ -7,120 +7,171 @@
 // custom settings, run `zed: open default settings` from the
 // command palette (cmd-shift-p / ctrl-shift-p)
 {
-  "restore_on_startup": "last_workspace",
-  "when_closing_with_no_tabs": "platform_default",
-  "on_last_window_closed": "platform_default",
-  "git_panel": {
-    "tree_view": true,
-    "show_count_badge": true,
-    "file_icons": true,
-  },
-  "edit_predictions": {
-    "provider": "none",
-  },
-  "scroll_beyond_last_line": "one_page",
-  "buffer_font_size": 15.0,
-  // "ui_font_family": ".SystemUIFont",
-  "buffer_font_family": "CaskaydiaCove Nerd Font",
-  "vim": {
-    "toggle_relative_line_numbers": false,
-  },
-  "gutter": {
-    "folds": true,
-    "runnables": false,
-    "code_actions": false,
-    "breakpoints": false,
-  },
-  "project_panel": {
-    "hide_root": true,
-    "bold_folder_labels": false,
-    "auto_fold_dirs": true,
-    "show_diagnostics": "all",
-  },
-  "double_click_in_multibuffer": "open",
-  "indent_guides": {
-    "coloring": "indent_aware",
-  },
-  "colorize_brackets": true,
-  "buffer_line_height": "comfortable",
-  // "scroll_sensitivity": 1.25,
-  "sticky_scroll": {
-    "enabled": false,
-  },
-  "diagnostics": {
-    "inline": {
-      "enabled": true,
-    },
-  },
-  "git": {
-    "inline_blame": {
-      "show_commit_summary": true,
-    },
-  },
-  "agent": {
-    "favorite_models": [],
-    "model_parameters": [],
-    "dock": "left",
-    "button": false,
-  },
-  "agent_servers": {
-    "claude-acp": {
-      "type": "registry",
-    },
-  },
-  "outline_panel": {
-    "button": false,
-  },
-  "project_search": {
-    "button": false,
-  },
-  "collaboration_panel": {
-    "button": false,
-  },
-  "notification_panel": {
-    "button": false,
-  },
-  "terminal": {
-    "dock": "right",
-    "button": false,
-  },
-  "debugger": {
-    "button": false,
-  },
-  "toolbar": {
-    "breadcrumbs": false,
-    "quick_actions": false,
-    "selections_menu": false,
-  },
-  "tab_bar": {
-    "show_nav_history_buttons": false,
-    "show_tab_bar_buttons": false,
-  },
-  "tabs": {
-    "show_diagnostics": "all",
-  },
-  "base_keymap": "VSCode",
-  "linux": {
-    "window_decorations": "server",
-  },
-  "vim_mode": true,
-  "icon_theme": "Colored Zed Icons Theme Dark",
-  "theme": "Everblush",
-  "lsp": {
-    "vtsls": {
-      "settings": {
-        "typescript": {
-          "tsserver": {
-            "experimental": {
-              "enableProjectDiagnostics": true,
-            },
-          },
-        },
-      },
-    },
-  },
-  "languages": {
-    "TypeScript": { "document_folding_ranges": "on" },
-    "TSX": { "document_folding_ranges": "on" },
-  },
+	"ensure_final_newline_on_save": false,
+	"remove_trailing_whitespace_on_save": false,
+	"restore_on_startup": "last_workspace",
+	"when_closing_with_no_tabs": "platform_default",
+	"on_last_window_closed": "platform_default",
+	"git_panel": {
+		"tree_view": true,
+		"show_count_badge": true,
+		"file_icons": true
+	},
+	"edit_predictions": {
+		"provider": "none"
+	},
+	"scroll_beyond_last_line": "one_page",
+	"buffer_font_size": 15.0,
+	// "ui_font_family": ".SystemUIFont",
+	"buffer_font_family": "CaskaydiaCove Nerd Font",
+	"vim": {
+		"toggle_relative_line_numbers": false
+	},
+	"gutter": {
+		"folds": true,
+		"runnables": false,
+		// "code_actions": false,
+		"breakpoints": false
+	},
+	"project_panel": {
+		"hide_root": true,
+		"bold_folder_labels": false,
+		"auto_fold_dirs": true,
+		"show_diagnostics": "all"
+	},
+	"double_click_in_multibuffer": "open",
+	"indent_guides": {
+		"coloring": "indent_aware"
+	},
+	"colorize_brackets": true,
+	"buffer_line_height": "comfortable",
+	"format_on_save": "on",
+	// "scroll_sensitivity": 1.25,
+	"sticky_scroll": {
+		"enabled": false
+	},
+	"diagnostics": {
+		"inline": {
+			"enabled": true
+		}
+	},
+	"git": {
+		"inline_blame": {
+			"show_commit_summary": true
+		}
+	},
+	"agent": {
+		"favorite_models": [],
+		"model_parameters": [],
+		"dock": "left",
+		"button": false
+	},
+	"agent_servers": {
+		"claude-acp": {
+			"type": "registry"
+		}
+	},
+	"outline_panel": {
+		"button": false
+	},
+	// "project_search": {
+	// 	"button": false
+	// },
+	"collaboration_panel": {
+		"button": false
+	},
+	"notification_panel": {
+		"button": false
+	},
+	"terminal": {
+		"dock": "right",
+		"button": false
+	},
+	"debugger": {
+		"button": false
+	},
+	"toolbar": {
+		"breadcrumbs": false,
+		"quick_actions": false,
+		"selections_menu": false
+	},
+	"tab_bar": {
+		"show_nav_history_buttons": false,
+		"show_tab_bar_buttons": false
+	},
+	"tabs": {
+		"show_diagnostics": "all"
+	},
+	"base_keymap": "VSCode",
+	"linux": {
+		"window_decorations": "server"
+	},
+	"vim_mode": true,
+	"icon_theme": "Colored Zed Icons Theme Dark",
+	"theme": "Everblush",
+	"lsp": {
+		"vtsls": {
+			"settings": {
+				"typescript": {
+					"tsserver": {
+						"experimental": {
+							"enableProjectDiagnostics": true
+						}
+					}
+				}
+			}
+		}
+	},
+	"languages": {
+		"JavaScript": {
+			"format_on_save": "on",
+			"formatter": {
+				"language_server": {
+					"name": "biome"
+				}
+			}
+		},
+		"TypeScript": {
+			"document_folding_ranges": "on",
+			"format_on_save": "on",
+			"formatter": {
+				"language_server": {
+					"name": "biome"
+				}
+			}
+		},
+		"TSX": {
+			"document_folding_ranges": "on",
+			"format_on_save": "on",
+			"formatter": {
+				"language_server": {
+					"name": "biome"
+				}
+			}
+		},
+		"JSON": {
+			"format_on_save": "on",
+			"formatter": {
+				"language_server": {
+					"name": "biome"
+				}
+			}
+		},
+		"JSONC": {
+			"format_on_save": "on",
+			"formatter": {
+				"language_server": {
+					"name": "biome"
+				}
+			}
+		},
+		"CSS": {
+			"format_on_save": "on",
+			"formatter": {
+				"language_server": {
+					"name": "biome"
+				}
+			}
+		}
+	}
 }
