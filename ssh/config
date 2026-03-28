@@ -5,7 +5,7 @@ Match host * exec "test -f ~/.orbstack/ssh/config"
 
 Include ~/.ssh/config.local
 
-Host moonbinder
+Host moonbinder moonbinder.local
   SendEnv GHOSTTY_RESOURCES_DIR
 
 Host github.com
