@@ -89,13 +89,48 @@
   security.pam.services.greetd.fprintAuth = false;
 
   # ── Suspend & hibernate ─────────────────────────────────────────
-  # s2idle on this platform never reaches deep S0i3 (amd_pmc reports "Last
-  # suspend didn't reach deepest state"), so the SoC idles at ~5-10 W instead
-  # of ~0.5 W. Suspend-then-hibernate ensures the battery doesn't drain
-  # overnight: s2idle runs for 2 hours (enough for quick lid-open-close), then
-  # the system hibernates to disk and draws zero power.
+  #
+  # Power management strategy: suspend-then-hibernate.
+  #
+  # When the lid closes:
+  #   1. System enters s2idle (S0ix deep sleep, ~0.5 W)
+  #   2. After 2 hours, system hibernates to disk (0 W)
+  #   3. On lid open, resumes from whichever state it's in
+  #
+  # Why not just s2idle? Two reasons:
+  #   - The expansion bay PCIe switch (GPP0.SWUS) has a BIOS bug that sometimes
+  #     prevents reaching the deepest S0i3 state. When that happens, the SoC
+  #     idles at ~5-10 W instead of ~0.5 W. Hibernate is the safety net.
+  #   - Even perfect s2idle still draws some power. For overnight/travel,
+  #     hibernate means zero battery drain after the 2-hour window.
+  #
+  # Requires: 32 GiB swap file (see hardware-configuration.nix) and
+  #           boot.resumeDevice + resume_offset for hibernate resume.
+  #
+  # Diagnostics (after a suspend cycle):
+  #   journalctl -k | grep -iE 'amd_pmc|constraint|LPI|s2idle|deepest'
+  #   cat /sys/power/suspend_stats/last_hw_sleep  (should be >0)
   services.logind.settings.Login.HandleLidSwitch = "suspend-then-hibernate";
   systemd.sleep.settings.Sleep.HibernateDelaySec = "2h";
+
+  # MT7925 WiFi firmware doesn't survive hibernate (S4). After power-off, the
+  # firmware state is gone, and the driver's restore path hits an MCU timeout
+  # ("Message 00020002 timeout") leaving the interface stuck in DOWN/DORMANT.
+  # The upstream hibernate restore callback (commit d54424fbc53b) exists in
+  # 6.19 but doesn't recover reliably. This is a known community-wide issue
+  # across MT7921/MT7925 — the standard workaround is reloading the module.
+  # Ref: https://community.frame.work/t/round-2-framework-16-fails-to-resume-from-hibernate/75532
+  # Remove once MediaTek fixes the firmware reinit path upstream.
+  systemd.services.mt7925-hibernate-fixup = {
+    description = "Reload MT7925 WiFi module after hibernate";
+    after = [ "hibernate.target" "suspend-then-hibernate.target" ];
+    wantedBy = [ "hibernate.target" "suspend-then-hibernate.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.kmod}/bin/modprobe -r mt7925e mt7925_common mt792x_lib mt76_connac_lib mt76 mac80211 cfg80211";
+      ExecStartPost = "${pkgs.kmod}/bin/modprobe mt7925e";
+    };
+  };
 
   # Battery / power info (used by ironbar, etc.)
   services.upower.enable = true;
