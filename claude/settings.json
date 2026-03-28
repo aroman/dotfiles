@@ -2,6 +2,9 @@
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
+  "attribution": {
+    "commit": ""
+  },
   "permissions": {
     "allow": [
       "mcp__linear-server__get_issue"
@@ -29,18 +32,14 @@
       }
     ]
   },
-  "enabledPlugins": {
-    "swift-lsp@claude-plugins-official": false,
-    "rust-analyzer-lsp@claude-plugins-official": false
-  },
   "statusLine": {
     "type": "command",
     "command": "command -v bud >/dev/null && bud statusline"
   },
-  "effortLevel": "high",
+  "enabledPlugins": {
+    "swift-lsp@claude-plugins-official": false,
+    "rust-analyzer-lsp@claude-plugins-official": false
+  },
   "voiceEnabled": false,
-  "skipDangerousModePermissionPrompt": true,
-  "attribution": {
-    "commit": ""
-  }
+  "skipDangerousModePermissionPrompt": true
 }
