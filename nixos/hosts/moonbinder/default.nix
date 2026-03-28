@@ -94,7 +94,7 @@
   #
   # When the lid closes:
   #   1. System enters s2idle (S0ix deep sleep, ~0.5 W)
-  #   2. After 2 hours, system hibernates to disk (0 W)
+  #   2. After 4 hours, system hibernates to disk (0 W)
   #   3. On lid open, resumes from whichever state it's in
   #
   # Why not just s2idle? Two reasons:
@@ -111,7 +111,7 @@
   #   journalctl -k | grep -iE 'amd_pmc|constraint|LPI|s2idle|deepest'
   #   cat /sys/power/suspend_stats/last_hw_sleep  (should be >0)
   services.logind.settings.Login.HandleLidSwitch = "suspend-then-hibernate";
-  systemd.sleep.settings.Sleep.HibernateDelaySec = "2h";
+  systemd.sleep.settings.Sleep.HibernateDelaySec = "4h";
 
   # MT7925 WiFi firmware doesn't survive hibernate (S4). After power-off, the
   # firmware state is gone, and the driver's restore path hits an MCU timeout
