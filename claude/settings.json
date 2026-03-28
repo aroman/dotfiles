@@ -13,7 +13,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/aroman/.claude/hooks/tab-notify.sh"
+            "command": "claude-tab-notify"
           }
         ]
       }
@@ -23,7 +23,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/aroman/.claude/hooks/tab-notify.sh"
+            "command": "claude-tab-notify"
           }
         ]
       }
@@ -35,7 +35,7 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "bud statusline"
+    "command": "command -v bud >/dev/null && bud statusline"
   },
   "effortLevel": "high",
   "voiceEnabled": false,
