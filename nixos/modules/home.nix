@@ -94,7 +94,7 @@ in
     Color5=#C47FD5
     Color6=#6CBFBF
     Color7=#B3B9B8
-    Color8=#2D3437
+    Color8=#8A9399
     Color9=#EF7E7E
     Color10=#96D988
     Color11=#F4D67A
@@ -116,7 +116,7 @@ in
     Color5=#C47FD5
     Color6=#6CBFBF
     Color7=#B3B9B8
-    Color8=#2D3437
+    Color8=#8A9399
     Color9=#EF7E7E
     Color10=#96D988
     Color11=#F4D67A
