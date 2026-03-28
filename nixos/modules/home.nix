@@ -254,6 +254,7 @@ in
     pwvucontrol # TODO: missing icons (emblem-default-symbolic) — https://github.com/saivert/pwvucontrol/issues/71
     spotify
     celluloid
+    video-trimmer
     newsflash
 
     # Browsers
