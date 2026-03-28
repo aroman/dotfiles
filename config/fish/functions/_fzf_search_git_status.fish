@@ -2,20 +2,27 @@ function _fzf_search_git_status --description "Search the output of git status. 
     if not git rev-parse --git-dir >/dev/null 2>&1
         echo '_fzf_search_git_status: Not in a git repository.' >&2
     else
-        set -f preview_cmd '_fzf_preview_changed_file {}'
+        set -f preview_cmd 'echo; _fzf_preview_changed_file {2}'
         if set --query fzf_diff_highlighter
             set preview_cmd "$preview_cmd | $fzf_diff_highlighter"
         end
 
         set -f selected_paths (
-            # Pass configuration color.status=always to force status to use colors even though output is sent to a pipe
-            git -c color.status=always status --short |
+            git status --short |
+            while read -l line
+                set -l status_prefix (string sub -l 3 -- $line)
+                set -l path (string sub -s 4 -- $line)
+                printf '%s%s\t%s\n' $status_prefix (prompt_pwd -d 1 -D 2 -- $path) $line
+            end |
             _fzf_wrapper --ansi \
                 --multi \
-                --prompt=" " \
+                --prompt=" " \
                 --query=(commandline --current-token) \
                 --preview=$preview_cmd \
-                --nth="2.." \
+                --delimiter='\t' \
+                --with-nth=1 \
+                --accept-nth=2 \
+                --preview-border --preview-label-pos=2 --bind='focus:transform-preview-label:printf "\033[1m %s \033[0m" {2}' \
                 $fzf_git_status_opts
         )
         if test $status -eq 0
