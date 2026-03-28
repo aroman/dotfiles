@@ -40,8 +40,12 @@ mouse-scroll-multiplier = precision:2
 link-url = true
 link-previews = true
 
-# Quick terminal (like iTerm2 Ctrl+` hotkey window)
+# Quick terminal (quake visor)
 keybind = global:ctrl+grave_accent=toggle_quick_terminal
+quick-terminal-position = top
+quick-terminal-screen = main
+quick-terminal-animation-duration = 0.2
+quick-terminal-autohide = true
 
 # Cmd+Delete sends Ctrl+U (kill line, matches iTerm2)
 keybind = super+backspace=text:\x15
