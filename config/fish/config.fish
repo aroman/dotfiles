@@ -2,7 +2,23 @@
 
 set -gx LG_CONFIG_FILE ~/.config/lazygit/config.yml
 
-alias cat="bat --paging=never"
+function cat --wraps bat --description "bat with image support"
+    # If single file arg and it's an image, display it
+    if test (count $argv) -eq 1 -a -f "$argv[1]"
+        set -l mime (command file --brief --dereference --mime -- "$argv[1]")
+        if string match -q "image/*" -- $mime
+            if set -q KITTY_WINDOW_ID; or set -q GHOSTTY_RESOURCES_DIR; and command -q kitten
+                kitten icat --align=left "$argv[1]"
+            else if command -q chafa
+                chafa "$argv[1]"
+            else
+                command file "$argv[1]"
+            end
+            return
+        end
+    end
+    bat --paging=never $argv
+end
 alias tree="eza --tree --color=always --icons --hyperlink"
 alias ls="eza --color=always --icons --hyperlink --git"
 alias vim="nvim"
