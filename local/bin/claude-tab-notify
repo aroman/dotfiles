@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Claude Code hook: sets terminal tab title + bell on notifications,
+# clears it on prompt submit.
+
+# Check TTY before consuming stdin
+tty_dev="/dev/$(ps -o tty= -p "$PPID" 2>/dev/null | tr -d ' ')"
+[[ -w "$tty_dev" ]] || exit 0
+
+input=$(cat)
+
+# UserPromptSubmit just resets the tab title — skip all parsing
+if [[ "$input" == *'"UserPromptSubmit"'* ]]; then
+  printf '\033]2;\033\\' > "$tty_dev"
+  exit 0
+fi
+
+# Notification: parse details and set tab title + bell
+IFS='|' read -r _ notification_type cwd < <(
+  echo "$input" | jq -r '[(.hook_event_name // ""), (.notification_type // ""), (.cwd // "")] | join("|")')
+
+name=$(ps -o args= -p "$PPID" 2>/dev/null | sed -n 's/.*--name  *\([^ ]*\).*/\1/p')
+[[ -z "$name" ]] && name="${cwd/#$HOME/~}"
+
+# First \a terminates OSC 2, second \a rings the bell
+case "$notification_type" in
+  permission_prompt) printf '\033]2;✋ %s\a\a' "$name" > "$tty_dev" ;;
+  *)                 printf '\033]2;💬 %s\a\a' "$name" > "$tty_dev" ;;
+esac
