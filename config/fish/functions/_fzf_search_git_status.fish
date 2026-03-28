@@ -16,7 +16,7 @@ function _fzf_search_git_status --description "Search the output of git status. 
             end |
             _fzf_wrapper --ansi \
                 --multi \
-                --prompt=" " \
+                --prompt="±  " \
                 --query=(commandline --current-token) \
                 --preview=$preview_cmd \
                 --delimiter='\t' \
