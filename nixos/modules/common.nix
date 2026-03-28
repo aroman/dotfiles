@@ -133,6 +133,7 @@
   # Fonts
   fonts = {
     packages = with pkgs; [
+      cascadia-code
       nerd-fonts.caskaydia-cove
       inter
       geist-font

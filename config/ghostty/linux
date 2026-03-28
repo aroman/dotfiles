@@ -1,1 +1,7 @@
 # Linux-specific overrides
+font-size = 13
+
+# Use the original Cascadia Code variable font for better hinting quality.
+# Ghostty embeds Nerd Font symbols natively so patched fonts aren't needed.
+font-family = Cascadia Code
+font-variation = wght=450
