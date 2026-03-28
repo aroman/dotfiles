@@ -30,6 +30,7 @@ in
     "bat".source = link "config/bat";
     "noctalia/settings.json".source = link "config/noctalia_settings.json";
     "fuzzel".source = link "config/fuzzel";
+    "lazygit".source = link "config/lazygit";
   };
 
   xdg.desktopEntries."dev.zed.Zed" = {

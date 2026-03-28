@@ -111,6 +111,7 @@
 
   # SSH + Mosh
   services.openssh.enable = true;
+  services.openssh.settings.AcceptEnv = [ "GHOSTTY_RESOURCES_DIR" ];
   programs.mosh.enable = true;
 
   # Flatpak (TexturePacker, etc.)
@@ -201,8 +202,11 @@
 
   # Core system packages (user packages go in home.nix)
   environment.systemPackages = with pkgs; [
-    git
+    chafa
     curl
+    file
+    git
+    lazygit
     lsof
   ];
 
