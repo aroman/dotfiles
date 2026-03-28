@@ -219,6 +219,7 @@ in
     bat
     eza
     fzf
+    ghostty
     kitty   # for `kitten icat` (image previews in fzf)
     tree
     ripgrep
