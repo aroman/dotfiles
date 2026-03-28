@@ -87,11 +87,11 @@
     "niri-blur": {
       "flake": false,
       "locked": {
-        "lastModified": 1773732451,
-        "narHash": "sha256-ky0eBF/zoiJTIoLSpV1EmupVCEZMSp9pQIlHOpvDoMU=",
+        "lastModified": 1774190104,
+        "narHash": "sha256-L/Ldq9G41Mj8WjWTuC+rePvWIx1A/tHdFpLbQmtrMSA=",
         "owner": "niri-wm",
         "repo": "niri",
-        "rev": "17577e7db0e530d56e74ec244a185cdd1b9ad6cc",
+        "rev": "d06dd4b9e60fa07120c217aa095f3ed8caac99f2",
         "type": "github"
       },
       "original": {
@@ -147,22 +147,6 @@
         "owner": "NixOS",
         "ref": "nixos-unstable",
         "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "nixpkgs-kernel": {
-      "locked": {
-        "lastModified": 1766966341,
-        "narHash": "sha256-XEpjNizdica2C6l6XubMDMqwbUkHUGJW++IZfygI4wE=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "158fc4d1067c7e825fc9803a981e3acc2f4845fa",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "158fc4d1067c7e825fc9803a981e3acc2f4845fa",
         "type": "github"
       }
     },
@@ -266,7 +250,6 @@
         "niri-blur": "niri-blur",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs_2",
-        "nixpkgs-kernel": "nixpkgs-kernel",
         "noctalia": "noctalia",
         "vicinae": "vicinae",
         "voxtype": "voxtype"

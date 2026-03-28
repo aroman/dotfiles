@@ -13,8 +13,6 @@
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-amd" ];
   boot.kernelParams = [
-    "amdgpu.cwsr_enable=0"
-
     # Workaround: disable VPE (Video Processing Engine) IP block to prevent
     # s2idle suspend hard-hang. vpe_v6_1 fails to quiesce during s2idle on
     # RDNA 3.5 — the VPE queue reset times out on resume ("IB test failed on
@@ -28,6 +26,16 @@
     # AMD says the underlying fix will come in a BIOS update (BIOS 03.04 does
     # not include it yet). Remove this once a fixed BIOS ships for FW16 AI 300.
     "amdgpu.ip_block_mask=0xFFFFF7FF"
+
+    # Log ACPI LPS0 constraint failures during s2idle to dmesg. Needed to
+    # diagnose why amd_pmc never reaches the deepest S0i3 state.
+    # Check after resume: journalctl -k | grep -i 'constraint\|LPI\|acpi.*pm'
+    # Remove once s0ix is fixed.
+    "pm_debug_messages"
+
+    # Resume from hibernate (swap file on root ext4).
+    # Offset found via: sudo filefrag -v /swapfile | awk '$1=="0:"{print $4}'
+    "resume_offset=225771520"
   ];
   boot.extraModulePackages = [ ];
 
@@ -37,6 +45,9 @@
     };
 
   boot.initrd.luks.devices."luks-7275aed4-0266-4f84-8169-246b245640f9".device = "/dev/disk/by-uuid/7275aed4-0266-4f84-8169-246b245640f9";
+
+  # Resume from hibernate — the root LUKS device contains the swap file.
+  boot.resumeDevice = "/dev/mapper/luks-7275aed4-0266-4f84-8169-246b245640f9";
 
   fileSystems."/boot" =
     { device = "/dev/disk/by-uuid/AA80-84F8";
@@ -85,9 +96,13 @@
     "vm.page-cluster" = 0;
   };
 
-  # swapDevices =
-  #   # [ { device = "/dev/mapper/luks-b7920935-338b-4495-aafc-0e112de2cf4d"; }
-  #   ];
+  # Disk-backed swap for hibernate. zram handles day-to-day swapping (fast,
+  # in-RAM compression) but can't persist across power-off. This file is only
+  # used as the hibernate image target for suspend-then-hibernate.
+  swapDevices = [{
+    device = "/swapfile";
+    size = 32 * 1024;  # 32 GiB (match RAM for hibernate)
+  }];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;

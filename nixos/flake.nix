@@ -4,12 +4,6 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
-    # Pinned nixpkgs for kernel 6.17.13 — last commit before 6.17 was removed.
-    # Workaround for MES firmware hang in 6.18+/6.19+ on Strix Point (Radeon 860M).
-    # Remove this once the amdgpu MES fix lands upstream and reaches nixpkgs.
-    # Tracker: https://community.frame.work/t/attn-critical-bugs-in-amdgpu-driver-included-with-kernel-6-18-x-6-19-x/79221
-    nixpkgs-kernel.url = "github:NixOS/nixpkgs/158fc4d1067c7e825fc9803a981e3acc2f4845fa";
-
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -83,9 +77,6 @@
     nixosConfigurations = {
       moonbinder = mkSystem {
         hostname = "moonbinder";
-        extraSpecialArgs = {
-          pkgs-kernel = import inputs.nixpkgs-kernel { system = "x86_64-linux"; };
-        };
         extraModules = [
           nixos-hardware.nixosModules.framework-16-amd-ai-300-series
         ];

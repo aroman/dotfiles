@@ -1,4 +1,4 @@
-{ config, pkgs, pkgs-kernel, lib, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   imports = [
@@ -25,13 +25,20 @@
     })
   ];
 
-  # Workaround: MES (Micro Engine Scheduler) firmware hangs on RDNA 3.5.
-  # Kernel 6.18+/6.19+ have an unresolved amdgpu bug where MES stops responding
-  # (ring buffer full → hung tasks → total system freeze requiring REISUB).
-  # Pinning to 6.17 from an older nixpkgs avoids the regression entirely.
-  # Remove this (and nixpkgs-kernel flake input) once the fix lands upstream.
-  # Tracker: https://community.frame.work/t/attn-critical-bugs-in-amdgpu-driver-included-with-kernel-6-18-x-6-19-x/79221
-  boot.kernelPackages = pkgs-kernel.linuxPackages_6_17;
+  # Use latest stable kernel (6.19.x) — s0ix deep sleep works on 6.19.2+.
+  # Previously pinned to 6.17 due to MES hangs, now fixed by the TLB fence patch.
+  boot.kernelPackages = pkgs.linuxPackages_latest;
+
+  # Fix for MES (Micro Engine Scheduler) hangs on RDNA 3.5.
+  # Unconditional TLB fences tickle KIQ/MES bugs, causing ring buffer saturation
+  # → hung tasks → system freeze. This patch makes TLB fences conditional (only
+  # for compute/userspace queues). Merged upstream for kernel 7.0.
+  # Ref: https://lore.kernel.org/amd-gfx/20260316151636.1122226-1-alexander.deucher@amd.com/
+  # Remove once we're on kernel 7.0+.
+  boot.kernelPatches = [{
+    name = "amdgpu-tlb-fence-rework";
+    patch = ../../amdgpu-tlb-fence-rework.patch;
+  }];
 
   # Seamless ethernet↔WiFi failover (like macOS):
   # Both interfaces stay connected simultaneously. Route metrics control which
@@ -80,6 +87,15 @@
   '';
 
   security.pam.services.greetd.fprintAuth = false;
+
+  # ── Suspend & hibernate ─────────────────────────────────────────
+  # s2idle on this platform never reaches deep S0i3 (amd_pmc reports "Last
+  # suspend didn't reach deepest state"), so the SoC idles at ~5-10 W instead
+  # of ~0.5 W. Suspend-then-hibernate ensures the battery doesn't drain
+  # overnight: s2idle runs for 2 hours (enough for quick lid-open-close), then
+  # the system hibernates to disk and draws zero power.
+  services.logind.settings.Login.HandleLidSwitch = "suspend-then-hibernate";
+  systemd.sleep.settings.Sleep.HibernateDelaySec = "2h";
 
   # Battery / power info (used by ironbar, etc.)
   services.upower.enable = true;
