@@ -1,0 +1,22 @@
+# Window chrome
+macos-titlebar-style = tabs
+macos-window-buttons = hidden
+macos-icon = chalkboard
+# macos-icon-ghost-color = #ffffff
+# macos-icon-screen-color = #bb7cd7
+# macos-icon-frame=beige
+macos-option-as-alt = true
+macos-titlebar-proxy-icon = hidden
+
+# Quick terminal (quake visor)
+keybind = global:ctrl+grave_accent=toggle_quick_terminal
+quick-terminal-position = top
+quick-terminal-screen = main
+quick-terminal-animation-duration = 0.2
+quick-terminal-autohide = true
+
+# Cmd+Delete sends Ctrl+U (kill line, matches iTerm2)
+keybind = super+backspace=text:\x15
+
+# Bell sound
+bell-audio-path = /Users/aroman/Library/Sounds/ghostty-bell-options/2-blop.mp3
