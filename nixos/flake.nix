@@ -19,7 +19,7 @@
     nixos-hardware.url = "github:dniku/nixos-hardware/fw16-ai300-upstream-ucm-fix";
 
     noctalia = {
-      url = "github:noctalia-dev/noctalia-shell/v4.6.7";
+      url = "github:noctalia-dev/noctalia-shell/v4.7.1";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
