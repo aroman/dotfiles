@@ -1,25 +1,22 @@
 #!/usr/bin/env bash
-# Changes niri output resolution for Moonlight streaming.
-# Usage: sunshine-res.sh set <width> <height> [refresh]
-#        sunshine-res.sh restore
+# Adjusts niri output scale for Moonlight streaming sessions.
+# On connect: scale up so the desktop matches the client's logical size.
+# On disconnect: restore the native scale.
 
 OUTPUT="DP-1"
 NIRI_SOCKET=$(find /run/user/1000 -name 'niri.*.sock' -print -quit 2>/dev/null)
 export NIRI_SOCKET
 
 case "$1" in
-  set)
-    WIDTH="${2:?width required}"
-    HEIGHT="${3:?height required}"
-    REFRESH="${4:-60}"
-    niri msg output "$OUTPUT" custom-mode "${WIDTH}x${HEIGHT}@${REFRESH}"
+  connect)
+    # Scale 2.0 → 1920x1080 logical on 4K, close to Mac's ~1512x982
+    niri msg output "$OUTPUT" scale 2.0
     ;;
-  restore)
-    # Restore native mode (highest available)
-    niri msg output "$OUTPUT" mode 3840x2160@143.999
+  disconnect)
+    niri msg output "$OUTPUT" scale 1.5
     ;;
   *)
-    echo "Usage: $0 {set <w> <h> [hz]|restore}" >&2
+    echo "Usage: $0 {connect|disconnect}" >&2
     exit 1
     ;;
 esac
