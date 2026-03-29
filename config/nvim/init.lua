@@ -48,7 +48,17 @@ require("lazy").setup({
   },
   {
     "lewis6991/gitsigns.nvim",
-    opts = {},
+    opts = {
+      on_attach = function(bufnr)
+        local gs = require("gitsigns")
+        local map = function(mode, l, r, desc)
+          vim.keymap.set(mode, l, r, { buffer = bufnr, desc = desc })
+        end
+        map("n", "<leader>hr", gs.reset_hunk, "Reset hunk")
+        map("v", "<leader>hr", function() gs.reset_hunk({ vim.fn.line("."), vim.fn.line("v") }) end, "Reset selection")
+        map("n", "<leader>hR", gs.reset_buffer, "Reset buffer")
+      end,
+    },
   },
   {
     "lukas-reineke/indent-blankline.nvim",
