@@ -2,6 +2,7 @@ result
 config/niri/*.backup*
 config/fish/fish_variables
 config/fish/completions/bud.fish
+config/fish/conf.d/secrets.fish
 config/fish/conf.d/bud.fish
 config/fish/functions/bud.fish
 .DS_Store
