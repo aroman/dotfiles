@@ -47,7 +47,7 @@ abbr --add lg lazygit
 abbr --add gp "git push"
 abbr --add gpf "git push --force-with-lease"
 abbr --add gs "git status"
-abbr --add gl "git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
+abbr --add gl "git log --graph --pretty=format:'%C(bold blue)%h%C(reset)%C(bold yellow)%d%C(reset) %s%n         %C(dim cyan)%an%C(reset) %C(dim)• %cr%C(reset)' --abbrev-commit"
 
 function killport
     set port $argv[1]
