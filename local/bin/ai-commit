@@ -2,7 +2,9 @@
 set -euo pipefail
 
 tmpfile=$(mktemp)
-trap 'rm -f "$tmpfile"; tput cnorm 2>/dev/null' EXIT INT TERM
+cleanup() { rm -f "$tmpfile"; tput cnorm 2>/dev/null; }
+trap cleanup EXIT
+trap 'cleanup; exit 130' INT TERM
 
 diff=$(git diff --cached)
 if [ -z "$diff" ]; then

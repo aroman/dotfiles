@@ -8,7 +8,7 @@
 	default = simple
 [core]
 	excludesfile = ~/.gitignore_global
-	editor = vim
+	editor = nvim
 	pager = delta
 [delta]
 	syntax-theme = Everblush
