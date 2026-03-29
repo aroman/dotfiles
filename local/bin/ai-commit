@@ -6,8 +6,22 @@ trap 'rm -f "$tmpfile"; tput cnorm 2>/dev/null' EXIT INT TERM
 
 diff=$(git diff --cached)
 if [ -z "$diff" ]; then
-  echo "No staged changes." >&2
-  exit 1
+  echo "No staged changes."
+  echo ""
+  git -c color.status=always status --short
+  echo ""
+  if [ -z "$(git status --porcelain)" ]; then
+    echo "Nothing to commit." >&2
+    exit 1
+  fi
+  printf "Stage all changes? [Y/n] "
+  read -r answer
+  if [[ ! "$answer" =~ ^[Nn]$ ]]; then
+    git add -A
+    diff=$(git diff --cached)
+  else
+    exit 1
+  fi
 fi
 
 context=$(
