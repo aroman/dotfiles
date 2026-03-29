@@ -1,5 +1,8 @@
 { config, pkgs, lib, ... }:
 
+let
+  sunshine-cuda = pkgs.sunshine.override { cudaSupport = true; };
+in
 {
   imports = [
     ../../badged.nix
@@ -33,6 +36,7 @@
   # directly (works with any Wayland compositor including niri).
   services.sunshine = {
     enable = true;
+    package = sunshine-cuda;
     autoStart = true;
     capSysAdmin = true; # required for KMS capture on Wayland
     openFirewall = true;
