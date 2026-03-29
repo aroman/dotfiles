@@ -8,7 +8,7 @@ let
     unwrapped = inputs.voxtype.packages.x86_64-linux.voxtype-vulkan-unwrapped.overrideAttrs (prev: {
       patches = (prev.patches or []) ++ [ ../../patches/voxtype-fix-duplicate-notification.patch ];
     });
-    runtimeDeps = with pkgs; [ wtype wl-clipboard libnotify ];
+    runtimeDeps = with pkgs; [ dotool wtype wl-clipboard libnotify ];
   in pkgs.symlinkJoin {
     name = "${unwrapped.pname}-wrapped-${unwrapped.version}";
     paths = [ unwrapped ];

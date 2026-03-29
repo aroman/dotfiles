@@ -237,6 +237,9 @@ in
 
     # Editor
     neovim
+    tree-sitter
+    gcc # needed by tree-sitter to compile parsers
+    gemini-cli
     zed-editor
     typescript-language-server
 
