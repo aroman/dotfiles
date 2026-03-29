@@ -28,14 +28,18 @@
   };
 
   # ── Sunshine (remote desktop streaming) ──────────────────────────
-  # Streams the desktop to Moonlight clients via NvENC hardware encoding.
-  # Uses KMS capture (reads framebuffer directly), works with any Wayland
-  # compositor including niri.
+  # Streams the desktop to Moonlight clients. NvENC for hardware-accelerated
+  # encoding on the RTX 2060 Super, KMS capture reads the framebuffer
+  # directly (works with any Wayland compositor including niri).
   services.sunshine = {
     enable = true;
     autoStart = true;
     capSysAdmin = true; # required for KMS capture on Wayland
     openFirewall = true;
+    settings = {
+      encoder = "nvenc";
+      capture = "kms";
+    };
     applications = {
       apps = [{
         name = "Desktop";
