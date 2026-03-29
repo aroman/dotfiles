@@ -424,6 +424,46 @@ in
   # Belphegor disabled as auto-start service (memory leak ~5GB).
   # Run manually via `clipboard-sync` fish function instead.
 
+  # ── Wayland environment gate ──────────────────────────────────────
+  # When niri quits (logout, exit dialog, crash), niri-session runs
+  # `systemctl --user unset-environment WAYLAND_DISPLAY` as cleanup.
+  # niri.service then restarts automatically — but graphical-session.target
+  # re-activates before niri finishes starting and re-exporting the
+  # variable.  Every service bound to graphical-session.target (voxtype,
+  # swayidle, niri-dwt-toggle, vicinae, polkit-badged, etc.) launches
+  # into a session where WAYLAND_DISPLAY is gone, so wtype, wl-copy,
+  # and `niri msg` all fail silently.
+  #
+  # On a fresh boot this doesn't happen — niri synchronously exports
+  # the variable before sending sd_notify.  The bug is specific to
+  # the restart path through niri-session's cleanup.
+  #
+  # This oneshot gates graphical-session.target by polling until
+  # WAYLAND_DISPLAY appears in the systemd user environment (~50ms in
+  # practice).  Same pattern as UWSM's wayland-session-waitenv.service.
+  # See: https://github.com/Vladimir-csp/uwsm
+  systemd.user.services.niri-wayland-env-gate = {
+    Unit = {
+      Description = "Wait for WAYLAND_DISPLAY in systemd environment";
+      After = [ "niri.service" ];
+      Before = [ "graphical-session.target" ];
+      BindsTo = [ "graphical-session.target" ];
+    };
+    Service = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = pkgs.writeShellScript "wait-wayland-env" ''
+        for i in $(seq 1 50); do
+          ${pkgs.systemd}/bin/systemctl --user show-environment | grep -q '^WAYLAND_DISPLAY=' && exit 0
+          sleep 0.1
+        done
+        echo "WAYLAND_DISPLAY not found after 5s" >&2
+        exit 1
+      '';
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
   # ── Portal permissions ────────────────────────────────────────────
   # xdg-desktop-portal-gnome can't show the "allow camera?" dialog
   # outside a full GNOME session (no org.gnome.Shell on niri), so we
