@@ -134,10 +134,26 @@ sudo nixos-rebuild switch --flake ~/Projects/dotfiles/nixos#<hostname>
 ```
 
 After the first rebuild, SSH, git, and everything else from `common.nix` will
-be available. Switch the remote to SSH:
+be available. Set up SSH keys and switch the remote:
 
 ```bash
+# Generate a machine-specific key (name it after the hostname)
+ssh-keygen -t ed25519 -C "<hostname>" -f ~/.ssh/<hostname>
+
+# Add to GitHub (auth via browser)
+gh auth login
+gh ssh-key add ~/.ssh/<hostname>.pub -t "<hostname>"
+
+# Create ~/.ssh/config.local to tell SSH which key to use
+echo 'Host github.com
+  IdentityFile ~/.ssh/<hostname>' > ~/.ssh/config.local
+chmod 600 ~/.ssh/config.local
+
+# Switch remote to SSH
 git remote set-url origin git@github.com:aroman/dotfiles.git
+
+# Load the key into the agent (AddKeysToAgent will handle it after this)
+ssh-add ~/.ssh/<hostname>
 ```
 
 #### Existing machine

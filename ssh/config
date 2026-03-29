@@ -1,5 +1,8 @@
 IgnoreUnknown UseKeychain
 
+# Machine-specific keys and hosts (not tracked in dotfiles).
+# IMPORTANT: this must come before any Match block — Match swallows
+# everything after it until the next Host/Match keyword.
 Include ~/.ssh/config.local
 
 Match host * exec "test -f ~/.orbstack/ssh/config"
