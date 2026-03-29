@@ -100,22 +100,43 @@ nix-shell -p git
 # Clone dotfiles (HTTPS — no SSH keys yet)
 mkdir -p ~/Projects
 git clone https://github.com/aroman/dotfiles.git ~/Projects/dotfiles
-
-# Copy the auto-generated hardware config into the host directory
-mkdir -p ~/Projects/dotfiles/nixos/hosts/<hostname>
-cp /etc/nixos/hardware-configuration.nix ~/Projects/dotfiles/nixos/hosts/<hostname>/
-
-# Create default.nix and home.nix for the new host (see existing hosts for reference)
-# Then add the host to nixos/flake.nix
-
-# Build and switch
-sudo nixos-rebuild switch --flake ~/Projects/dotfiles/nixos#<hostname>
 ```
 
-After the first rebuild, SSH, git, and everything else from `common.nix` will be available. You can then switch the remote to SSH:
+Then, from another machine that already has the repo:
+
+```bash
+# 1. Enable SSH on the fresh install so you can access it remotely
+#    On the new machine, edit the default NixOS config:
+#      sudo nano /etc/nixos/configuration.nix
+#    Add: services.openssh.enable = true;
+#    Then: sudo nixos-rebuild switch
+
+# 2. Pull the hardware config directly
+mkdir -p nixos/hosts/<hostname>
+# Use the machine's IP (run `ip addr` on it to find it — mDNS likely won't work yet)
+scp <user>@<ip>:/etc/nixos/hardware-configuration.nix nixos/hosts/<hostname>/
+
+# 3. Create default.nix and home.nix (see existing hosts for reference)
+#    Add the host to nixos/flake.nix
+
+# 4. Push
+git add nixos/hosts/<hostname> nixos/flake.nix
+git commit -m "Add <hostname> NixOS host config"
+git push
+```
+
+Finally, on the new machine:
 
 ```bash
 cd ~/Projects/dotfiles
+git pull
+sudo nixos-rebuild switch --flake ~/Projects/dotfiles/nixos#<hostname>
+```
+
+After the first rebuild, SSH, git, and everything else from `common.nix` will
+be available. Switch the remote to SSH:
+
+```bash
 git remote set-url origin git@github.com:aroman/dotfiles.git
 ```
 
