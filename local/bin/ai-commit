@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+GEMINI_MODEL="gemini-3.1-flash-lite-preview"
+GEMINI_API_KEY="${GEMINI_API_KEY:-}"
+
+if [ -z "$GEMINI_API_KEY" ]; then
+  echo "GEMINI_API_KEY not set." >&2
+  exit 1
+fi
+
 tmpfile=$(mktemp)
 cleanup() { rm -f "$tmpfile"; tput cnorm 2>/dev/null; }
 trap cleanup EXIT
@@ -62,15 +70,23 @@ Rules:
 - Match the style of the recent commits shown, if any
 - Output ONLY the commit message — no quotes, no explanation, no markdown'
 
-echo "$context" | llm -m claude-sonnet-4.6 -s "$SYSTEM_PROMPT" > "$tmpfile" 2>&1 &
+body=$(jq -n --arg sys "$SYSTEM_PROMPT" --arg input "$context" '{
+  system_instruction: {parts: [{text: $sys}]},
+  contents: [{parts: [{text: $input}]}]
+}')
+
+curl -sf "https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}" \
+  -H 'Content-Type: application/json' \
+  -d "$body" > "$tmpfile" 2>&1 &
 pid=$!
 spin $pid
 wait $pid || true
 
-msg=$(cat "$tmpfile")
+msg=$(jq -r '.candidates[0].content.parts[0].text // empty' "$tmpfile" 2>/dev/null)
 
 if [ -z "$msg" ]; then
   echo "Failed to generate message." >&2
+  cat "$tmpfile" >&2
   exit 1
 fi
 
