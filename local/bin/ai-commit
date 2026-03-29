@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+tmpfile=$(mktemp)
+trap 'rm -f "$tmpfile"; tput cnorm 2>/dev/null' EXIT INT TERM
+
+diff=$(git diff --cached)
+if [ -z "$diff" ]; then
+  echo "No staged changes." >&2
+  exit 1
+fi
+
+context=$(
+  echo "=== Recent commits (for style reference) ==="
+  git log --oneline -10 2>/dev/null || true
+  echo ""
+  echo "=== Changed files ==="
+  git diff --cached --stat
+  echo ""
+  echo "=== Diff ==="
+  echo "$diff" | head -c 15000
+)
+
+spin() {
+  local chars="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+  local pid=$1
+  local i=0
+  tput civis 2>/dev/null || true
+  while kill -0 "$pid" 2>/dev/null; do
+    printf "\r  %s Generating commit message..." "${chars:i%${#chars}:1}"
+    i=$((i + 1))
+    sleep 0.08
+  done
+  printf "\r\033[K"
+  tput cnorm 2>/dev/null || true
+}
+
+SYSTEM_PROMPT='You generate concise git commit messages from diffs.
+
+Rules:
+- Use Conventional Commits format: type(scope): description
+- Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore
+- Scope is optional, use when it adds clarity (e.g. a module or component name)
+- Description: imperative mood, lowercase, no period
+- Keep under 72 characters
+- Match the style of the recent commits shown, if any
+- Output ONLY the commit message — no quotes, no explanation, no markdown'
+
+echo "$context" | claude -p --no-session-persistence --model haiku --tools "" \
+  --system-prompt "$SYSTEM_PROMPT" > "$tmpfile" 2>&1 &
+pid=$!
+spin $pid
+wait $pid || true
+
+msg=$(cat "$tmpfile")
+
+if [ -z "$msg" ]; then
+  echo "Failed to generate message." >&2
+  exit 1
+fi
+
+git commit -e -m "$msg"

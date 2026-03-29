@@ -42,6 +42,7 @@ end
 abbr --add c "claude --dangerously-skip-permissions"
 abbr --add dotc "cd $DOTFILES_DIR && claude --dangerously-skip-permissions"
 abbr --add yolo "claude --dangerously-skip-permissions"
+abbr --add aic ai-commit
 abbr --add lg lazygit
 abbr --add gs "git status"
 abbr --add gl "git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
