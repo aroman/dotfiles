@@ -154,6 +154,9 @@ git remote set-url origin git@github.com:aroman/dotfiles.git
 
 # Load the key into the agent (AddKeysToAgent will handle it after this)
 ssh-add ~/.ssh/<hostname>
+
+# Symlink dotfiles managed by rcm (scripts in ~/.local/bin, etc.)
+rcup -K
 ```
 
 #### Existing machine
