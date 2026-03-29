@@ -36,6 +36,12 @@
     autoStart = true;
     capSysAdmin = true; # required for KMS capture on Wayland
     openFirewall = true;
+    applications = {
+      apps = [{
+        name = "Desktop";
+        image-path = "desktop.png";
+      }];
+    };
   };
 
   # Sunshine needs uinput access for remote keyboard/mouse input
