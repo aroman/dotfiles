@@ -150,6 +150,8 @@ output "BOE NE160QDM-NZ6 Unknown" {
 // Find more information on the wiki:
 // https://yalter.github.io/niri/Configuration:-Layout
 layout {
+    background-color "#000000"
+
     // Set gaps around windows in logical pixels.
     gaps 16
 
