@@ -16,6 +16,10 @@ Host dawnbinder dawnbinder.local
   SendEnv GHOSTTY_RESOURCES_DIR
   ForwardAgent yes
 
+Host wizardtower wizardtower.local
+  SendEnv GHOSTTY_RESOURCES_DIR
+  ForwardAgent yes
+
 Host github.com
   AddKeysToAgent yes
   UseKeychain yes

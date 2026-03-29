@@ -160,6 +160,13 @@ rcup -K
 
 # Build bat theme cache (for Everblush theme)
 bat cache --build
+
+# Set up git commit signing (key matches the SSH key)
+echo '[user]
+	signingkey = ~/.ssh/<hostname>.pub' > ~/.gitconfig.local
+
+# Add API keys for tools (ai-commit, etc.)
+echo 'set -gx GEMINI_API_KEY "your-key-here"' >> ~/.config/fish/conf.d/secrets.fish
 ```
 
 From your main machine, set up passwordless SSH:
