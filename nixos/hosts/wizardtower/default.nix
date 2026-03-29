@@ -20,6 +20,13 @@
   };
   services.xserver.videoDrivers = [ "nvidia" ];
 
+  # Auto-login — desktop tower is always on, skip the greeter so
+  # niri and user services (Sunshine, etc.) start on boot.
+  services.greetd.settings.initial_session = {
+    command = "niri-session";
+    user = "aroman";
+  };
+
   # ── Sunshine (remote desktop streaming) ──────────────────────────
   # Streams the desktop to Moonlight clients via NvENC hardware encoding.
   # Uses KMS capture (reads framebuffer directly), works with any Wayland
