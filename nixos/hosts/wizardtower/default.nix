@@ -48,6 +48,10 @@ in
       apps = [{
         name = "Desktop";
         image-path = "desktop.png";
+        prep-cmd = [{
+          do = "/home/aroman/Projects/dotfiles/nixos/hosts/wizardtower/sunshine-res.sh connect";
+          undo = "/home/aroman/Projects/dotfiles/nixos/hosts/wizardtower/sunshine-res.sh disconnect";
+        }];
       }];
     };
   };
