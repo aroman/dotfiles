@@ -89,6 +89,38 @@ Reboot to apply everything: `sudo shutdown -r now`
 
 ### Setup (NixOS)
 
+#### Bootstrapping a fresh install
+
+On the new machine (fresh NixOS with nothing installed):
+
+```bash
+# Get git in a temporary shell
+nix-shell -p git
+
+# Clone dotfiles (HTTPS — no SSH keys yet)
+mkdir -p ~/Projects
+git clone https://github.com/aroman/dotfiles.git ~/Projects/dotfiles
+
+# Copy the auto-generated hardware config into the host directory
+mkdir -p ~/Projects/dotfiles/nixos/hosts/<hostname>
+cp /etc/nixos/hardware-configuration.nix ~/Projects/dotfiles/nixos/hosts/<hostname>/
+
+# Create default.nix and home.nix for the new host (see existing hosts for reference)
+# Then add the host to nixos/flake.nix
+
+# Build and switch
+sudo nixos-rebuild switch --flake ~/Projects/dotfiles/nixos#<hostname>
+```
+
+After the first rebuild, SSH, git, and everything else from `common.nix` will be available. You can then switch the remote to SSH:
+
+```bash
+cd ~/Projects/dotfiles
+git remote set-url origin git@github.com:aroman/dotfiles.git
+```
+
+#### Existing machine
+
 ```bash
 git clone git@github.com:aroman/dotfiles.git ~/Projects/dotfiles
 sudo nixos-rebuild switch --flake ~/Projects/dotfiles/nixos
