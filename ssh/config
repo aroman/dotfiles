@@ -1,9 +1,9 @@
 IgnoreUnknown UseKeychain
 
+Include ~/.ssh/config.local
+
 Match host * exec "test -f ~/.orbstack/ssh/config"
   Include ~/.orbstack/ssh/config
-
-Include ~/.ssh/config.local
 
 Host moonbinder moonbinder.local
   SendEnv GHOSTTY_RESOURCES_DIR
