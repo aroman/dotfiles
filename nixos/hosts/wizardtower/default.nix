@@ -45,10 +45,20 @@ in
       capture = "kms";
     };
     applications = {
-      apps = [{
-        name = "Desktop";
-        image-path = "desktop.png";
-      }];
+      apps = [
+        {
+          name = "Desktop";
+          image-path = "desktop.png";
+        }
+        {
+          name = "Desktop (Mac res)";
+          image-path = "desktop.png";
+          prep-cmd = [{
+            do = "/home/aroman/Projects/dotfiles/nixos/hosts/wizardtower/sunshine-res.sh set 3024 1964 60";
+            undo = "/home/aroman/Projects/dotfiles/nixos/hosts/wizardtower/sunshine-res.sh restore";
+          }];
+        }
+      ];
     };
   };
 
