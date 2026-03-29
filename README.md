@@ -159,6 +159,12 @@ ssh-add ~/.ssh/<hostname>
 rcup -K
 ```
 
+From your main machine, set up passwordless SSH:
+
+```bash
+ssh-copy-id <hostname>
+```
+
 #### Existing machine
 
 ```bash
