@@ -62,8 +62,7 @@ Rules:
 - Match the style of the recent commits shown, if any
 - Output ONLY the commit message — no quotes, no explanation, no markdown'
 
-echo "$context" | claude -p --no-session-persistence --model claude-sonnet-4-6 --tools "" \
-  --system-prompt "$SYSTEM_PROMPT" > "$tmpfile" 2>&1 &
+echo "$context" | llm -m claude-sonnet-4.6 -s "$SYSTEM_PROMPT" > "$tmpfile" 2>&1 &
 pid=$!
 spin $pid
 wait $pid || true

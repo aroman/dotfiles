@@ -81,6 +81,10 @@
           nixos-hardware.nixosModules.framework-16-amd-ai-300-series
         ];
       };
+
+      wizardtower = mkSystem {
+        hostname = "wizardtower";
+      };
     };
   };
 }
