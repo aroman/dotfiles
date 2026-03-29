@@ -32,6 +32,7 @@ in
     "fuzzel".source = link "config/fuzzel";
     "ghostty".source = link "config/ghostty";
     "lazygit".source = link "config/lazygit";
+    "starship.toml".source = link "config/starship.toml";
   };
 
   xdg.desktopEntries."dev.zed.Zed" = {
