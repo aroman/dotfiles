@@ -20,6 +20,23 @@
   };
   services.xserver.videoDrivers = [ "nvidia" ];
 
+  # ── Sunshine (remote desktop streaming) ──────────────────────────
+  # Streams the desktop to Moonlight clients via NvENC hardware encoding.
+  # Uses KMS capture (reads framebuffer directly), works with any Wayland
+  # compositor including niri.
+  services.sunshine = {
+    enable = true;
+    autoStart = true;
+    capSysAdmin = true; # required for KMS capture on Wayland
+    openFirewall = true;
+  };
+
+  # Sunshine needs uinput access for remote keyboard/mouse input
+  services.udev.extraRules = ''
+    KERNEL=="uinput", MODE="0660", GROUP="input", SYMLINK+="uinput"
+  '';
+  users.users.aroman.extraGroups = [ "input" ];
+
   # 1Password
   programs._1password.enable = true;
   programs._1password-gui = {
