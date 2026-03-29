@@ -16,5 +16,3 @@ Host dawnbinder dawnbinder.local
 Host github.com
   AddKeysToAgent yes
   UseKeychain yes
-  IdentityFile ~/.ssh/blue
-  IdentityFile ~/.ssh/purple
