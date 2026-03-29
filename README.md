@@ -157,6 +157,9 @@ ssh-add ~/.ssh/<hostname>
 
 # Symlink dotfiles managed by rcm (scripts in ~/.local/bin, etc.)
 rcup -K
+
+# Build bat theme cache (for Everblush theme)
+bat cache --build
 ```
 
 From your main machine, set up passwordless SSH:
