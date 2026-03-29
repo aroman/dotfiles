@@ -84,6 +84,7 @@
   # prevents unauthorized memory access, making the software security level redundant.
   services.udev.extraRules = ''
     ACTION=="add", SUBSYSTEM=="thunderbolt", ATTRS{iommu_dma_protection}=="1", ATTR{authorized}=="0", ATTR{authorized}="1"
+    KERNEL=="uinput", GROUP="input", MODE="0660"
   '';
 
   security.pam.services.greetd.fprintAuth = false;
@@ -121,15 +122,33 @@
   # across MT7921/MT7925 — the standard workaround is reloading the module.
   # Ref: https://community.frame.work/t/round-2-framework-16-fails-to-resume-from-hibernate/75532
   # Remove once MediaTek fixes the firmware reinit path upstream.
+  # Runs after ANY resume (s2idle or hibernate). After hibernate, WiFi is
+  # broken and needs a full module reload. After s2idle, WiFi is fine so we
+  # skip the reload by checking interface state first.
+  # Uses the same After pattern as NixOS's built-in post-resume.service:
+  # After=systemd-*.service ensures we run AFTER resume, not before sleep.
   systemd.services.mt7925-hibernate-fixup = {
-    description = "Reload MT7925 WiFi module after hibernate";
-    after = [ "hibernate.target" "suspend-then-hibernate.target" ];
-    wantedBy = [ "hibernate.target" "suspend-then-hibernate.target" ];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${pkgs.kmod}/bin/modprobe -r mt7925e mt7925_common mt792x_lib mt76_connac_lib mt76 mac80211 cfg80211";
-      ExecStartPost = "${pkgs.kmod}/bin/modprobe mt7925e";
-    };
+    description = "Reload MT7925 WiFi module if broken after resume";
+    after = [
+      "systemd-suspend.service"
+      "systemd-hibernate.service"
+      "systemd-hybrid-sleep.service"
+      "systemd-suspend-then-hibernate.service"
+    ];
+    wantedBy = [ "sleep.target" ];
+    serviceConfig.Type = "oneshot";
+    script = ''
+      # After s2idle, WiFi is fine (state UP) — skip reload.
+      # After hibernate, WiFi is stuck (state DOWN/DORMANT) — reload.
+      if ${pkgs.iproute2}/bin/ip link show wlp192s0 2>/dev/null | grep -q "state UP"; then
+        echo "WiFi is UP, skipping reload"
+        exit 0
+      fi
+      echo "WiFi is not UP, reloading mt7925e module"
+      ${pkgs.kmod}/bin/modprobe -r mt7925e || true
+      sleep 1
+      ${pkgs.kmod}/bin/modprobe mt7925e
+    '';
   };
 
   # Battery / power info (used by ironbar, etc.)
