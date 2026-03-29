@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Toggle between native 4K and Mac streaming resolution
+current=$(niri msg outputs 2>/dev/null | grep "Current mode" | head -1)
+if echo "$current" | grep -q "3840x2160"; then
+    niri msg output DP-1 custom-mode 3024x1964@120
+    notify-send "Display" "Switched to Mac res (3024x1964)"
+else
+    niri msg output DP-1 mode 3840x2160@143.999
+    notify-send "Display" "Switched to native 4K"
+fi
