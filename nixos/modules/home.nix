@@ -221,7 +221,7 @@ in
     eza
     fzf
     ghostty
-    kitty   # for `kitten icat` (image previews in fzf)
+    kitty.kitten   # just the kitten CLI (icat for image previews), not the terminal app
     tree
     ripgrep
     delta
