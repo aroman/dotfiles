@@ -25,7 +25,7 @@ in
 
   # Auto-login — desktop tower is always on, skip the greeter so
   # niri and user services (Sunshine, etc.) start on boot.
-  services.greetd.settings.default_session = {
+  services.greetd.settings.default_session = lib.mkForce {
     command = "niri-session";
     user = "aroman";
   };
