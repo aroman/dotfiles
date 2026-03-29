@@ -172,6 +172,10 @@
   # GNOME Keyring (for secrets, SSH agent, etc.)
   services.gnome.gnome-keyring.enable = true;
 
+  # Removable media (udisks2 + gvfs so Nautilus can detect/mount USB drives)
+  services.udisks2.enable = true;
+  services.gvfs.enable = true;
+
   # Bluetooth
   hardware.bluetooth.enable = true;
 
