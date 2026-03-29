@@ -12,22 +12,32 @@ function _fzf_search_directory --description "Search the current directory. Repl
     # unescape token because it's already quoted so backslashes will mess up the path
     set -f unescaped_exp_token (string unescape -- $expanded_token)
 
+    # awk reimplements prompt_pwd -d 1 -D 2 logic (~27x faster than fish loop)
+    set -f shorten_cmd awk -F/ '{
+        short = ""
+        n = NF
+        if ($NF == "") n = NF - 1
+        for (i = 1; i <= n; i++) {
+            if (i > 1) short = short "/"
+            if (i <= n - 2) short = short substr($i, 1, 1)
+            else short = short $i
+        }
+        if ($NF == "") short = short "/"
+        printf "%s\t%s\n", short, $0
+    }'
+
     # If the current token is a directory and has a trailing slash,
     # then use it as fd's base directory.
     if string match --quiet -- "*/" $unescaped_exp_token && test -d "$unescaped_exp_token"
         set --append fd_cmd --base-directory=$unescaped_exp_token
-        set --prepend fzf_arguments --prompt="  " --preview="_fzf_preview_file $expanded_token{2}"
+        set --prepend fzf_arguments --prompt="  " --preview="_fzf_preview_file $expanded_token{2}"
         set -f file_paths_selected $unescaped_exp_token(
-            $fd_cmd 2>/dev/null |
-            while read -l line; printf '%s\t%s\n' (prompt_pwd -d 1 -D 2 -- $line) $line; end |
-            _fzf_wrapper $fzf_arguments
+            $fd_cmd 2>/dev/null | $shorten_cmd | _fzf_wrapper $fzf_arguments
         )
     else
-        set --prepend fzf_arguments --prompt="  " --query="$unescaped_exp_token" --preview='_fzf_preview_file {2}'
+        set --prepend fzf_arguments --prompt="  " --query="$unescaped_exp_token" --preview='_fzf_preview_file {2}'
         set -f file_paths_selected (
-            $fd_cmd 2>/dev/null |
-            while read -l line; printf '%s\t%s\n' (prompt_pwd -d 1 -D 2 -- $line) $line; end |
-            _fzf_wrapper $fzf_arguments
+            $fd_cmd 2>/dev/null | $shorten_cmd | _fzf_wrapper $fzf_arguments
         )
     end
 
