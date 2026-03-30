@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
-# Toggle between native 4K and Mac streaming resolution
-current=$(niri msg outputs 2>/dev/null | grep "Current mode" | head -1)
-if echo "$current" | grep -q "3840x2160"; then
-    niri msg output DP-1 custom-mode 3024x1964@120
-    notify-send "Display" "Switched to Mac res (3024x1964)"
+# Toggle DP-1 between normal desktop scale and streaming scale.
+# Streaming scale (2.0) makes UI bigger for remote viewing on a Mac.
+
+scale=$(niri msg -j outputs 2>/dev/null | grep -oP '"scale":\s*\K[0-9.]+' | head -1)
+
+if [ "$scale" = "1.5" ]; then
+    niri msg output DP-1 scale 2.0
+    notify-send "Display" "Switched to streaming scale (2.0)"
 else
-    niri msg output DP-1 mode 3840x2160@143.999
-    notify-send "Display" "Switched to native 4K"
+    niri msg output DP-1 scale 1.5
+    notify-send "Display" "Switched to desktop scale (1.5)"
 fi
