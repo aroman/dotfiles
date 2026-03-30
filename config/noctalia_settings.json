@@ -91,6 +91,10 @@
             ],
             "left": [
                 {
+                    "defaultSettings": {},
+                    "id": "plugin:hostname"
+                },
+                {
                     "defaultSettings": {
                         "iconTheme": "nerd-font"
                     },

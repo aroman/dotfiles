@@ -1,0 +1,20 @@
+{
+  "id": "hostname",
+  "name": "Hostname",
+  "version": "1.0.0",
+  "minNoctaliaVersion": "3.6.0",
+  "author": "aroman",
+  "license": "MIT",
+  "description": "Displays the hostname in bold in the bar",
+  "tags": ["Bar", "Indicator"],
+  "entryPoints": {
+    "main": "Main.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "dependencies": {
+    "plugins": []
+  },
+  "metadata": {
+    "defaultSettings": {}
+  }
+}
