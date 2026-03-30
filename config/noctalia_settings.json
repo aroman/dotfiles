@@ -665,7 +665,7 @@
         "transitionDuration": 1000,
         "transitionEdgeSmoothness": 0.05,
         "transitionType": [
-            "disc"
+            "fade"
         ],
         "useOriginalImages": false,
         "useSolidColor": false,
