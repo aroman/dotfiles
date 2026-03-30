@@ -29,6 +29,10 @@ in
     "fish".source = link "config/fish";
     "bat".source = link "config/bat";
     "noctalia/settings.json".source = link "config/noctalia_settings.json";
+    "noctalia/plugins.json".source = link "config/noctalia/plugins.json";
+    "noctalia/plugins/hostname".source = link "config/noctalia/plugins/hostname";
+    "noctalia/plugins/voxtype".source = link "config/noctalia/plugins/voxtype";
+    "noctalia/plugins/cloudflare-tunnel".source = link "config/noctalia/plugins/cloudflare-tunnel";
     "fuzzel".source = link "config/fuzzel";
     "ghostty".source = link "config/ghostty";
     "lazygit".source = link "config/lazygit";
@@ -248,7 +252,6 @@ in
     wl-clipboard
     ddcutil
     playerctl
-    networkmanagerapplet
     overskride
     socat # IPC with niri socket (used by swap-monitors script)
     fuzzel       # Wayland dmenu/rofi — used for worktree picker etc.
