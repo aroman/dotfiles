@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Copy noctalia runtime settings back to dotfiles.
+# Use this after making changes via the noctalia GUI.
+set -euo pipefail
+
+DOTFILES="${HOME}/Projects/dotfiles"
+RUNTIME="${HOME}/.local/share/noctalia-config"
+
+if [ ! -d "$RUNTIME" ]; then
+  echo "error: runtime config dir not found: $RUNTIME" >&2
+  exit 1
+fi
+
+cp "$RUNTIME/settings.json" "$DOTFILES/config/noctalia_settings.json"
+cp "$RUNTIME/plugins.json" "$DOTFILES/config/noctalia/plugins.json"
+
+echo "Copied runtime noctalia config back to dotfiles."
+echo "Review with: cd $DOTFILES && git diff config/noctalia"

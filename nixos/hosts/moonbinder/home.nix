@@ -143,7 +143,7 @@ in
       };
       audio.feedback = {
         enabled = true;
-        theme = "${config.home.homeDirectory}/.local/share/voxtype/sounds/lcars";
+        theme = "${config.home.homeDirectory}/.local/share/voxtype/sounds/wispr";
         volume = 0.7;
       };
       output = {

@@ -12,6 +12,11 @@ in
 
   home.username = "aroman";
   home.homeDirectory = "/home/aroman";
+  # Set NOCTALIA_CONFIG_DIR for the systemd user session so noctalia
+  # (spawned by niri) reads from the writable runtime copy.
+  systemd.user.sessionVariables = {
+    NOCTALIA_CONFIG_DIR = "${config.home.homeDirectory}/.local/share/noctalia-config";
+  };
   home.pointerCursor = {
     name = "Adwaita";
     package = pkgs.adwaita-icon-theme;
@@ -28,11 +33,10 @@ in
     "zed".source = link "config/zed";
     "fish".source = link "config/fish";
     "bat".source = link "config/bat";
-    "noctalia/settings.json".source = link "config/noctalia_settings.json";
-    "noctalia/plugins.json".source = link "config/noctalia/plugins.json";
-    "noctalia/plugins/hostname".source = link "config/noctalia/plugins/hostname";
-    "noctalia/plugins/voxtype".source = link "config/noctalia/plugins/voxtype";
-    "noctalia/plugins/cloudflare-tunnel".source = link "config/noctalia/plugins/cloudflare-tunnel";
+    # Noctalia config is copied (not symlinked) to a writable runtime
+    # dir — noctalia overwrites settings.json at runtime, which would
+    # dirty the dotfiles repo (noctalia-shell#2214).  See the
+    # home.activation.noctalia-config block below.
     "fuzzel".source = link "config/fuzzel";
     "ghostty".source = link "config/ghostty";
     "lazygit".source = link "config/lazygit";
@@ -484,6 +488,36 @@ in
     };
     Install.WantedBy = [ "graphical-session.target" ];
   };
+
+  # ── Noctalia config sync ──────────────────────────────────────────
+  # Copy declarative noctalia config to a writable runtime directory.
+  # Noctalia mutates its own settings.json at runtime (noctalia-shell
+  # #2214), so we can't symlink into the dotfiles repo.  On each
+  # home-manager activation, the declarative files overwrite the
+  # runtime copy.  Use `noctalia-dump` to pull GUI changes back.
+  home.activation.noctalia-config = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    NOCTALIA_RUNTIME="$HOME/.local/share/noctalia-config"
+    NOCTALIA_SRC="${dotfiles}/config/noctalia"
+    SETTINGS_SRC="${dotfiles}/config/noctalia_settings.json"
+
+    mkdir -p "$NOCTALIA_RUNTIME/plugins"
+
+    # Copy settings and plugin registry
+    cp "$SETTINGS_SRC" "$NOCTALIA_RUNTIME/settings.json"
+    cp "$NOCTALIA_SRC/plugins.json" "$NOCTALIA_RUNTIME/plugins.json"
+
+    # Sync plugin directories
+    for plugin in "$NOCTALIA_SRC"/plugins/*/; do
+      name=$(basename "$plugin")
+      rm -rf "$NOCTALIA_RUNTIME/plugins/$name"
+      cp -r "$plugin" "$NOCTALIA_RUNTIME/plugins/$name"
+    done
+
+    # Copy colorschemes from ~/.config/noctalia (managed by noctalia.nix)
+    if [ -d "$HOME/.config/noctalia/colorschemes" ]; then
+      cp -r "$HOME/.config/noctalia/colorschemes" "$NOCTALIA_RUNTIME/"
+    fi
+  '';
 
   # ── Portal permissions ────────────────────────────────────────────
   # xdg-desktop-portal-gnome can't show the "allow camera?" dialog
