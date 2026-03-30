@@ -1,0 +1,101 @@
+diff --git a/src/output/paste.rs b/src/output/paste.rs
+index 148b4cf..5a903b2 100644
+--- a/src/output/paste.rs
++++ b/src/output/paste.rs
+@@ -627,9 +627,85 @@ impl PasteOutput {
+         Ok(())
+     }
+ 
+-    /// Simulate paste keystroke, trying wtype first then ydotool
++    /// Check if dotool is available
++    async fn is_dotool_available(&self) -> bool {
++        Command::new("which")
++            .arg("dotool")
++            .stdout(Stdio::null())
++            .stderr(Stdio::null())
++            .status()
++            .await
++            .map(|s| s.success())
++            .unwrap_or(false)
++    }
++
++    /// Simulate paste keystroke using dotool (uinput-based, works with GTK4)
++    async fn simulate_paste_dotool(&self) -> Result<(), OutputError> {
++        let mut combo = self.keystroke.modifiers.join("+");
++        if !combo.is_empty() {
++            combo.push('+');
++        }
++        combo.push_str(&self.keystroke.key);
++
++        let command_str = format!("key {}\n", combo);
++        tracing::debug!("Running: dotool key {}", combo);
++
++        let mut child = Command::new("dotool")
++            .stdin(Stdio::piped())
++            .stdout(Stdio::null())
++            .stderr(Stdio::piped())
++            .spawn()
++            .map_err(|e| {
++                if e.kind() == std::io::ErrorKind::NotFound {
++                    OutputError::DotoolNotFound
++                } else {
++                    OutputError::CtrlVFailed(e.to_string())
++                }
++            })?;
++
++        if let Some(mut stdin) = child.stdin.take() {
++            stdin
++                .write_all(command_str.as_bytes())
++                .await
++                .map_err(|e| OutputError::CtrlVFailed(e.to_string()))?;
++            drop(stdin);
++        }
++
++        let output = child
++            .wait_with_output()
++            .await
++            .map_err(|e| OutputError::CtrlVFailed(e.to_string()))?;
++
++        if !output.status.success() {
++            let stderr = String::from_utf8_lossy(&output.stderr);
++            return Err(OutputError::CtrlVFailed(format!(
++                "dotool failed: {}",
++                stderr
++            )));
++        }
++
++        Ok(())
++    }
++
++    /// Simulate paste keystroke, trying dotool first (uinput — works with
++    /// GTK4 apps), then wtype, then ydotool.
+     async fn simulate_paste_keystroke(&self) -> Result<(), OutputError> {
+-        // Try wtype first (preferred - no daemon needed)
++        // Try dotool first (uinput-based — keystroke is indistinguishable
++        // from a physical keyboard, so GTK4 shortcut controllers fire)
++        if self.is_dotool_available().await {
++            match self.simulate_paste_dotool().await {
++                Ok(()) => {
++                    tracing::debug!("Paste keystroke sent via dotool");
++                    return Ok(());
++                }
++                Err(e) => {
++                    tracing::debug!("dotool paste failed: {}, trying wtype", e);
++                }
++            }
++        }
++
++        // Try wtype (Wayland virtual keyboard — doesn't work with GTK4
++        // shortcut controllers, but works with Chrome, Ghostty, etc.)
+         if self.is_wtype_available().await {
+             match self.simulate_paste_wtype().await {
+                 Ok(()) => {
+@@ -657,7 +733,7 @@ impl PasteOutput {
+         }
+ 
+         Err(OutputError::CtrlVFailed(
+-            "Neither wtype nor ydotool available for paste keystroke".to_string(),
++            "No tool available for paste keystroke (tried dotool, wtype, ydotool)".to_string(),
+         ))
+     }
+ 

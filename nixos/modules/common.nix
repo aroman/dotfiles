@@ -114,6 +114,9 @@
   services.openssh.settings.AcceptEnv = [ "GHOSTTY_RESOURCES_DIR" ];
   programs.mosh.enable = true;
 
+  # Tailscale
+  services.tailscale.enable = true;
+
   # Flatpak (TexturePacker, etc.)
   services.flatpak.enable = true;
 

@@ -84,7 +84,7 @@
   # prevents unauthorized memory access, making the software security level redundant.
   services.udev.extraRules = ''
     ACTION=="add", SUBSYSTEM=="thunderbolt", ATTRS{iommu_dma_protection}=="1", ATTR{authorized}=="0", ATTR{authorized}="1"
-    KERNEL=="uinput", GROUP="input", MODE="0660"
+    KERNEL=="uinput", SUBSYSTEM=="misc", GROUP="input", MODE="0660"
   '';
 
   security.pam.services.greetd.fprintAuth = false;

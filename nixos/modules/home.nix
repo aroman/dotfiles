@@ -424,6 +424,24 @@ in
   # Belphegor disabled as auto-start service (memory leak ~5GB).
   # Run manually via `clipboard-sync` fish function instead.
 
+  # ── Clipboard persistence ───────────────────────────────────────
+  # On Wayland the clipboard dies when the source process exits.
+  # wl-clip-persist takes over ownership so content survives, which
+  # also fixes paste mode for voxtype (whose wl-copy child gets
+  # killed by systemd cgroup cleanup).
+  systemd.user.services.wl-clip-persist = {
+    Unit = {
+      Description = "Keep Wayland clipboard after source exits";
+      After = [ "graphical-session.target" ];
+      PartOf = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart = "${pkgs.wl-clip-persist}/bin/wl-clip-persist --clipboard regular";
+      Restart = "on-failure";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
   # ── Wayland environment gate ──────────────────────────────────────
   # When niri quits (logout, exit dialog, crash), niri-session runs
   # `systemctl --user unset-environment WAYLAND_DISPLAY` as cleanup.

@@ -6,7 +6,10 @@ let
   # this removes the per-driver call.
   voxtypePatched = let
     unwrapped = inputs.voxtype.packages.x86_64-linux.voxtype-vulkan-unwrapped.overrideAttrs (prev: {
-      patches = (prev.patches or []) ++ [ ../../patches/voxtype-fix-duplicate-notification.patch ];
+      patches = (prev.patches or []) ++ [
+        ../../patches/voxtype-fix-duplicate-notification.patch
+        ../../patches/voxtype-paste-dotool-fallback.patch
+      ];
     });
     runtimeDeps = with pkgs; [ dotool wtype wl-clipboard libnotify ];
   in pkgs.symlinkJoin {
@@ -144,9 +147,8 @@ in
         volume = 0.7;
       };
       output = {
-        mode = "type";
-        driver_order = [ "wtype" "clipboard" ];
-        fallback_to_clipboard = true;
+        mode = "paste";
+        paste_keys = "ctrl+shift+v";
       };
       output.notification.on_transcription = false;
       text.spoken_punctuation = true;
