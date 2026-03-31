@@ -43,6 +43,14 @@ style = "#e5c76b"
 [nix_shell]
 style = "#67b0e8"
 
+[custom.bud]
+command = "bud starship"
+when = "bud starship"
+format = "$output "
+unsafe_no_escape = true
+shell = ["bash", "--noprofile", "--norc"]
+description = "Bud Local Servers status"
+
 [gcloud]
 disabled = true
 
