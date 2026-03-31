@@ -5,7 +5,7 @@ function _fzf_search_directory --description "Search the current directory. Repl
     set -f fd_cmd (command -v fdfind || command -v fd  || echo "fd")
     set -f --append fd_cmd $fzf_fd_opts
 
-    set -f fzf_arguments --multi --delimiter='\t' --with-nth=1 --accept-nth=2 --preview-border --preview-label-pos=2 --bind='focus:change-preview-label( {2} )' $fzf_directory_opts
+    set -f fzf_arguments --multi --delimiter='\t' --with-nth=1 --accept-nth=2 $fzf_directory_opts
     set -f token (commandline --current-token)
     # expand any variables or leading tilde (~) in the token
     set -f expanded_token (eval echo -- $token)

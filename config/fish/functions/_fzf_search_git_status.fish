@@ -18,7 +18,6 @@ function _fzf_search_git_status --description "Search the output of git status. 
                 --delimiter='\t' \
                 --with-nth=1 \
                 --accept-nth=2 \
-                --preview-border --preview-label-pos=2 --bind='focus:change-preview-label( {2} )' \
                 $fzf_git_status_opts
         )
         if test $status -eq 0
