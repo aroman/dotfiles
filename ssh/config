@@ -11,15 +11,18 @@ Match host * exec "test -f ~/.orbstack/ssh/config"
 Host *
   SendEnv COLORTERM
 
-Host moonbinder moonbinder.local
+Host moonbinder moonbinder.local moonbinder.marlin-antares.ts.net
+  HostName moonbinder.marlin-antares.ts.net
   SendEnv GHOSTTY_RESOURCES_DIR
   ForwardAgent yes
 
-Host dawnbinder dawnbinder.local
+Host dawnbinder dawnbinder.local dawnbinder.marlin-antares.ts.net
+  HostName dawnbinder.marlin-antares.ts.net
   SendEnv GHOSTTY_RESOURCES_DIR
   ForwardAgent yes
 
-Host wizardtower wizardtower.local
+Host wizardtower wizardtower.local wizardtower.marlin-antares.ts.net
+  HostName wizardtower.marlin-antares.ts.net
   SendEnv GHOSTTY_RESOURCES_DIR
   ForwardAgent yes
 
