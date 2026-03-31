@@ -10,14 +10,17 @@ Match host * exec "test -f ~/.orbstack/ssh/config"
 
 Host moonbinder moonbinder.local
   SendEnv GHOSTTY_RESOURCES_DIR
+  SendEnv COLORTERM
   ForwardAgent yes
 
 Host dawnbinder dawnbinder.local
   SendEnv GHOSTTY_RESOURCES_DIR
+  SendEnv COLORTERM
   ForwardAgent yes
 
 Host wizardtower wizardtower.local
   SendEnv GHOSTTY_RESOURCES_DIR
+  SendEnv COLORTERM
   ForwardAgent yes
 
 Host github.com

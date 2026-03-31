@@ -111,7 +111,7 @@
 
   # SSH + Mosh
   services.openssh.enable = true;
-  services.openssh.settings.AcceptEnv = [ "GHOSTTY_RESOURCES_DIR" ];
+  services.openssh.settings.AcceptEnv = [ "GHOSTTY_RESOURCES_DIR" "COLORTERM" ];
   programs.mosh.enable = true;
 
   # Tailscale
