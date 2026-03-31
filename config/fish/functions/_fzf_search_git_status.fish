@@ -9,11 +9,7 @@ function _fzf_search_git_status --description "Search the output of git status. 
 
         set -f selected_paths (
             git status --short |
-            while read -l line
-                set -l status_prefix (string sub -l 3 -- $line)
-                set -l path (string sub -s 4 -- $line)
-                printf '%s%s\t%s\n' $status_prefix (prompt_pwd -d 1 -D 2 -- $path) $line
-            end |
+            _fzf_shorten_path 3 |
             _fzf_wrapper --ansi \
                 --multi \
                 --prompt="±  " \
@@ -22,7 +18,7 @@ function _fzf_search_git_status --description "Search the output of git status. 
                 --delimiter='\t' \
                 --with-nth=1 \
                 --accept-nth=2 \
-                --preview-border --preview-label-pos=2 --bind='focus:transform-preview-label:printf "\033[1m %s \033[0m" {2}' \
+                --preview-border --preview-label-pos=2 --bind='focus:change-preview-label( {2} )' \
                 $fzf_git_status_opts
         )
         if test $status -eq 0
