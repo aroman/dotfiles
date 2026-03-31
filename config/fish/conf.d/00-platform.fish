@@ -39,6 +39,7 @@ if test (uname) = Darwin
     # Added by OrbStack: command-line tools and integration.
     source ~/.orbstack/shell/init2.fish 2>/dev/null || :
 
+    fish_add_path /Applications/Tailscale.app/Contents/MacOS
     fish_add_path /Users/aroman/.antigravity/antigravity/bin
     fish_add_path /opt/homebrew/opt/libpq/bin
 end

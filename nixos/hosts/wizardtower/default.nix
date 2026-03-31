@@ -39,10 +39,11 @@ in
     package = sunshine-cuda;
     autoStart = true;
     capSysAdmin = true; # required for KMS capture on Wayland
-    openFirewall = true;
+    openFirewall = false; # Tailscale's ts-input chain already allows traffic between peers
     settings = {
       encoder = "nvenc";
       capture = "kms";
+      origin_web_ui_allowed = "wan"; # allow access from Tailscale IPs
     };
     applications = {
       apps = [{
