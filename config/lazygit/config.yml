@@ -31,3 +31,13 @@ customCommands:
     context: "files"
     command: "ai-commit"
     output: terminal
+  - key: "I"
+    description: "Image diff"
+    context: "files"
+    command: "git-imgdiff '{{.SelectedFile.Name}}'"
+    output: terminal
+  - key: "I"
+    description: "Image diff"
+    context: "commitFiles"
+    command: "git-imgdiff '{{.SelectedCommitFile.Name}}' '{{.SelectedCommit.Sha}}'"
+    output: terminal

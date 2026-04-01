@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# git-imgdiff - Visual image diff using ImageMagick compare + chafa
+# Usage: git-imgdiff <file> [commit]
+# If commit is given, diffs commit~1..commit for that file.
+# Otherwise diffs the working copy against HEAD.
+
+set -eo pipefail
+
+file="$1"
+commit="${2:-}"
+tmpdir=""
+
+cleanup() { rm -rf "$tmpdir" 2>/dev/null; }
+trap cleanup EXIT
+
+tmpdir=$(mktemp -d /tmp/imgdiff.XXXXXX)
+basename=$(basename "$file")
+
+render() {
+    chafa -f kitty --animate=off --size="${COLUMNS:-80}x20" "$1"
+}
+
+diff_images() {
+    local old="$1" new="$2"
+    local diffimg="$tmpdir/diff.png"
+
+    # Generate diff image: changed pixels highlighted in red on a faded background
+    magick compare -highlight-color '#FF000080' -lowlight-color 'none' "$old" "$new" "$diffimg" 2>/dev/null || true
+
+    echo "=== OLD ==="
+    render "$old"
+    echo ""
+    echo "=== NEW ==="
+    render "$new"
+    echo ""
+    echo "=== DIFF ==="
+    render "$diffimg"
+}
+
+if [[ -n "$commit" ]]; then
+    tmpold="$tmpdir/old-$basename"
+    tmpnew="$tmpdir/new-$basename"
+    git show "${commit}:${file}" > "$tmpnew"
+    if git show "${commit}~1:${file}" > "$tmpold" 2>/dev/null; then
+        diff_images "$tmpold" "$tmpnew"
+    else
+        echo "=== New file (added in ${commit}) ==="
+        render "$tmpnew"
+    fi
+else
+    tmpold="$tmpdir/old-$basename"
+    if git show "HEAD:${file}" > "$tmpold" 2>/dev/null; then
+        diff_images "$tmpold" "$file"
+    else
+        echo "=== New file ==="
+        render "$file"
+    fi
+fi
