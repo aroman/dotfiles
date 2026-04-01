@@ -69,6 +69,7 @@
             home-manager.extraSpecialArgs = { inherit inputs; };
           }
           ./modules/common.nix
+          ./modules/restic.nix
           ./hosts/${hostname}/default.nix
           ./hosts/${hostname}/hardware-configuration.nix
         ] ++ extraModules;
