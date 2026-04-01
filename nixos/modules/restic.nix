@@ -64,6 +64,8 @@
       RandomizedDelaySec = "1h";
     };
 
+    extraBackupArgs = [ "--verbose" ];
+
     pruneOpts = [
       "--keep-daily 7"
       "--keep-weekly 4"
