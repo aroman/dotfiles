@@ -5,7 +5,9 @@ function _fzf_search_directory --description "Search the current directory. Repl
     set -f fd_cmd (command -v fdfind || command -v fd  || echo "fd")
     set -f --append fd_cmd $fzf_fd_opts
 
-    set -f fzf_arguments --multi --delimiter='\t' --with-nth=1 --accept-nth=2 $fzf_directory_opts
+    # Don't use --accept-nth or {2} — fzf <=0.70 strips leading whitespace from fields.
+    # Extract the original path from {} by splitting on tab instead.
+    set -f fzf_arguments --multi --delimiter='\t' --with-nth=1 $fzf_directory_opts
     set -f token (commandline --current-token)
     # expand any variables or leading tilde (~) in the token
     set -f expanded_token (eval echo -- $token)
@@ -16,19 +18,21 @@ function _fzf_search_directory --description "Search the current directory. Repl
     # then use it as fd's base directory.
     if string match --quiet -- "*/" $unescaped_exp_token && test -d "$unescaped_exp_token"
         set --append fd_cmd --base-directory=$unescaped_exp_token
-        set --prepend fzf_arguments --prompt="  " --preview="_fzf_preview_file $expanded_token{2}"
-        set -f file_paths_selected $unescaped_exp_token(
-            $fd_cmd 2>/dev/null | _fzf_shorten_path | _fzf_wrapper $fzf_arguments
-        )
+        set --prepend fzf_arguments --prompt="  " --preview="set -l _o (string split \\t -- {}); _fzf_preview_file $expanded_token\$_o[-1]"
+        set -f prefix $unescaped_exp_token
     else
-        set --prepend fzf_arguments --prompt="  " --query="$unescaped_exp_token" --preview='_fzf_preview_file {2}'
-        set -f file_paths_selected (
-            $fd_cmd 2>/dev/null | _fzf_shorten_path | _fzf_wrapper $fzf_arguments
-        )
+        set --prepend fzf_arguments --prompt="  " --query="$unescaped_exp_token" --preview='set -l _o (string split \t -- {}); _fzf_preview_file $_o[-1]'
+        set -f prefix ""
     end
 
-
+    set -f fzf_output (
+        $fd_cmd 2>/dev/null | _fzf_shorten_path | _fzf_wrapper $fzf_arguments
+    )
     if test $status -eq 0
+        set -f file_paths_selected
+        for line in $fzf_output
+            set --append file_paths_selected $prefix(string split \t -- $line)[-1]
+        end
         commandline --current-token --replace -- (string escape -- $file_paths_selected | string join ' ')
     end
 

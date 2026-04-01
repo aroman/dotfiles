@@ -2,7 +2,9 @@ function _fzf_search_git_status --description "Search the output of git status. 
     if not git rev-parse --git-dir >/dev/null 2>&1
         echo '_fzf_search_git_status: Not in a git repository.' >&2
     else
-        set -f preview_cmd 'echo; _fzf_preview_changed_file {2}'
+        # Work around fzf <=0.70 bug where {2} strips leading whitespace from fields.
+        # Extract the original line from {} by splitting on tab instead of using {2}.
+        set -f preview_cmd 'set -l _o (string split \t -- {}); echo; _fzf_preview_changed_file $_o[-1]'
         if set --query fzf_diff_highlighter
             set preview_cmd "$preview_cmd | $fzf_diff_highlighter"
         end
@@ -17,7 +19,6 @@ function _fzf_search_git_status --description "Search the output of git status. 
                 --preview=$preview_cmd \
                 --delimiter='\t' \
                 --with-nth=1 \
-                --accept-nth=2 \
                 $fzf_git_status_opts
         )
         if test $status -eq 0
@@ -26,12 +27,14 @@ function _fzf_search_git_status --description "Search the output of git status. 
             set -f cleaned_paths
 
             for path in $selected_paths
-                if test (string sub --length 1 $path) = R
+                # Extract original git status line from after the tab
+                set -l original (string split \t -- $path)[-1]
+                if test (string sub --length 1 $original) = R
                     # path has been renamed and looks like "R LICENSE -> LICENSE.md"
                     # extract the path to use from after the arrow
-                    set --append cleaned_paths (string split -- "-> " $path)[-1]
+                    set --append cleaned_paths (string split -- "-> " $original)[-1]
                 else
-                    set --append cleaned_paths (string sub --start=4 $path)
+                    set --append cleaned_paths (string sub --start=4 $original)
                 end
             end
 
