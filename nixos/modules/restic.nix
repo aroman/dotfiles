@@ -1,6 +1,8 @@
-{ config, ... }:
+{ config, pkgs, ... }:
 
 {
+  environment.systemPackages = [ pkgs.restic ];
+
   services.restic.backups.b2 = {
     repository = "b2:aroman-backups";
     passwordFile = "/etc/restic/password";
