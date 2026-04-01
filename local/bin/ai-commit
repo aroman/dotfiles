@@ -42,7 +42,7 @@ context=$(
   git diff --cached --stat
   echo ""
   echo "=== Diff ==="
-  echo "$diff" | head -c 15000
+  printf '%s' "${diff:0:15000}"
 )
 
 spin() {
