@@ -185,6 +185,66 @@ rcup -K
 
 Hosts are defined in `nixos/hosts/`. Rebuild alias: `bake`
 
+### Backups (NixOS)
+
+Both NixOS machines back up `/home/aroman` daily to [Backblaze B2](https://www.backblaze.com/cloud-storage) using [restic](https://restic.net/). Backup health is monitored by [Healthchecks.io](https://healthchecks.io/) — it alerts if a daily backup doesn't run.
+
+**Architecture:** restic encrypts and deduplicates client-side, then uploads to B2. Both machines share one B2 bucket and one restic repo. Restic tags snapshots by hostname automatically.
+
+**B2 setup:**
+- Bucket: `aroman-backups` (US West, private, no server-side encryption, no object lock)
+- Each machine has its own B2 application key scoped to only this bucket
+- Keys are named `restic-wizardtower` and `restic-moonbinder`
+
+**Retention:** 7 daily, 4 weekly, 6 monthly snapshots.
+
+**Secrets** (per-machine, not tracked in repo):
+
+| File | Contents | Shared? |
+|------|----------|---------|
+| `/etc/restic/password` | Restic repo encryption password | Same on all machines |
+| `/etc/restic/b2-env` | `B2_ACCOUNT_ID` and `B2_ACCOUNT_KEY` | Different per machine |
+| `/etc/restic/healthchecks-url` | Healthchecks.io ping URL | Different per machine |
+
+All stored in 1Password. The directory and files should be `chmod 700`/`600`, owned by root.
+
+**Setting up a new machine:**
+
+```bash
+sudo mkdir -p /etc/restic && sudo chmod 700 /etc/restic
+
+# Use the SAME restic password as other machines (from 1Password)
+sudo nano /etc/restic/password
+
+# Create a new B2 application key scoped to aroman-backups bucket
+# (B2 Console → App Keys → Add a New Application Key)
+sudo nano /etc/restic/b2-env
+# B2_ACCOUNT_ID=<keyID>
+# B2_ACCOUNT_KEY=<applicationKey>
+
+# Create a new Healthchecks.io check (Period: 1 day, Grace: 2 hours)
+sudo nano /etc/restic/healthchecks-url
+# https://hc-ping.com/<uuid>
+
+sudo chmod 600 /etc/restic/password /etc/restic/b2-env /etc/restic/healthchecks-url
+```
+
+**Manual operations:**
+
+```bash
+# Trigger a backup now
+sudo systemctl start restic-backups-b2.service
+
+# Watch backup progress
+sudo journalctl -fu restic-backups-b2.service
+
+# List snapshots
+sudo bash -c 'set -a && source /etc/restic/b2-env && restic -r b2:aroman-backups --password-file /etc/restic/password snapshots'
+
+# Restore a file
+sudo bash -c 'set -a && source /etc/restic/b2-env && restic -r b2:aroman-backups --password-file /etc/restic/password restore latest --target /tmp/restic-test --include /home/aroman/path/to/file'
+```
+
 ### URL Dispatching (NixOS / niri)
 
 A domain-based URL routing system that sends links to the right app and Chrome
