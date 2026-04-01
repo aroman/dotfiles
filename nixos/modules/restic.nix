@@ -64,5 +64,10 @@
       "--keep-weekly 4"
       "--keep-monthly 6"
     ];
+
+    # Ping Healthchecks.io on success (URL stored per-machine in /etc/restic/healthchecks-url)
+    backupCleanupCommand = ''
+      ${pkgs.curl}/bin/curl -fsS -m 10 --retry 5 "$(cat /etc/restic/healthchecks-url)"
+    '';
   };
 }
