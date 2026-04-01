@@ -1,5 +1,10 @@
 { config, pkgs, ... }:
 
+# Secrets required on each machine (not tracked in repo):
+#   /etc/restic/password         — restic repo encryption password (same on all machines)
+#   /etc/restic/b2-env           — B2_ACCOUNT_ID and B2_ACCOUNT_KEY (per-machine key)
+#   /etc/restic/healthchecks-url — Healthchecks.io ping URL (per-machine check)
+
 {
   environment.systemPackages = [ pkgs.restic ];
 
