@@ -34,7 +34,11 @@ abbr --add exifscrub "exiftool -all= "
 
 abbr --add gg "cd ~/Projects/magiccircle.gg"
 
+set -gx ANDROID_HOME "$HOME/Library/Android/sdk"
+
 if test (uname) = Darwin
+    fish_add_path $ANDROID_HOME/platform-tools
+    fish_add_path $ANDROID_HOME/emulator
     abbr --add serve "open 'http://127.0.0.1:8080' && bunx http-server ."
 else
     abbr --add serve "xdg-open 'http://127.0.0.1:8080' && bunx http-server ."
