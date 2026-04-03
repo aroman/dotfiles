@@ -41,5 +41,6 @@
     "rust-analyzer-lsp@claude-plugins-official": false
   },
   "voiceEnabled": false,
-  "skipDangerousModePermissionPrompt": true
+  "skipDangerousModePermissionPrompt": true,
+  "effortLevel": "high"
 }
