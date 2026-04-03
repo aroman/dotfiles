@@ -152,16 +152,18 @@
 		"JSON": {
 			"format_on_save": "on",
 			"formatter": {
-				"language_server": {
-					"name": "biome"
+				"external": {
+					"command": "biome",
+					"arguments": ["format", "--stdin-file-path={buffer_path}"]
 				}
 			}
 		},
 		"JSONC": {
 			"format_on_save": "on",
 			"formatter": {
-				"language_server": {
-					"name": "biome"
+				"external": {
+					"command": "biome",
+					"arguments": ["format", "--stdin-file-path={buffer_path}"]
 				}
 			}
 		},

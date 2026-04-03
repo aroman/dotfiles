@@ -250,6 +250,7 @@ in
     gcc # needed by tree-sitter to compile parsers
     gemini-cli
     zed-editor
+    biome
     typescript-language-server
 
     # Wayland tools
