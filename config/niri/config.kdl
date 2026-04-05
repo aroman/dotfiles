@@ -119,6 +119,15 @@ clipboard {
 // External monitors are configured individually because niri doesn't support
 // output-rule matching (see https://github.com/niri-wm/niri/discussions/2966).
 //
+// HDMI dummy plug for Moonlight streaming (3024x1964 = MacBook Pro native res).
+// Starts off; toggle-streaming-res or Sunshine prep-cmd activates it.
+output "Ugreen Group Ltd. UGREEN 0x20200210" {
+    off
+    scale 2.0
+    backdrop-color "#1D2029"
+    position x=0 y=0
+}
+
 // External: Home monitor (LG 27GN950 4K) — to the left, vertically centered
 output "LG Electronics 27GN950 203NTCZC4835" {
     scale 1.5

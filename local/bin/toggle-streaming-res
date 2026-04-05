@@ -1,13 +1,91 @@
 #!/usr/bin/env bash
-# Toggle DP-1 between normal desktop scale and streaming scale.
-# Streaming scale (2.0) makes UI bigger for remote viewing on a Mac.
+# Switch between local and remote display modes on wizardtower.
+#
+# Local mode:  LG monitor (DP-1) on, HDMI dummy off
+# Remote mode: LG off, HDMI dummy (HDMI-A-1) on at a mode matching
+#              the Moonlight client's requested resolution.
+#
+# Usage: toggle-streaming-res [remote|local]
+#   remote  — switch to remote mode. If called from Sunshine prep-cmd,
+#             reads SUNSHINE_CLIENT_WIDTH/HEIGHT/FPS to pick the best mode.
+#             Otherwise defaults to 3024x1964@90Hz (Mac 16" MBP).
+#   local   — switch back to local (LG) mode.
+#   (none)  — toggle between modes.
+#
+# Bound to Mod+Shift+D in niri config.
+# Called by Sunshine prep-cmd/undo-cmd for auto-switching.
 
-scale=$(niri msg -j outputs 2>/dev/null | grep -oP '"scale":\s*\K[0-9.]+' | head -1)
+set -euo pipefail
 
-if [ "$scale" = "1.5" ]; then
-    niri msg output DP-1 scale 2.0
-    notify-send "Display" "Switched to streaming scale (2.0)"
-else
-    niri msg output DP-1 scale 1.5
-    notify-send "Display" "Switched to desktop scale (1.5)"
-fi
+export NIRI_SOCKET="${NIRI_SOCKET:-$(ls /run/user/1000/niri*.sock 2>/dev/null | head -1)}"
+
+HDMI="HDMI-A-1"
+DP="DP-1"
+
+# Default remote mode (Mac 16" MBP native)
+DEFAULT_W=3024
+DEFAULT_H=1964
+DEFAULT_FPS=90
+
+# Pick best niri mode for target width/height/fps using jq.
+# Strategy: exact width×height match → closest refresh rate ≤ fps*1.1, else lowest.
+# If no exact match, fall back to closest by total pixel count.
+pick_mode() {
+    local tw=$1 th=$2 tfps=$3
+    local tfps_mhz=$((tfps * 1000))
+    local cap=$((tfps_mhz * 11 / 10))
+
+    niri msg -j outputs | jq -r --argjson tw "$tw" --argjson th "$th" --argjson cap "$cap" '
+        to_entries[] | select(.value.name == "HDMI-A-1") | .value.modes as $modes |
+        (
+            [ $modes[] | select(.width == $tw and .height == $th) ] as $exact |
+            if ($exact | length) > 0 then $exact
+            else
+                # No exact match: pick resolution closest in total pixels
+                ($tw * $th) as $target_px |
+                ($modes | min_by(((.width * .height) - $target_px) | fabs)) as $best |
+                [ $modes[] | select(.width == $best.width and .height == $best.height) ]
+            end
+        ) as $candidates |
+        ( [ $candidates[] | select(.refresh_rate <= $cap) ] ) as $within |
+        (if ($within | length) > 0
+            then ($within | max_by(.refresh_rate))
+            else ($candidates | min_by(.refresh_rate))
+        end) |
+        "\(.width)x\(.height)@\(.refresh_rate / 1000 | tostring | if contains(".") then . else . + ".0" end)"
+    '
+}
+
+switch_to_remote() {
+    local w="${SUNSHINE_CLIENT_WIDTH:-$DEFAULT_W}"
+    local h="${SUNSHINE_CLIENT_HEIGHT:-$DEFAULT_H}"
+    local fps="${SUNSHINE_CLIENT_FPS:-$DEFAULT_FPS}"
+    local mode
+    mode=$(pick_mode "$w" "$h" "$fps")
+
+    niri msg output "$HDMI" on
+    niri msg output "$HDMI" mode "$mode"
+    niri msg output "$HDMI" scale 2.0
+    niri msg output "$DP" off
+    notify-send "Display" "Remote mode: $mode (client asked ${w}x${h}@${fps})" 2>/dev/null || true
+}
+
+switch_to_local() {
+    niri msg output "$DP" on
+    niri msg output "$HDMI" off
+    notify-send "Display" "Local mode (LG)" 2>/dev/null || true
+}
+
+hdmi_is_on() {
+    niri msg -j outputs | jq -e '
+        to_entries[] | select(.value.name == "HDMI-A-1") | .value.current_mode != null
+    ' >/dev/null 2>&1
+}
+
+case "${1:-}" in
+    remote) switch_to_remote ;;
+    local)  switch_to_local ;;
+    *)
+        if hdmi_is_on; then switch_to_local; else switch_to_remote; fi
+        ;;
+esac

@@ -43,12 +43,17 @@ in
     settings = {
       encoder = "nvenc";
       capture = "kms";
+      output_name = "HDMI-A-1"; # capture from HDMI dummy plug (3024x1964 for Mac)
       origin_web_ui_allowed = "wan"; # allow access from Tailscale IPs
     };
     applications = {
       apps = [{
         name = "Desktop";
         image-path = "desktop.png";
+        prep-cmd = [{
+          do = "/home/aroman/.local/bin/toggle-streaming-res remote";
+          undo = "/home/aroman/.local/bin/toggle-streaming-res local";
+        }];
       }];
     };
   };

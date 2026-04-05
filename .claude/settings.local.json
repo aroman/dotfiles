@@ -152,7 +152,12 @@
       "Bash(nix profile list:*)",
       "WebFetch(domain:devenv.sh)",
       "Bash(ssh:*)",
-      "Bash(flatpak list:*)"
+      "Bash(flatpak list:*)",
+      "Read(//run/user/1000/**)",
+      "Bash(export NIRI_SOCKET)",
+      "Bash(ddcutil detect:*)",
+      "Bash(node -e:*)",
+      "WebFetch(domain:forums.developer.nvidia.com)"
     ]
   }
 }
