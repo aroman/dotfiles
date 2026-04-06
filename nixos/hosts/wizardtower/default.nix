@@ -43,7 +43,10 @@ in
     settings = {
       encoder = "nvenc";
       capture = "kms";
-      output_name = "HDMI-A-1"; # capture from HDMI dummy plug (3024x1964 for Mac)
+      # No output_name: Sunshine auto-picks the active DRM connector. Works because
+      # prep-cmd disables DP-1 (LG) before streaming, leaving HDMI-A-1 as the only
+      # active output. (Sunshine misparses string output_names like "HDMI-A-1" as
+      # integers on this version; numeric indices work but are fragile.)
       origin_web_ui_allowed = "wan"; # allow access from Tailscale IPs
     };
     applications = {

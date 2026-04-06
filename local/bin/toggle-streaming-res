@@ -17,10 +17,27 @@
 
 set -euo pipefail
 
-export NIRI_SOCKET="${NIRI_SOCKET:-$(ls /run/user/1000/niri*.sock 2>/dev/null | head -1)}"
-
 HDMI="HDMI-A-1"
 DP="DP-1"
+
+# Wait for niri socket (handles boot race where Sunshine starts before niri).
+wait_for_niri() {
+    local timeout=30 elapsed=0
+    while [ $elapsed -lt $timeout ]; do
+        local sock
+        sock=$(ls /run/user/1000/niri*.sock 2>/dev/null | head -1)
+        if [ -n "$sock" ] && niri msg -j outputs >/dev/null 2>&1; then
+            export NIRI_SOCKET="$sock"
+            return 0
+        fi
+        sleep 1
+        elapsed=$((elapsed + 1))
+    done
+    echo "toggle-streaming-res: niri socket not found after ${timeout}s" >&2
+    return 1
+}
+
+wait_for_niri
 
 # Default remote mode (Mac 16" MBP native)
 DEFAULT_W=3024
