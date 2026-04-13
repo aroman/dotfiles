@@ -25,7 +25,7 @@ format = "[$status]($style) "
 style = "#e57474"
 
 [cmd_duration]
-style = "#3b4548"
+style = "#6c7c7f"
 
 [nodejs]
 style = "#8ccf7e"
