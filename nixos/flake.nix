@@ -23,11 +23,38 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Using niri blur branch (PR #3483). Remove once blur is merged to main.
+    # ── niri build: pick ONE of the two niri-blur inputs below ──
+    #
+    # Active: pure blur branch (PR #3483).  Blur works, no cursor zoom.
+    # To switch to the cursor-zoom variant, comment this block out,
+    # uncomment the block after it, AND uncomment the matching blur-patch
+    # overlay in the `nixpkgs.overlays` list down in `mkSystem`.
+    # Remove all three when either PR lands in niri main.
     niri-blur = {
       url = "github:niri-wm/niri/wip/branch";
       flake = false;
     };
+
+    # Alternate: cursor-zoom branch (PR #3246) pinned to c6d807427 — the
+    # commit that was HEAD when Atan-D-RP4 posted the blur-companion patch
+    # attachment to PR #3246 on 2026-04-06.  Later rebases of that branch
+    # force-pushed newer history which partially-merged the blur PR's
+    # rendering half but not its config structs, breaking patch
+    # compatibility and leaving blur unconfigurable.
+    #
+    # The companion patch itself is "The rest of the blur PR" by YaLTeR
+    # (niri's maintainer), commit 1ba37d7c from 2026-02-21.  Download:
+    #   https://github.com/niri-wm/niri/pull/3246#issuecomment-4194759585
+    # Save to nixos/niri-blur-zoom.patch before baking.
+    #
+    # Even with all of the above, the patch's rendering-path hunks conflict
+    # with the blur branch's rendering pipeline (zoom-then-blur order vs.
+    # blur-then-zoom), so on its own it gives you a broken build.  Keep
+    # this parked for when upstream reconciliation becomes possible.
+    # niri-blur = {
+    #   url = "github:Atan-D-RP4/niri/c6d807427";
+    #   flake = false;
+    # };
 
     niri = {
       url = "github:sodiboo/niri-flake";
@@ -67,7 +94,33 @@
         } // extraSpecialArgs;
         modules = [
           niri.nixosModules.niri
-          { nixpkgs.overlays = [ niri.overlays.niri ]; }
+          {
+            nixpkgs.overlays = [
+              niri.overlays.niri
+              # Uncomment this overlay ONLY when switching to the
+              # cursor-zoom niri-blur input above — it applies the blur
+              # PR patch on top of the cursor-zoom branch.  The patch
+              # file is not checked in; fetch it per the instructions in
+              # the niri-blur input comment and save to
+              # nixos/niri-blur-zoom.patch before baking.
+              # (final: prev: {
+              #   niri-unstable = prev.niri-unstable.overrideAttrs (old:
+              #     let
+              #       patchedSrc = final.applyPatches {
+              #         name = "niri-blur-zoom-src";
+              #         src = old.src;
+              #         patches = [ ./niri-blur-zoom.patch ];
+              #       };
+              #     in {
+              #       src = patchedSrc;
+              #       cargoDeps = final.rustPlatform.importCargoLock {
+              #         lockFile = "${patchedSrc}/Cargo.lock";
+              #         allowBuiltinFetchGit = true;
+              #       };
+              #     });
+              # })
+            ];
+          }
           ./noctalia.nix
           home-manager.nixosModules.home-manager
           {

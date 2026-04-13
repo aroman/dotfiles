@@ -87,11 +87,11 @@
     "niri-blur": {
       "flake": false,
       "locked": {
-        "lastModified": 1774190104,
-        "narHash": "sha256-L/Ldq9G41Mj8WjWTuC+rePvWIx1A/tHdFpLbQmtrMSA=",
+        "lastModified": 1775982996,
+        "narHash": "sha256-ZHLgS5kvYRJd6jHsCjlKhvRyUZZQS4fDLipDXxsVlv0=",
         "owner": "niri-wm",
         "repo": "niri",
-        "rev": "d06dd4b9e60fa07120c217aa095f3ed8caac99f2",
+        "rev": "8cc8756bea3987c6bf13a3693a5c4acbfa896c34",
         "type": "github"
       },
       "original": {

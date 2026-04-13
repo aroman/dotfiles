@@ -732,6 +732,13 @@ binds {
     Mod+Alt+Down { set-window-height "+20%"; }
     Mod+Alt+Slash { reset-window-height; }
 
+    // Cursor-zoom (matches macOS Cmd+=/−/0).  Uncomment only when the
+    // cursor-zoom niri variant is active — see nixos/flake.nix `niri-blur`
+    // input.  `set-zoom-level` doesn't exist on the pure blur branch.
+    // Mod+Ctrl+Equal hotkey-overlay-title="Zoom In"    { set-zoom-level "+0.5"; }
+    // Mod+Ctrl+Minus hotkey-overlay-title="Zoom Out"   { set-zoom-level "-0.5"; }
+    // Mod+Ctrl+0     hotkey-overlay-title="Zoom Reset" { set-zoom-level "1.0"; }
+
     // Move the focused window between the floating and the tiling layout.
     Mod+V       { toggle-window-floating; }
     Mod+Shift+V { switch-focus-between-floating-and-tiling; }
