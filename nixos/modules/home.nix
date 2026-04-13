@@ -415,7 +415,7 @@ in
     timeouts = [
       # Power off monitors after 10 minutes idle.
       # Any input (mouse move, keypress) wakes them back up.
-      { timeout = 600; command = "niri msg action power-off-monitors"; }
+      { timeout = 600; command = "${pkgs.niri-unstable}/bin/niri msg action power-off-monitors"; }
       # Lock the session after 15 minutes idle.
       { timeout = 900; command = "noctalia-shell ipc call lockScreen lock"; }
     ];
