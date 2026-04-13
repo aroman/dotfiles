@@ -166,6 +166,9 @@
       nerd-fonts.caskaydia-cove
       inter
       geist-font
+      # Non-Latin script coverage (CJK, Cyrillic, Arabic, etc.)
+      noto-fonts
+      noto-fonts-cjk-sans
     ];
     fontconfig.defaultFonts = {
       monospace = [ "CaskaydiaCove Nerd Font" ];
