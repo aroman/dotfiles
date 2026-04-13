@@ -53,6 +53,19 @@
   # when no driver binds to it.
   boot.blacklistedKernelModules = [ "nouveau" "nvidia" "nvidia_drm" "nvidia_modeset" ];
 
+  # Power tuning identified via powertop + amd-s2idle analysis.
+  # Note: snd_hda_intel power_save is already enabled at kernel-config level
+  # (CONFIG_SND_HDA_POWER_SAVE_DEFAULT=10 in nixpkgs kernel), so no modprobe
+  # override is needed for it.
+  boot.kernel.sysctl = {
+    # Default 500 (5s). Raising to 15s lets NVMe stay parked longer between
+    # small writes; max dirty-page age is still bounded by dirty_expire (30s).
+    "vm.dirty_writeback_centisecs" = 1500;
+    # Hard-lockup detector fires periodic NMIs on every core, preventing the
+    # deepest idle. Disable on a daily-driver laptop where we'd reboot anyway.
+    "kernel.nmi_watchdog" = 0;
+  };
+
   # Firmware updates (Framework)
   services.fwupd.enable = true;
 
