@@ -12,7 +12,7 @@
   networking.networkmanager.enable = true;
 
   # Locale
-  time.timeZone = "America/Los_Angeles";
+  time.timeZone = null;  # managed at runtime via `timedatectl` / `tz` script
   i18n.defaultLocale = "en_US.UTF-8";
 
   # Niri compositor (provided by niri-flake)

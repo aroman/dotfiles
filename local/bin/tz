@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+tz=$(timedatectl list-timezones | fzf --prompt="timezone> " --height=40% --reverse)
+[ -n "$tz" ] && timedatectl set-timezone "$tz" && echo "→ $tz"
