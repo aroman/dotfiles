@@ -17,7 +17,7 @@ case "${1:-start}" in
     token=$(op read "op://Private/Cloudflare Tunnel - avi.magiccircle.dev/token") || exit 1
 
     LOGFILE="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/cloudflare-tunnel.log"
-    TUNNEL_TOKEN="$token" setsid cloudflared tunnel --metrics "$METRICS_ADDR" run \
+    TUNNEL_TOKEN="$token" nohup cloudflared tunnel --metrics "$METRICS_ADDR" run \
       </dev/null >>"$LOGFILE" 2>&1 &
     echo $! > "$PIDFILE"
     disown
