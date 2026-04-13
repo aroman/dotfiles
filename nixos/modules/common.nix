@@ -129,6 +129,31 @@
   # Also set console keymap for TTY
   console.useXkbConfig = true;
 
+  # kmscon: userspace KMS console with real font rendering, truecolor, and
+  # scrollback — replaces the in-kernel VT102 emulator on tty1/tty3-6.
+  # tty2 is reserved for niri (see `terminal.vt = 2` above).
+  services.kmscon = {
+    enable = true;
+    useXkbConfig = true;
+    hwRender = false;  # pixman software rendering; GL backend has been flakier
+    fonts = [{
+      name = "CaskaydiaCove Nerd Font";
+      package = pkgs.nerd-fonts.caskaydia-cove;
+    }];
+    extraConfig = ''
+      font-size=24
+      sb-size=10000
+      # kmscon uses evdev directly (no libinput), so touchpad gestures
+      # don't work — instead, raw BTN_* events from tap-to-click cause
+      # accidental PRIMARY-selection pastes. Disable mouse entirely; use
+      # Shift+PgUp/PgDn for scrollback.
+      no-mouse
+      xkb-repeat-delay=250
+      xkb-repeat-rate=40
+    '';
+  };
+  systemd.services."kmsconvt@tty2".enable = false;
+
   xdg.portal = {
     enable = true;
     extraPortals = [ pkgs.xdg-desktop-portal-gnome ];
