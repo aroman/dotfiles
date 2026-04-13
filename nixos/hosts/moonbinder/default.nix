@@ -48,6 +48,11 @@
   # Graphics (AMD iGPU — Ryzen AI 300 series)
   hardware.graphics.enable = true;
 
+  # Disable the NVIDIA dGPU entirely — blacklist nouveau so only the AMD iGPU
+  # is used. The NVIDIA GPU will power down automatically via PCIe ASPM/runtime PM
+  # when no driver binds to it.
+  boot.blacklistedKernelModules = [ "nouveau" "nvidia" "nvidia_drm" "nvidia_modeset" ];
+
   # Firmware updates (Framework)
   services.fwupd.enable = true;
 
@@ -75,6 +80,11 @@
   services.udev.extraRules = ''
     ACTION=="add", SUBSYSTEM=="thunderbolt", ATTRS{iommu_dma_protection}=="1", ATTR{authorized}=="0", ATTR{authorized}="1"
     KERNEL=="uinput", SUBSYSTEM=="misc", GROUP="input", MODE="0660"
+
+    # NVIDIA dGPU: enable PCI runtime PM so the GPU powers down when no driver is bound.
+    # The kernel module blacklist above prevents nvidia/nouveau from loading, but without
+    # this rule the GPU sits in PCI D0 (full power) drawing several watts for nothing.
+    ACTION=="add", SUBSYSTEM=="pci", ATTR{vendor}=="0x10de", ATTR{class}=="0x030000", ATTR{power/control}="auto"
   '';
 
   security.pam.services.greetd.fprintAuth = false;
