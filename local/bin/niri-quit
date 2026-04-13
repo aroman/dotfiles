@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+#
+# niri-quit — confirm and exit niri via systemd.
+#
+# Stopping niri.service (rather than calling `niri msg action quit`) routes
+# the exit through systemd's stop logic, which runs niri.service's ExecStop=
+# hook while niri is still alive — see nixos/modules/home.nix for the
+# ExecStop drop-in that tears down graphical-session.target cleanly.
+#
+# Bound to Mod+Shift+E and Ctrl+Alt+Delete in niri config.
+#
+set -euo pipefail
+
+choice="$(printf 'No, cancel\nYes, quit niri\n' \
+  | fuzzel --dmenu --prompt "Quit niri? ")" || exit 0
+
+[[ "$choice" == "Yes, quit niri" ]] || exit 0
+
+exec systemctl --user stop niri.service

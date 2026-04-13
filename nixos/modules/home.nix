@@ -492,6 +492,24 @@ in
     Install.WantedBy = [ "graphical-session.target" ];
   };
 
+  # ── niri.service ExecStop drop-in ────────────────────────────────
+  # Stop graphical-session.target *before* niri gets SIGTERM'd so PartOf=
+  # services (xdg-desktop-portal etc.) can tear down cleanly while niri's
+  # Wayland socket is still alive.  Without this, systemd-initiated stops
+  # (logout, shutdown, `systemctl stop niri.service`) yank the socket out
+  # from under dependents mid-shutdown and leave them in `failed` state,
+  # which blocks auto-start on the next login.  Workaround for niri#2435.
+  # https://github.com/niri-wm/niri/issues/2435
+  #
+  # Written as a raw drop-in via xdg.configFile (not
+  # systemd.user.services.niri) because the latter injects a narrow
+  # Environment=PATH= that would mask the user manager's PATH and break
+  # niri's spawn-at-startup for user-profile tools like noctalia-shell.
+  xdg.configFile."systemd/user/niri.service.d/50-execstop-graphical-session.conf".text = ''
+    [Service]
+    ExecStop=${pkgs.systemd}/bin/systemctl --user stop graphical-session.target
+  '';
+
   # ── Noctalia config sync ──────────────────────────────────────────
   # Copy declarative noctalia config to a writable runtime directory.
   # Noctalia mutates its own settings.json at runtime (noctalia-shell
