@@ -40,7 +40,15 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    vicinae.url = "github:vicinaehq/vicinae";
+    # Pinned to an explicit release tag so each bump is a deliberate edit
+    # with readable changelog context (vs. tracking the default branch).
+    # When bumping, verify the new tag is present in vicinae.cachix.org
+    # first — upstream's release pipeline only pushes some tags to cache,
+    # and a miss means a 5–15 min Qt/C++ from-source rebuild.
+    # Check: curl -sI https://vicinae.cachix.org/$(nix eval --raw \
+    #   .#nixosConfigurations.moonbinder.config.home-manager.users.aroman.services.vicinae.package \
+    #   | xargs basename | cut -d- -f1).narinfo
+    vicinae.url = "github:vicinaehq/vicinae/v0.20.11";
 
     lan-mouse = {
       url = "github:feschber/lan-mouse";
