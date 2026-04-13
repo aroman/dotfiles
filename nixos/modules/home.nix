@@ -41,6 +41,7 @@ in
     "ghostty".source = link "config/ghostty";
     "lazygit".source = link "config/lazygit";
     "starship.toml".source = link "config/starship.toml";
+    "xdg-terminals.list".text = "com.mitchellh.ghostty.desktop\n";
   };
 
   xdg.desktopEntries."dev.zed.Zed" = {
