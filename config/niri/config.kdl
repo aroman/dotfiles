@@ -427,6 +427,12 @@ window-rule {
     scroll-factor 0.15
 }
 
+// Ghostty scrolls uncomfortably fast by default; match the Chromium tier.
+window-rule {
+    match app-id=r#"^com\.mitchellh\.ghostty$"#
+    scroll-factor 0.25
+}
+
 window-rule {
     match app-id=r#"(?i)^spotify$"#
     match app-id=r#"^vesktop$"#
