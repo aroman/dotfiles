@@ -231,6 +231,8 @@ in
     ghostty
     kitty.kitten   # just the kitten CLI (icat for image previews), not the terminal app
     tree
+    tmux
+    zellij
     ripgrep
     delta
     difftastic
