@@ -26,19 +26,9 @@
   ];
 
   # Use latest stable kernel (6.19.x) — s0ix deep sleep works on 6.19.2+.
-  # Previously pinned to 6.17 due to MES hangs, now fixed by the TLB fence patch.
+  # MES hang fix (TLB fence rework) was backported into 6.19.11 stable, so the
+  # downstream patch is no longer needed.
   boot.kernelPackages = pkgs.linuxPackages_latest;
-
-  # Fix for MES (Micro Engine Scheduler) hangs on RDNA 3.5.
-  # Unconditional TLB fences tickle KIQ/MES bugs, causing ring buffer saturation
-  # → hung tasks → system freeze. This patch makes TLB fences conditional (only
-  # for compute/userspace queues). Merged upstream for kernel 7.0.
-  # Ref: https://lore.kernel.org/amd-gfx/20260316151636.1122226-1-alexander.deucher@amd.com/
-  # Remove once we're on kernel 7.0+.
-  boot.kernelPatches = [{
-    name = "amdgpu-tlb-fence-rework";
-    patch = ../../amdgpu-tlb-fence-rework.patch;
-  }];
 
   # Seamless ethernet↔WiFi failover (like macOS):
   # Both interfaces stay connected simultaneously. Route metrics control which
