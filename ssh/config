@@ -11,6 +11,11 @@ Match host * exec "test -f ~/.orbstack/ssh/config"
 Host *
   SendEnv COLORTERM
 
+Host moonbinder moonbinder.marlin-antares.ts.net dawnbinder dawnbinder.marlin-antares.ts.net wizardtower wizardtower.marlin-antares.ts.net
+  ControlMaster auto
+  ControlPath ~/.ssh/cm-%r@%h:%p
+  ControlPersist 10m
+
 Host moonbinder moonbinder.marlin-antares.ts.net
   HostName moonbinder.marlin-antares.ts.net
   SendEnv GHOSTTY_RESOURCES_DIR
