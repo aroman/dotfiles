@@ -111,7 +111,6 @@
     57621  # Spotify Connect
   ];
   networking.firewall.allowedUDPPorts = [
-    4242   # lan-mouse (mouse/keyboard sharing)
     7460   # belphegor (QUIC clipboard sharing)
   ];
 

@@ -77,11 +77,6 @@
     #   | xargs basename | cut -d- -f1).narinfo
     vicinae.url = "github:vicinaehq/vicinae/v0.20.11";
 
-    lan-mouse = {
-      url = "github:feschber/lan-mouse";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
   };
 
   outputs = inputs@{ self, nixpkgs, home-manager, nixos-hardware, niri, ... }:
