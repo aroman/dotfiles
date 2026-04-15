@@ -28,12 +28,9 @@ Item {
         switch (statusState) {
         case "connected": return "Connected";
         case "starting": return "Connecting...";
-        case "error": return "Error";
         default: return "Disconnected";
         }
     }
-
-    readonly property color stateColor: statusState === "error" ? Color.mError : Color.mOnSurface
 
     property bool expanded: false
     readonly property real capsuleWidth: isVertical ? capsuleHeight : iconLayout.implicitWidth + Style.marginS * 2
@@ -75,7 +72,7 @@ Item {
                     id: statusIcon
                     anchors.centerIn: parent
                     icon: root.iconName
-                    color: mouseArea.containsMouse ? Color.mOnHover : root.stateColor
+                    color: mouseArea.containsMouse ? Color.mOnHover : Color.mOnSurface
                     // Match built-in bar pill icon sizing (BarPillHorizontal.qml)
                     pointSize: Style.toOdd(root.capsuleHeight * 0.48)
                 }

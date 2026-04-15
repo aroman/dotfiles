@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.Commons
+import qs.Services.UI
 
 Item {
     id: root
@@ -25,11 +26,10 @@ Item {
         stdout: SplitParser {
             onRead: function(data) {
                 var state = data.trim();
-                if (state === "connected" || state === "starting" || state === "disconnected") {
-                    root.statusState = state;
-                } else {
-                    root.statusState = "disconnected";
+                if (state !== "connected" && state !== "starting" && state !== "disconnected") {
+                    state = "disconnected";
                 }
+                root.statusState = state;
             }
         }
 
@@ -40,24 +40,29 @@ Item {
         }
     }
 
+    function handleActionExit(verb, exitCode, errText) {
+        if (exitCode !== 0) {
+            ToastService.showError("Cloudflare Tunnel failed to " + verb,
+                errText.trim() || ("cloudflare-tunnel " + verb + " exited with code " + exitCode));
+        }
+        pollTimer.restart();
+    }
+
     Process {
         id: startProc
         command: ["cloudflare-tunnel", "start"]
-
+        stderr: StdioCollector {}
         onExited: function(exitCode, exitStatus) {
-            if (exitCode !== 0) {
-                root.statusState = "error";
-            }
-            pollTimer.restart();
+            root.handleActionExit("start", exitCode, stderr.text);
         }
     }
 
     Process {
         id: stopProc
         command: ["cloudflare-tunnel", "stop"]
-
+        stderr: StdioCollector {}
         onExited: function(exitCode, exitStatus) {
-            pollTimer.restart();
+            root.handleActionExit("stop", exitCode, stderr.text);
         }
     }
 

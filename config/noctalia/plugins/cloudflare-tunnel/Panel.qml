@@ -39,7 +39,7 @@ Item {
 
                 NIcon {
                     icon: root.statusState === "disconnected" ? "broadcast-off" : "broadcast"
-                    color: root.statusState === "error" ? Color.mError : Color.mOnSurface
+                    color: Color.mOnSurface
                     pointSize: Style.fontSizeL
                 }
 
