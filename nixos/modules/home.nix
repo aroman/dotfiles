@@ -229,7 +229,29 @@ in
     bat
     eza
     fzf
-    ghostty
+    # Wrap ghostty to expose GStreamer plugins — without this, the audio bell
+    # (bell-features = audio) aborts the process via a fatal g_log from
+    # gst_play_main when playbin can't find its element factories. See
+    # https://github.com/ghostty-org/ghostty/pull/2231 for upstream context.
+    # The .desktop file also has to be rewritten because nixpkgs hardcodes
+    # the unwrapped ghostty path into Exec=/TryExec=, so XDG launchers
+    # (vicinae, xdg-terminal-exec) would otherwise bypass the wrapper.
+    (symlinkJoin {
+      name = "ghostty-gst-wrapped";
+      paths = [ ghostty ];
+      nativeBuildInputs = [ makeWrapper ];
+      postBuild = ''
+        rm $out/bin/ghostty
+        makeWrapper ${ghostty}/bin/ghostty $out/bin/ghostty \
+          --prefix GST_PLUGIN_SYSTEM_PATH_1_0 : "${gst_all_1.gstreamer}/lib/gstreamer-1.0:${gst_all_1.gst-plugins-base}/lib/gstreamer-1.0:${gst_all_1.gst-plugins-good}/lib/gstreamer-1.0"
+
+        rm $out/share/applications/com.mitchellh.ghostty.desktop
+        substitute \
+          ${ghostty}/share/applications/com.mitchellh.ghostty.desktop \
+          $out/share/applications/com.mitchellh.ghostty.desktop \
+          --replace-fail "${ghostty}/bin/ghostty" "$out/bin/ghostty"
+      '';
+    })
     kitty.kitten   # just the kitten CLI (icat for image previews), not the terminal app
     tree
     tmux
