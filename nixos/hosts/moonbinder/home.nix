@@ -30,6 +30,7 @@ in
   ];
 
   home.packages = with pkgs; [
+    android-studio
     brightnessctl
     websocat     # WebSocket CLI — used by figma-open to navigate via CDP
     figma-agent  # serves local fonts to Figma web (needs Windows user-agent)

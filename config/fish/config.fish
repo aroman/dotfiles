@@ -34,15 +34,15 @@ abbr --add exifscrub "exiftool -all= "
 
 abbr --add gg "cd ~/Projects/magiccircle.gg"
 
-set -gx ANDROID_HOME "$HOME/Library/Android/sdk"
-
 if test (uname) = Darwin
-    fish_add_path $ANDROID_HOME/platform-tools
-    fish_add_path $ANDROID_HOME/emulator
+    set -gx ANDROID_HOME "$HOME/Library/Android/sdk"
     abbr --add serve "open 'http://127.0.0.1:8080' && bunx http-server ."
 else
+    set -gx ANDROID_HOME "$HOME/Android/Sdk"
     abbr --add serve "xdg-open 'http://127.0.0.1:8080' && bunx http-server ."
 end
+fish_add_path $ANDROID_HOME/platform-tools
+fish_add_path $ANDROID_HOME/emulator
 abbr --add c "claude --dangerously-skip-permissions"
 abbr --add dotc "cd $DOTFILES_DIR && claude --dangerously-skip-permissions"
 abbr --add yolo "claude --dangerously-skip-permissions"

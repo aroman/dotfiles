@@ -186,7 +186,7 @@
   users.users.aroman = {
     isNormalUser = true;
     description = "aroman";
-    extraGroups = [ "wheel" "networkmanager" "video" "input" "i2c" "audio" ];
+    extraGroups = [ "wheel" "networkmanager" "video" "input" "i2c" "audio" "kvm" ];
     shell = pkgs.fish;
   };
 
@@ -244,6 +244,7 @@
 
   # Core system packages (user packages go in home.nix)
   environment.systemPackages = with pkgs; [
+    android-tools  # adb + fastboot (udev rules handled by systemd 258)
     chafa
     curl
     file
