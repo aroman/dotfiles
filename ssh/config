@@ -32,5 +32,8 @@ Host wizardtower wizardtower.marlin-antares.ts.net
   ForwardAgent yes
 
 Host github.com
+  # Route through port 443 so SSH works on networks that block port 22
+  Hostname ssh.github.com
+  Port 443
   AddKeysToAgent yes
   UseKeychain yes
