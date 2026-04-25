@@ -11,6 +11,12 @@
   # Networking
   networking.networkmanager.enable = true;
 
+  # iPhone USB tethering — runs usbmuxd + libimobiledevice and installs udev
+  # rules so the ipheth kernel driver exposes the phone as a USB Ethernet
+  # interface that NetworkManager can DHCP on. More stable than Wi-Fi hotspot
+  # (no radio jitter) and charges the phone at the same time.
+  services.usbmuxd.enable = true;
+
   # Locale
   time.timeZone = null;  # managed at runtime via `timedatectl` / `tz` script
   i18n.defaultLocale = "en_US.UTF-8";
