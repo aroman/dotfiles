@@ -32,7 +32,6 @@ in
   home.sessionVariables.JAVA_HOME = "${pkgs.jdk17}";
 
   home.packages = with pkgs; [
-    android-studio
     jdk17
     brightnessctl
     websocat     # WebSocket CLI — used by figma-open to navigate via CDP
