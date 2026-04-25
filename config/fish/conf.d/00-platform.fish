@@ -24,8 +24,6 @@ if test (uname) = Linux
     alias zed="zeditor"
     alias bake="sudo nixos-rebuild switch --flake $DOTFILES_DIR/nixos && rcup -K"
     alias yt-dlp="nix run nixpkgs#yt-dlp --"
-    alias codex="nix run github:sadjow/codex-cli-nix --"
-    alias claude="nix run github:sadjow/claude-code-nix --"
 end
 
 set -x GPG_TTY (tty)
