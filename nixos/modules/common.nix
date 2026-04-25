@@ -266,6 +266,7 @@
     git
     lazygit
     lsof
+    xwayland-satellite  # X11 support for niri — auto-spawned on demand
   ];
 
   nix.settings = {
