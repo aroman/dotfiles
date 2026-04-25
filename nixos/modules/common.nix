@@ -17,6 +17,15 @@
   # (no radio jitter) and charges the phone at the same time.
   services.usbmuxd.enable = true;
 
+  # Use systemd-resolved so per-interface DNS works properly (Tailscale
+  # MagicDNS on tailscale0, DHCP-provided DNS on wlan0/eth0). The fallback
+  # servers kick in when all per-interface servers are unreachable — e.g.
+  # hotel WiFi that blocks Tailscale's WireGuard UDP before the tunnel is up.
+  services.resolved = {
+    enable = true;
+    fallbackDns = [ "1.1.1.1" "8.8.8.8" ];
+  };
+
   # Locale
   time.timeZone = null;  # managed at runtime via `timedatectl` / `tz` script
   i18n.defaultLocale = "en_US.UTF-8";
