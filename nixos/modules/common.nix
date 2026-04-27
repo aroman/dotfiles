@@ -93,19 +93,6 @@
             "bluez5.enable-sbc-xq" = true;   # better quality SBC codec variant
             "bluez5.enable-msbc" = true;      # wideband voice for HFP calls
             "bluez5.enable-hw-volume" = true;  # sync volume to device hardware
-
-            # 2026-04-25: LDAC currently broken in this nixpkgs pin (PipeWire
-            # 1.6.2 + buggy libldac-dec from O2C14, which is a Ghidra-decompiled
-            # decoder). Fails with LDACBT_ERR_FATAL during init and silently
-            # kills A2DP entirely instead of falling back. Workaround lives in
-            #   ~/.config/wireplumber/wireplumber.conf.d/51-disable-ldac.conf
-            # (whitelists sbc/sbc_xq/aac/msbc/cvsd to exclude ldac).
-            #
-            # Proper fix is in nixos-unstable HEAD (PRs #502690 + #506221:
-            # switch source to AOSP via open-vela/external_libldac, make decoder
-            # support opt-out). Pick it up on next `nix flake update nixpkgs`,
-            # then delete the drop-in. Or move the whitelist into this block
-            # if you want to stay on the current pin.
           };
         };
       };
