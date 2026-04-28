@@ -41,7 +41,8 @@
     "swift-lsp@claude-plugins-official": false,
     "rust-analyzer-lsp@claude-plugins-official": false
   },
-  "voiceEnabled": false,
+  "effortLevel": "high",
   "skipDangerousModePermissionPrompt": true,
-  "effortLevel": "high"
+  "voiceEnabled": false,
+  "agentPushNotifEnabled": true
 }
