@@ -31,6 +31,13 @@ Host wizardtower wizardtower.marlin-antares.ts.net
   SendEnv GHOSTTY_RESOURCES_DIR
   ForwardAgent yes
 
+# Forward the opener(1) socket so xdg-open on the remote opens URLs in the
+# local browser via opener.  The `exec` test only matches when the socket
+# exists locally (i.e., when the client is the Mac running `brew services
+# start superbrothers/opener/opener`); Linux→Linux SSH skips this cleanly.
+Match host moonbinder,moonbinder.marlin-antares.ts.net,dawnbinder,dawnbinder.marlin-antares.ts.net,wizardtower,wizardtower.marlin-antares.ts.net exec "test -S ~/.opener.sock"
+  RemoteForward /home/aroman/.opener.sock ~/.opener.sock
+
 Host github.com
   # Route through port 443 so SSH works on networks that block port 22
   Hostname ssh.github.com

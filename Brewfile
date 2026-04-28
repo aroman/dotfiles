@@ -18,6 +18,7 @@ brew "git-lfs"
 brew "jq"
 brew "mas"
 brew "neovim"
+brew "superbrothers/opener/opener" # daemon: `open URL` on Mac when xdg-open fires on a remote host (see ssh/config)
 brew "pinentry-mac"
 brew "rcm"
 brew "ripgrep"
