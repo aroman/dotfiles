@@ -36,7 +36,7 @@ Host wizardtower wizardtower.marlin-antares.ts.net
 # exists locally (i.e., when the client is the Mac running `brew services
 # start superbrothers/opener/opener`); Linux→Linux SSH skips this cleanly.
 Match host moonbinder*,dawnbinder*,wizardtower* exec "test -S ~/.opener.sock"
-  RemoteForward /home/aroman/.opener.sock ~/.opener.sock
+  RemoteForward /home/aroman/.opener.sock %d/.opener.sock
 
 Host github.com
   # Route through port 443 so SSH works on networks that block port 22
