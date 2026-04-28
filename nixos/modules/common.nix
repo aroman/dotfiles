@@ -145,6 +145,10 @@
   # SSH + Mosh
   services.openssh.enable = true;
   services.openssh.settings.AcceptEnv = [ "GHOSTTY_RESOURCES_DIR" "COLORTERM" ];
+  # Auto-remove forwarded UNIX sockets (e.g. ~/.opener.sock from RemoteForward)
+  # when the SSH session ends — without this, the socket file lingers and the
+  # next reconnect fails with "remote port forwarding failed for listen path".
+  services.openssh.settings.StreamLocalBindUnlink = "yes";
   programs.mosh.enable = true;
 
   # Tailscale

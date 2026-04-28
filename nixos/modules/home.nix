@@ -225,14 +225,16 @@ in
     # Core CLI
     rcm          # dotfile manager — `rcup` symlinks local/bin/* → ~/.local/bin/* etc.
     handlr-regex # URL dispatcher — routes links to the right app by domain
-    # opener: when SSH'd in, `xdg-open URL` writes to ~/.opener.sock (forwarded
-    # from the Mac via ssh/config), which runs `open URL` on the Mac — Velja
-    # then routes the URL just like handlr-regex does locally. At the console
-    # the shim falls through to real xdg-open → handlr → Chrome.
-    opener
+    # opener: when SSH'd in, `xdg-open URL` writes the URL to ~/.opener.sock
+    # (forwarded from the Mac via ssh/config), which runs `open URL` on the
+    # Mac — Velja then routes the URL just like handlr-regex does locally.
+    # At the console the shim falls through to real xdg-open → handlr → Chrome.
+    # The wire protocol is just "URL\n" over the UNIX socket; mirrors the
+    # upstream fake xdg-open at superbrothers/opener:bin/xdg-open.
     (writeShellScriptBin "xdg-open" ''
       if [ -n "$SSH_CONNECTION" ] && [ -S "$HOME/.opener.sock" ]; then
-        exec ${opener}/bin/opener open "$@"
+        echo "$1" | ${netcat-openbsd}/bin/nc -U "$HOME/.opener.sock"
+        exit $?
       fi
       exec ${xdg-utils}/bin/xdg-open "$@"
     '')
