@@ -39,8 +39,7 @@
 		"auto_fold_dirs": true,
 		"show_diagnostics": "all",
 		"git_status_indicator": true,
-		"git_status": false,
-		"git_colors": false
+		"git_status": true,
 	},
 	"double_click_in_multibuffer": "open",
 	"indent_guides": {
