@@ -35,7 +35,7 @@ Host wizardtower wizardtower.marlin-antares.ts.net
 # local browser via opener.  The `exec` test only matches when the socket
 # exists locally (i.e., when the client is the Mac running `brew services
 # start superbrothers/opener/opener`); Linux→Linux SSH skips this cleanly.
-Match host moonbinder,moonbinder.marlin-antares.ts.net,dawnbinder,dawnbinder.marlin-antares.ts.net,wizardtower,wizardtower.marlin-antares.ts.net exec "test -S ~/.opener.sock"
+Match host moonbinder*,dawnbinder*,wizardtower* exec "test -S ~/.opener.sock"
   RemoteForward /home/aroman/.opener.sock ~/.opener.sock
 
 Host github.com
