@@ -10,6 +10,11 @@ in
 
   networking.hostName = "wizardtower";
 
+  # Magic Circle dev servers — exposed to Tailscale peers only (loopback is already exempt).
+  networking.firewall.interfaces.tailscale0.allowedTCPPortRanges = [
+    { from = 4000; to = 5000; }
+  ];
+
   # Use latest stable kernel
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
