@@ -39,7 +39,8 @@
   },
   "enabledPlugins": {
     "swift-lsp@claude-plugins-official": false,
-    "rust-analyzer-lsp@claude-plugins-official": false
+    "rust-analyzer-lsp@claude-plugins-official": false,
+    "typescript-lsp@claude-plugins-official": true
   },
   "effortLevel": "high",
   "skipDangerousModePermissionPrompt": true,
