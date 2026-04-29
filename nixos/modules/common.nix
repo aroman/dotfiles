@@ -153,7 +153,6 @@
 
   # Tailscale
   services.tailscale.enable = true;
-  services.tailscale.extraSetFlags = [ "--ssh" ];
 
   # Flatpak (TexturePacker, etc.)
   services.flatpak.enable = true;
