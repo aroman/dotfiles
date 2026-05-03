@@ -9,7 +9,7 @@ macos-option-as-alt = true
 macos-titlebar-proxy-icon = hidden
 
 # Quick terminal (quake visor)
-keybind = global:ctrl+grave_accent=toggle_quick_terminal
+keybind = global:super+grave_accent=toggle_quick_terminal
 quick-terminal-position = top
 quick-terminal-screen = main
 quick-terminal-animation-duration = 0.2
