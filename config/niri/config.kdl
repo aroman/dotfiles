@@ -472,6 +472,11 @@ layer-rule {
         spread 20
         color "#01040977"
     }
+    // Override vicinae's default xray blur (cheap wallpaper-only) with real
+    // backdrop blur of whatever's actually behind the launcher.
+    background-effect {
+        xray false
+    }
 }
 
 binds {
@@ -506,6 +511,11 @@ binds {
     Mod+U hotkey-overlay-title="Start Batman" { spawn "sh" "-c" "~/.local/bin/batman-picker"; }
     Mod+G hotkey-overlay-title="magiccircle.gg" { spawn "google-chrome-stable" "--profile-directory=Profile 1" "--new-window" "--hide-crash-restore-bubble" "https://magiccircle.gg"; }
     Mod+B hotkey-overlay-title="Open Browser" { spawn "xdg-open" "https://"; }
+    // Work around Chrome Wayland tab-modal dialogs initially placed offscreen
+    // on niri: a real size configure forces Chromium to recompute dialog bounds.
+    // Toggling Chrome's system title bar setting also repairs one presentation,
+    // which points at stale Chrome frame/layout state rather than a niri popup.
+    Mod+Shift+B hotkey-overlay-title="Repair Chrome Modal" { spawn-sh "niri msg action set-window-width +1; niri msg action set-window-width -1"; }
     // No-op binding to suppress Mod+' from reaching the focused app.
     // Voxtype (push-to-talk dictation) listens for this hotkey via evdev, which
     // works independently of the compositor. But without a niri binding to consume
