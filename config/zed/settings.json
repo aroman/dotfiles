@@ -13,7 +13,8 @@
 	"when_closing_with_no_tabs": "platform_default",
 	"on_last_window_closed": "platform_default",
 	"git_panel": {
-		"tree_view": false,
+		"dock": "left",
+  "tree_view": false,
 		"show_count_badge": true,
 		"file_icons": true,
 	},
@@ -34,7 +35,8 @@
 		"breakpoints": false
 	},
 	"project_panel": {
-		"hide_root": true,
+		"dock": "left",
+  "hide_root": true,
 		"bold_folder_labels": false,
 		"auto_fold_dirs": true,
 		"show_diagnostics": "all",
@@ -74,16 +76,15 @@
 		}
 	},
 	"outline_panel": {
-		"button": false
+		"dock": "left",
+  "button": false
 	},
 	// "project_search": {
 	// 	"button": false
 	// },
 	"collaboration_panel": {
-		"button": false
-	},
-	"notification_panel": {
-		"button": false
+		"dock": "left",
+  "button": false
 	},
 	"terminal": {
 		"dock": "right",
@@ -102,7 +103,7 @@
 		"show_tab_bar_buttons": false
 	},
 	"tabs": {
-		"show_diagnostics": "all"
+		"show_diagnostics": "all",
 	},
 	"base_keymap": "VSCode",
 	"linux": {

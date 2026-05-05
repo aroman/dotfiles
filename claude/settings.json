@@ -39,11 +39,10 @@
   },
   "enabledPlugins": {
     "swift-lsp@claude-plugins-official": false,
-    "rust-analyzer-lsp@claude-plugins-official": false,
-    "typescript-lsp@claude-plugins-official": true
+    "rust-analyzer-lsp@claude-plugins-official": false
   },
   "effortLevel": "high",
   "skipDangerousModePermissionPrompt": true,
-  "voiceEnabled": false,
-  "agentPushNotifEnabled": true
+  "agentPushNotifEnabled": true,
+  "voiceEnabled": false
 }
