@@ -283,6 +283,11 @@
     xwayland-satellite  # X11 support for niri — auto-spawned on demand
   ];
 
+  programs.nh = {
+    enable = true;
+    flake = "/home/aroman/Projects/dotfiles/nixos";
+  };
+
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
     substituters = [

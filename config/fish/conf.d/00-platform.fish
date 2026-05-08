@@ -22,7 +22,7 @@ set -g nvm_default_version lts
 
 if test (uname) = Linux
     alias zed="zeditor"
-    alias bake="sudo nixos-rebuild switch --flake $DOTFILES_DIR/nixos && rcup -K"
+    alias bake="nh os switch && rcup -K"
     alias yt-dlp="nix run nixpkgs#yt-dlp --"
 end
 
