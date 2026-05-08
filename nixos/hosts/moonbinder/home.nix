@@ -1,13 +1,13 @@
 { config, pkgs, lib, inputs, ... }:
 
 let
-  # Patch voxtype to fix duplicate transcription notifications.
-  # Both the daemon and each output driver send notify-send on transcription;
-  # this removes the per-driver call.
+  # Patch voxtype to add dotool to the paste keystroke fallback chain so
+  # GTK4 apps receive Ctrl+Shift+V (their GtkShortcutController ignores
+  # wtype's virtual keyboard events; eitype would help but needs libeis,
+  # which niri doesn't yet provide — see niri-wm/niri#1966).
   voxtypePatched = let
     unwrapped = inputs.voxtype.packages.x86_64-linux.voxtype-vulkan-unwrapped.overrideAttrs (prev: {
       patches = (prev.patches or []) ++ [
-        ../../patches/voxtype-fix-duplicate-notification.patch
         ../../patches/voxtype-paste-dotool-fallback.patch
       ];
     });

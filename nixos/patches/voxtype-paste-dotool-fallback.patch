@@ -1,12 +1,12 @@
 diff --git a/src/output/paste.rs b/src/output/paste.rs
-index 148b4cf..5a903b2 100644
+index 7f408f1..c9edcc6 100644
 --- a/src/output/paste.rs
 +++ b/src/output/paste.rs
-@@ -627,9 +627,85 @@ impl PasteOutput {
+@@ -695,9 +695,85 @@ impl PasteOutput {
          Ok(())
      }
  
--    /// Simulate paste keystroke, trying wtype first then ydotool
+-    /// Simulate paste keystroke, trying wtype first, then eitype, then ydotool
 +    /// Check if dotool is available
 +    async fn is_dotool_available(&self) -> bool {
 +        Command::new("which")
@@ -68,7 +68,7 @@ index 148b4cf..5a903b2 100644
 +    }
 +
 +    /// Simulate paste keystroke, trying dotool first (uinput — works with
-+    /// GTK4 apps), then wtype, then ydotool.
++    /// GTK4 apps), then wtype, then eitype, then ydotool.
      async fn simulate_paste_keystroke(&self) -> Result<(), OutputError> {
 -        // Try wtype first (preferred - no daemon needed)
 +        // Try dotool first (uinput-based — keystroke is indistinguishable
@@ -90,12 +90,12 @@ index 148b4cf..5a903b2 100644
          if self.is_wtype_available().await {
              match self.simulate_paste_wtype().await {
                  Ok(()) => {
-@@ -657,7 +733,7 @@ impl PasteOutput {
+@@ -738,7 +814,7 @@ impl PasteOutput {
          }
  
          Err(OutputError::CtrlVFailed(
--            "Neither wtype nor ydotool available for paste keystroke".to_string(),
-+            "No tool available for paste keystroke (tried dotool, wtype, ydotool)".to_string(),
+-            "No keystroke tool available (tried wtype, eitype, ydotool)".to_string(),
++            "No keystroke tool available (tried dotool, wtype, eitype, ydotool)".to_string(),
          ))
      }
  
