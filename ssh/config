@@ -29,7 +29,6 @@ Host dawnbinder dawnbinder.marlin-antares.ts.net
 Host wizardtower wizardtower.marlin-antares.ts.net
   HostName wizardtower.marlin-antares.ts.net
   SendEnv GHOSTTY_RESOURCES_DIR
-  ForwardAgent yes
 
 # Forward the opener(1) socket so xdg-open on the remote opens URLs in the
 # local browser via opener.  The `exec` test only matches when the socket

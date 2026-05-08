@@ -78,4 +78,13 @@ in
     enable = true;
     polkitPolicyOwners = [ "aroman" ];
   };
+
+  # Headless: no graphical login means PAM never grabs a login password to
+  # unlock the keyring, so gnome-keyring-daemon can't actually serve
+  # secrets/keys here. Worse, its PAM module exports SSH_AUTH_SOCK to its
+  # own (locked, useless) socket at session start, shadowing the OpenSSH
+  # ssh-agent we run via programs.ssh.startAgent. No NixOS option exists
+  # to disable just the SSH bit (nixpkgs#166887), so we turn the whole
+  # keyring off on this host.
+  services.gnome.gnome-keyring.enable = lib.mkForce false;
 }

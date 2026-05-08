@@ -138,6 +138,13 @@
   services.openssh.settings.StreamLocalBindUnlink = "yes";
   programs.mosh.enable = true;
 
+  # Local ssh-agent so passphrased keys can be unlocked once and stay loaded
+  # across SSH sessions (vs. relying on agent forwarding, whose per-connection
+  # SSH_AUTH_SOCK goes stale inside long-lived tmux panes).
+  # Pair with `loginctl enable-linger <user>` so the agent survives between
+  # disconnects — then `ssh-add` is a once-per-boot operation.
+  programs.ssh.startAgent = true;
+
   # Tailscale
   services.tailscale.enable = true;
 
@@ -206,6 +213,10 @@
     description = "aroman";
     extraGroups = [ "wheel" "networkmanager" "video" "input" "i2c" "audio" "kvm" ];
     shell = pkgs.fish;
+    # Keep the user systemd instance alive between logins so ssh-agent
+    # (programs.ssh.startAgent) survives across SSH disconnects — making
+    # `ssh-add` a once-per-boot operation rather than once-per-login.
+    linger = true;
   };
 
   # Enable fish system-wide (needed for it to be a valid login shell)
