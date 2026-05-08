@@ -90,6 +90,11 @@
   # explicit authorization. This udev rule auto-authorizes any Thunderbolt device,
   # but only when IOMMU DMA protection is active — which means the hardware itself
   # prevents unauthorized memory access, making the software security level redundant.
+  # Load uinput at early boot so /dev/uinput exists with the udev rule
+  # applied before user services (vicinae, voxtype) start — otherwise
+  # they race the on-demand module load and silently disable paste.
+  boot.kernelModules = [ "uinput" ];
+
   services.udev.extraRules = ''
     ACTION=="add", SUBSYSTEM=="thunderbolt", ATTRS{iommu_dma_protection}=="1", ATTR{authorized}=="0", ATTR{authorized}="1"
     KERNEL=="uinput", SUBSYSTEM=="misc", GROUP="input", MODE="0660"
