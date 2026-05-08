@@ -170,4 +170,24 @@
   # Fan control for Framework (using default curves for now)
   # Custom curves from Silverblue backup are in NixLifeboat/fw-fanctrl-config.json
   hardware.fw-fanctrl.enable = true;
+
+  # ── Sunshine (remote desktop streaming) ──────────────────────────
+  # Streams the desktop to Moonlight clients. VAAPI for hardware-accelerated
+  # encoding on the Radeon 860M (Krackan Point, VCN 4.x — H.264/HEVC/AV1).
+  #
+  # capture = "wlr": uses zwlr_screencopy_manager_v1, which niri implements.
+  # KMS capture (used on wizardtower) returns 0x0 plane resolution against
+  # niri's atomic modesetting on AMD, so wlr is the working path here.
+  # uinput rule + input group are already configured above / in common.nix.
+  services.sunshine = {
+    enable = true;
+    autoStart = true;
+    capSysAdmin = true; # still recommended for full Wayland capture support
+    openFirewall = false; # Tailscale's ts-input chain already allows traffic between peers
+    settings = {
+      encoder = "vaapi";
+      capture = "wlr";
+      origin_web_ui_allowed = "wan"; # allow access from Tailscale IPs
+    };
+  };
 }
