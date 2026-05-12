@@ -308,7 +308,16 @@
 
   # Electron/Chromium apps: use native Wayland
   environment.sessionVariables.NIXOS_OZONE_WL = "1";
-  environment.sessionVariables.QT_STYLE_OVERRIDE = "adwaita-dark";
+
+  # Qt theming — installs adwaita-qt for both Qt5 and Qt6 and sets
+  # QT_STYLE_OVERRIDE / QT_QPA_PLATFORMTHEME. Required so Tiled's
+  # "Native" application-style preference resolves to adwaita-dark
+  # (without this, Qt5 falls back to light Fusion).
+  qt = {
+    enable = true;
+    platformTheme = "gnome";
+    style = "adwaita-dark";
+  };
 
   # Core system packages (user packages go in home.nix)
   environment.systemPackages = with pkgs; [
