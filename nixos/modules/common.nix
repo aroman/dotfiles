@@ -259,6 +259,14 @@
   # Removable media (udisks2 + gvfs so Nautilus can detect/mount USB drives)
   services.udisks2.enable = true;
   services.gvfs.enable = true;
+  # Drop the wsdd backend (Windows network discovery). gvfs ships wsdd.mount
+  # but not the `wsdd` helper, so Nautilus' network browser spams
+  # "Failed to spawn the wsdd daemon" every time it enumerates mounts.
+  services.gvfs.package = pkgs.gnome.gvfs.overrideAttrs (prev: {
+    postInstall = (prev.postInstall or "") + ''
+      rm -f $out/share/gvfs/mounts/wsdd.mount $out/libexec/gvfsd-wsdd
+    '';
+  });
   # gvfs ships five volume monitors and starts them all at login. Mask the
   # two that are pure dead weight here: no digital camera, no GNOME Online
   # Accounts (Google Drive in Nautilus). D-Bus activation uses
