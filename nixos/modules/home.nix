@@ -186,6 +186,14 @@ in
     defaultApplications = {
       "text/plain" = "dev.zed.Zed.desktop";
       "application/x-zerosize" = "dev.zed.Zed.desktop";
+      "application/typescript" = "dev.zed.Zed.desktop";
+      # Belt-and-suspenders: the Perl File::MimeInfo backend that xdg-mime
+      # falls back to (when no recognized DE is detected — niri doesn't set
+      # XDG_CURRENT_DESKTOP to GNOME/KDE/LXQt) ignores glob weights and
+      # still reports *.ts as Qt Linguist. Map it to Zed too. Safe because
+      # we don't use Qt Linguist. gio/Qt-based consumers (vicinae, file
+      # managers) correctly see application/typescript via the override.
+      "text/vnd.trolltech.linguist" = "dev.zed.Zed.desktop";
       "x-scheme-handler/http" = "handlr.desktop";
       "x-scheme-handler/https" = "handlr.desktop";
       "image/png" = "org.gnome.Loupe.desktop";
@@ -201,6 +209,24 @@ in
       "application/vnd.flatpak.ref" = "flatpak-install.desktop";
     };
   };
+
+  # Teach the shared MIME database that *.ts is TypeScript. Upstream
+  # shared-mime-info has two globs both at priority 50 fighting for *.ts —
+  # text/vnd.trolltech.linguist (Qt translation source) and video/mp2t
+  # (MPEG-2 Transport Stream) — neither of which routes to Zed via xdg-open.
+  # Registering application/typescript at weight 80 wins outright.
+  xdg.dataFile."mime/packages/typescript-override.xml".text = ''
+    <?xml version="1.0" encoding="UTF-8"?>
+    <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+      <mime-type type="application/typescript">
+        <comment>TypeScript source</comment>
+        <sub-class-of type="text/plain"/>
+        <glob pattern="*.ts" weight="80"/>
+        <glob pattern="*.mts" weight="80"/>
+        <glob pattern="*.cts" weight="80"/>
+      </mime-type>
+    </mime-info>
+  '';
 
   # Home directory dotfiles (-> ~/.<name>)
   home.file = {
