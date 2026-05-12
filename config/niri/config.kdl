@@ -351,7 +351,7 @@ overview {
 prefer-no-csd
 
 // Screenshots save to ~/Pictures/Screenshots. The screenshot script (local/bin/screenshot)
-// auto-opens saved screenshots in Gradia for editing.
+// shows a notification with an "Open in Gradia" action button.
 screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 
 // Allow apps to steal focus (e.g. clicking a link in ptyxis opens and focuses Firefox)
@@ -779,6 +779,7 @@ binds {
     // Mod+Shift+Space { switch-layout "prev"; }
 
     Print { spawn "sh" "-c" "~/.local/bin/screenshot region"; }
+    Mod+Shift+4 { spawn "sh" "-c" "~/.local/bin/screenshot region"; }
     Ctrl+Print { spawn "sh" "-c" "~/.local/bin/screenshot output"; }
     Alt+Print { spawn "sh" "-c" "~/.local/bin/screenshot window"; }
     Mod+Print hotkey-overlay-title="Screen Record" { spawn "sh" "-c" "~/.local/bin/screen-record"; }

@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Take a niri screenshot, then open in Gradia if saved.
+# Take a niri screenshot, then show a notification with an "Open in Gradia"
+# action. Niri's own "Screenshot captured" toast is blocked by a noctalia
+# notification rule (~/.config/noctalia/notification-rules.json) so we get a
+# single notification with the action button.
 
 DIR="$HOME/Pictures/Screenshots"
 marker=$(mktemp)
@@ -13,8 +16,24 @@ case "${1:-region}" in
   window) niri msg action screenshot-window ;;
 esac
 
+file=""
 for _ in $(seq 1 60); do
   sleep 0.1
   file=$(find "$DIR" -maxdepth 1 -name 'Screenshot*.png' -newer "$marker" -print -quit)
-  [ -n "$file" ] && exec gradia "$file"
+  [ -n "$file" ] && break
 done
+
+[ -z "$file" ] && exit 0
+
+# notify-send -A blocks until an action is clicked or the notification expires.
+action=$(notify-send \
+  --app-name="Screenshot" \
+  --hint="string:image-path:$file" \
+  -A "open=Open in Gradia" \
+  --expire-time=8000 \
+  "Screenshot captured" \
+  "Saved to $(basename "$file")")
+
+if [ "$action" = "open" ]; then
+  exec gradia "$file"
+fi
