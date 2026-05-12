@@ -235,8 +235,23 @@
   # Disable niri-flake's bundled KDE polkit agent (badged replaces it)
   systemd.user.services.niri-flake-polkit.enable = false;
 
-  # GNOME Keyring (for secrets, SSH agent, etc.)
+  # GNOME Keyring (for libsecret consumers — NetworkManager Wi-Fi, Chromium
+  # logins, etc.). Daemon is D-Bus activated on first use.
   services.gnome.gnome-keyring.enable = true;
+  # Recent nixpkgs auto-enables gcr-ssh-agent whenever gnome-keyring is on,
+  # which conflicts with programs.ssh.startAgent above. We use the OpenSSH
+  # agent, so opt out of the GCR one.
+  services.gnome.gcr-ssh-agent.enable = false;
+  # Also stop pam_gnome_keyring from auto-starting gnome-keyring-daemon at
+  # greetd login. That `session optional ... auto_start` line exports
+  # SSH_AUTH_SOCK=/run/user/UID/gcr/ssh into the PAM env, which propagates
+  # into the systemd user manager and shadows the OpenSSH agent socket.
+  # Since gnome-keyring 46+ moved SSH out into gcr-ssh-agent (disabled
+  # above), the socket has no listener — `ssh-add` gets "Connection
+  # refused". Fingerprint auth never feeds PAM a password, so the daemon
+  # would start locked anyway and not actually auto-unlock the keyring;
+  # nothing of value lost.
+  security.pam.services.greetd.enableGnomeKeyring = lib.mkForce false;
 
   # Removable media (udisks2 + gvfs so Nautilus can detect/mount USB drives)
   services.udisks2.enable = true;
