@@ -256,6 +256,13 @@
   # Removable media (udisks2 + gvfs so Nautilus can detect/mount USB drives)
   services.udisks2.enable = true;
   services.gvfs.enable = true;
+  # gvfs ships five volume monitors and starts them all at login. Mask the
+  # two that are pure dead weight here: no digital camera, no GNOME Online
+  # Accounts (Google Drive in Nautilus). D-Bus activation uses
+  # `SystemdService=`, so masking the unit also blocks dbus-activation.
+  # Keep udisks2 (USB), afc (iPhone via usbmuxd), mtp (Android).
+  systemd.user.services.gvfs-gphoto2-volume-monitor.enable = false;
+  systemd.user.services.gvfs-goa-volume-monitor.enable = false;
 
   # Bluetooth
   hardware.bluetooth.enable = true;
