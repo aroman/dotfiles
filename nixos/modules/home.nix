@@ -360,13 +360,10 @@ in
     font-manager
     adwaita-icon-theme
 
-    # Terminal (50.rc for enable-zoom-scroll-ctrl setting)
+    # Terminal — custom patch hides the AdwHeaderBar and tweaks superuser bg.
+    # `enable-zoom-scroll-ctrl` (the original reason for pinning to 50.rc) is
+    # in stable 50.1, so the version pin is gone.
     (ptyxis.overrideAttrs (old: {
-      version = "50.rc";
-      src = old.src.override {
-        tag = "50.rc";
-        hash = "sha256-0StYVSQt0LCAW9WUugIQuBKac1dri+96XE69fMracPo=";
-      };
       patches = (old.patches or []) ++ [ ../ptyxis-no-headerbar.patch ];
     }))
 
