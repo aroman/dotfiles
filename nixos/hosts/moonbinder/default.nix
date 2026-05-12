@@ -35,9 +35,15 @@
   # one carries traffic — lower metric = higher priority. When ethernet is
   # unplugged, the kernel routing table already has WiFi routes so traffic
   # fails over instantly (sub-second) with no reconnection needed.
-  networking.networkmanager.connectionConfig = {
-    "ethernet.route-metric" = "100"; # ethernet preferred when available
-    "wifi.route-metric" = "600";     # WiFi as fallback
+  networking.networkmanager.settings = {
+    "connection-ethernet" = {
+      "match-device" = "type:ethernet";
+      "ipv4.route-metric" = 100;
+    };
+    "connection-wifi" = {
+      "match-device" = "type:wifi";
+      "ipv4.route-metric" = 600;
+    };
   };
 
   # Disable WiFi power saving so the radio stays associated with the AP even
