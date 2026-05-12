@@ -1,3 +1,6 @@
+# Font (override base default tuned for Linux DPI)
+font-size = 16
+
 # Window chrome
 macos-titlebar-style = tabs
 macos-window-buttons = hidden

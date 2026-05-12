@@ -1,6 +1,7 @@
 # Font
 font-family = Cascadia Code
-font-size = 16
+font-size = 13
+font-variation = wght=450
 font-thicken = false
 
 # Inner padding
@@ -38,4 +39,3 @@ undo-timeout = 30s
 
 # OS-specific overrides (silently ignored if file doesn't exist)
 config-file = ?macos
-config-file = ?linux
