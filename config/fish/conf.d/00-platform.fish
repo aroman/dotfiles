@@ -1,5 +1,10 @@
 if status --is-interactive; and test (uname) = Darwin
-    eval (/opt/homebrew/bin/brew shellenv)
+    # brew shellenv costs ~30ms per shell. We cache its output in universal
+    # vars (set once via `set -Ux HOMEBREW_PREFIX ...` etc.), so the eval
+    # only fires if the cache is missing (e.g. fresh install, var wiped).
+    if not set -q HOMEBREW_PREFIX
+        eval (/opt/homebrew/bin/brew shellenv)
+    end
 end
 
 if test (uname) = Darwin
