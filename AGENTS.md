@@ -32,6 +32,3 @@ postBuild = ''
     --replace-fail "${pkg}/bin/foo" "$out/bin/foo"
 '';
 ```
-
-See `nixos/modules/home.nix` for the ghostty instance of this pattern (added
-to make the GStreamer-backed audio bell stop aborting the process).

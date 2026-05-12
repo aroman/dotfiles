@@ -125,9 +125,6 @@
     22     # SSH
     57621  # Spotify Connect
   ];
-  networking.firewall.allowedUDPPorts = [
-    7460   # belphegor (QUIC clipboard sharing)
-  ];
 
   # SSH + Mosh
   services.openssh.enable = true;

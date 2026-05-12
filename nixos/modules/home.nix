@@ -350,25 +350,6 @@ in
 
     # Development
     nodejs_22
-
-    # Clipboard sharing (text + images, native Wayland via ext-data-control-v1)
-    # Update hashes: nix build will show the correct hash on first failure
-    (pkgs.buildGoModule {
-      pname = "belphegor";
-      version = "3.6.1";
-      src = pkgs.fetchFromGitHub {
-        owner = "labi-le";
-        repo = "belphegor";
-        rev = "v3.6.1";
-        hash = "sha256-NyDpSz0Zzk1FzG1F3WXV2aYZGXloyMHZqmTEBG/Oz+4=";
-      };
-      vendorHash = "sha256-t/hg0umkEGIawgZ/AKNvGXvmxQph71qbQbIoIQ7UfV0=";
-      subPackages = [ "cmd/cli" ];
-      postInstall = ''
-        mv $out/bin/cli $out/bin/belphegor
-      '';
-      meta.description = "P2P clipboard sharing with image support";
-    })
   ];
 
 
@@ -445,10 +426,6 @@ in
   };
 
   # ── Services ─────────────────────────────────────────────────────
-
-  # ── Belphegor (clipboard sharing) ────────────────────────────────
-  # Belphegor disabled as auto-start service (memory leak ~5GB).
-  # Run manually via `clipboard-sync` fish function instead.
 
   # ── Clipboard persistence ───────────────────────────────────────
   # On Wayland the clipboard dies when the source process exits.
