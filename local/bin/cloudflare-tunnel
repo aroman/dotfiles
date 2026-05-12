@@ -14,7 +14,7 @@ case "${1:-start}" in
       exit 0
     fi
 
-    token=$(op read "op://Private/Cloudflare Tunnel - avi.magiccircle.dev/token") || exit 1
+    token=$(op read --account my.1password.com "op://Private/Cloudflare Tunnel - avi.magiccircle.dev/token") || exit 1
 
     LOGFILE="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/cloudflare-tunnel.log"
     TUNNEL_TOKEN="$token" nohup cloudflared tunnel --metrics "$METRICS_ADDR" run \
