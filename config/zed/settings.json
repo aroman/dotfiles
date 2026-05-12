@@ -123,11 +123,17 @@
 					}
 				}
 			}
+		},
+		"biome": {
+			"settings": {
+				"require_config_file": true
+			}
 		}
 	},
 	"languages": {
 		"JavaScript": {
 			"format_on_save": "on",
+			"language_servers": ["biome", "!eslint", "..."],
 			"formatter": {
 				"language_server": {
 					"name": "biome"
@@ -137,6 +143,7 @@
 		"TypeScript": {
 			"document_folding_ranges": "on",
 			"format_on_save": "on",
+			"language_servers": ["biome", "!eslint", "..."],
 			"formatter": {
 				"language_server": {
 					"name": "biome"
@@ -146,6 +153,7 @@
 		"TSX": {
 			"document_folding_ranges": "on",
 			"format_on_save": "on",
+			"language_servers": ["biome", "!eslint", "..."],
 			"formatter": {
 				"language_server": {
 					"name": "biome"
