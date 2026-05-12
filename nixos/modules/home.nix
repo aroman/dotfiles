@@ -336,6 +336,7 @@ in
     papers
     mission-center
     font-manager
+    seahorse
     adwaita-icon-theme
 
     # Terminal — custom patch hides the AdwHeaderBar and tweaks superuser bg.
