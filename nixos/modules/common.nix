@@ -24,6 +24,8 @@
   services.resolved = {
     enable = true;
     settings.Resolve.FallbackDNS = [ "1.1.1.1" "8.8.8.8" ];
+    # avahi owns mDNS; don't double-bind UDP 5353.
+    settings.Resolve.MulticastDNS = "no";
   };
 
   # Locale
@@ -111,7 +113,8 @@
     { domain = "@audio"; type = "-"; item = "nice";    value = "-19"; }
   ];
 
-  # Zeroconf/mDNS — needed for Spotify Connect device discovery
+  # Zeroconf/mDNS — Sunshine publishes via libavahi-client; nssmdns4
+  # resolves *.local hostnames.
   services.avahi = {
     enable = true;
     nssmdns4 = true;
@@ -122,8 +125,7 @@
     };
   };
   networking.firewall.allowedTCPPorts = [
-    22     # SSH
-    57621  # Spotify Connect
+    22  # SSH
   ];
 
   # SSH + Mosh
