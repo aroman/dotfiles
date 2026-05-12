@@ -150,6 +150,12 @@
   # reboots ~45s until its own watchdog self-kills. SIGKILL sooner.
   # https://github.com/tailscale/tailscale/issues/3932
   systemd.services.tailscaled.serviceConfig.TimeoutStopSec = "3s";
+  # Don't churn tailscaled on switch-to-configuration. controlplane.tailscale.com
+  # is anycast from a single EU POP (tailscale/tailscale#16653); fresh-register
+  # flows are fragile across transatlantic Tier-1 transit, and exponential
+  # backoff turns brief upstream issues into 20+ min outages. Pick up changes
+  # on reboot instead.
+  systemd.services.tailscaled.restartIfChanged = false;
 
   # Flatpak (TexturePacker, etc.)
   services.flatpak.enable = true;
