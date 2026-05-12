@@ -181,6 +181,11 @@
   # Fan control for Framework (using default curves for now)
   # Custom curves from Silverblue backup are in NixLifeboat/fw-fanctrl-config.json
   hardware.fw-fanctrl.enable = true;
+  hardware.fw-fanctrl.package = pkgs.fw-fanctrl.overrideAttrs (prev: {
+    patches = (prev.patches or [ ]) ++ [
+      ../../patches/fw-fanctrl-silence-ectool-stderr.patch
+    ];
+  });
 
   # ── Sunshine (remote desktop streaming) ──────────────────────────
   # Streams the desktop to Moonlight clients. VAAPI for hardware-accelerated

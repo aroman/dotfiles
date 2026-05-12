@@ -1,0 +1,35 @@
+Redirect ectool's stderr when polling temperatures so the journal isn't
+flooded with "Sensor N disabled" messages on Framework 16 systems whose
+dGPU is present but idle (drivers blacklisted, or the GPU has powered
+down on its own — the f75303 thermal ICs disconnect, ectool prints
+"Sensor N disabled" to stderr every poll).
+
+Tracked upstream by PR #164 (CrOS_EC_Python hardware controller), which
+would obviate this when merged.
+
+--- a/src/fw_fanctrl/hardwareController/EctoolHardwareController.py
++++ b/src/fw_fanctrl/hardwareController/EctoolHardwareController.py
+@@ -19,6 +19,7 @@ class EctoolHardwareController(HardwareController, ABC):
+         raw_out = subprocess.run(
+             "ectool tempsinfo all",
+             stdout=subprocess.PIPE,
++            stderr=subprocess.DEVNULL,
+             shell=True,
+             text=True,
+         ).stdout
+@@ -35,6 +36,7 @@ class EctoolHardwareController(HardwareController, ABC):
+                     subprocess.run(
+                         "ectool temps " + x,
+                         stdout=subprocess.PIPE,
++                        stderr=subprocess.DEVNULL,
+                         shell=True,
+                         text=True,
+                     ).stdout
+@@ -45,6 +47,7 @@ class EctoolHardwareController(HardwareController, ABC):
+             raw_out = subprocess.run(
+                 "ectool temps all",
+                 stdout=subprocess.PIPE,
++                stderr=subprocess.DEVNULL,
+                 shell=True,
+                 text=True,
+             ).stdout
