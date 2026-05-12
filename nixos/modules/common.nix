@@ -144,6 +144,10 @@
 
   # Tailscale
   services.tailscale.enable = true;
+  # tailscaled's Close() deadlocks in magicsock during shutdown, hanging
+  # reboots ~45s until its own watchdog self-kills. SIGKILL sooner.
+  # https://github.com/tailscale/tailscale/issues/3932
+  systemd.services.tailscaled.serviceConfig.TimeoutStopSec = "3s";
 
   # Flatpak (TexturePacker, etc.)
   services.flatpak.enable = true;
