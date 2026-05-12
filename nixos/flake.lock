@@ -96,16 +96,16 @@
     },
     "nixos-hardware": {
       "locked": {
-        "lastModified": 1769637243,
-        "narHash": "sha256-4wrxW1sB2J5cxJ8qU8MKw0R91MNLgooZAK/u2kjBd4s=",
-        "owner": "dniku",
+        "lastModified": 1778143761,
+        "narHash": "sha256-lkesY6x2X2qxlqLM7CT2iM/0rP2JB7fruPN3h8POXmI=",
+        "owner": "NixOS",
         "repo": "nixos-hardware",
-        "rev": "e106f8777cfe4851728a0e6523fabad607fa4395",
+        "rev": "3bcaa367d4c550d687a17ac792fd5cda214ee871",
         "type": "github"
       },
       "original": {
-        "owner": "dniku",
-        "ref": "fw16-ai300-upstream-ucm-fix",
+        "owner": "NixOS",
+        "ref": "master",
         "repo": "nixos-hardware",
         "type": "github"
       }

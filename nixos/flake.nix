@@ -9,14 +9,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # FIXME: using dniku's fork to fix FW16 phantom Headphones/Mic defaults.
-    # Upstream alsa-ucm-conf is fixed (>=v1.2.15.3), but nixos-hardware hasn't picked it up.
-    # Check periodically:
-    #   - nixos-hardware PRs: https://github.com/NixOS/nixos-hardware/pulls?q=framework+16+audio
-    #   - alsa-ucm-conf version in nixpkgs: nix eval nixpkgs#alsa-ucm-conf.version
-    #   - upstream fix: https://github.com/alsa-project/alsa-ucm-conf/issues/673
-    # Once fixed, switch back to: github:NixOS/nixos-hardware/master
-    nixos-hardware.url = "github:dniku/nixos-hardware/fw16-ai300-upstream-ucm-fix";
+    nixos-hardware.url = "github:NixOS/nixos-hardware/master";
 
     noctalia = {
       url = "github:noctalia-dev/noctalia-shell/v4.7.1";
