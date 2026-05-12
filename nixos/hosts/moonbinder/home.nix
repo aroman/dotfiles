@@ -10,6 +10,13 @@ let
       patches = (prev.patches or []) ++ [
         ../../patches/voxtype-paste-dotool-fallback.patch
       ];
+      # Upstream example imports the `ort` crate unconditionally, but `ort`
+      # is feature-gated behind `cohere`/`onnx-common`. Without a
+      # `required-features` entry in Cargo.toml, cargo tries to build it
+      # and fails. Drop the example until upstream gates it properly.
+      postPatch = (prev.postPatch or "") + ''
+        rm -f examples/inspect_cohere_onnx.rs
+      '';
     });
     runtimeDeps = with pkgs; [ dotool wtype wl-clipboard libnotify ];
   in pkgs.symlinkJoin {
@@ -31,13 +38,19 @@ in
 
   home.sessionVariables.JAVA_HOME = "${pkgs.jdk17}";
 
-  home.packages = with pkgs; [
+  home.packages = (with pkgs; [
     jdk17
     brightnessctl
     websocat     # WebSocket CLI — used by figma-open to navigate via CDP
     figma-agent  # serves local fonts to Figma web (needs Windows user-agent)
     vesktop
     slack
+  ]) ++ [
+    # OSD frontend for voxtype. The main `voxtype` package ships a
+    # launcher (`voxtype-osd`) that execs into this. Picked `native`
+    # over `gtk4` to stay off the GTK4 stack (see the dotool patch
+    # above for why GTK4 + virtual keyboards is painful).
+    inputs.voxtype.packages.x86_64-linux.osd-native
   ];
 
   # ── Figma ──────────────────────────────────────────────────────
