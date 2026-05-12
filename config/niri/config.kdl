@@ -338,6 +338,13 @@ hotkey-overlay {
     skip-at-startup
 }
 
+// Overview: zoom is the workspace-shrink target inside the overview.
+// Default 0.5 (workspaces drawn at 50% size). Lower = more zoomed-out
+// (more workspaces fit on screen). Clamped to [0.0001, 0.75] in niri.
+overview {
+    zoom 0.25
+}
+
 // Ask clients to omit their client-side decorations if possible.
 // Removes light title bars (e.g. Spotify) and lets niri's focus ring handle window borders.
 // Apps need to be restarted after changing this.
