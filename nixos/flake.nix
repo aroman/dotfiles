@@ -84,6 +84,20 @@
           {
             nixpkgs.overlays = [
               niri.overlays.niri
+              # tuigreet hardcodes "Authenticate into {hostname}" as the
+              # main prompt title via a bundled fluent translation. Patch
+              # the en-US locale to drop the prefix, leaving just the
+              # hostname.
+              (final: prev: {
+                tuigreet = prev.tuigreet.overrideAttrs (old: {
+                  postPatch = (old.postPatch or "") + ''
+                    substituteInPlace contrib/locales/en-US/tuigreet.ftl \
+                      --replace-fail \
+                        'title_authenticate = Authenticate into {$hostname}' \
+                        'title_authenticate = {$hostname}'
+                  '';
+                });
+              })
               # Uncomment this overlay ONLY when re-enabling the parked
               # cursor-zoom niri-blur input above — it applies the blur
               # PR patch on top of the cursor-zoom branch.  The patch

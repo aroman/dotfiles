@@ -81,7 +81,7 @@
       '';
       tuigreetArgs = lib.escapeShellArgs [
         "--time" "--remember" "--remember-session" "--asterisks"
-        "--greeting" "hack the planet"
+        "--issue"
         "--theme" "border=magenta;text=cyan;prompt=green;time=red;action=bold;button=yellow"
         "--cmd" "niri-session"
       ];
@@ -101,6 +101,11 @@
         };
       };
     };
+  # tuigreet's --issue reads /etc/issue and renders it above the prompt.
+  # Pure ASCII — multi-byte glyphs (Braille, emoji, box-drawing) panic
+  # ratatui's width calc and crash the greeter.
+  environment.etc."issue".text = "\n--=[ hack the planet ]=--\n\n";
+
   # Suppress the cursor in the greeter — cage has no --no-cursor flag, so
   # we point it at a custom xcursor theme whose every entry is a 1x1
   # transparent pixel. cage loads it happily and draws nothing visible.
