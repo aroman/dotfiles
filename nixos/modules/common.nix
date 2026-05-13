@@ -42,17 +42,97 @@
   # manager's PATH and breaks spawn-at-startup; and environment.etc can't
   # write under /etc/systemd/user/ without colliding with NixOS unit mgmt.
 
-  # Display manager — greetd with tuigreet (lightweight, TTY-based)
-  services.greetd = {
-    enable = true;
-    settings = {
-      terminal.vt = lib.mkForce 2;
-      default_session = {
-        command = "${pkgs.tuigreet}/bin/tuigreet --time --remember --remember-session --asterisks --greeting 'hack the planet' --theme 'border=magenta;text=cyan;prompt=green;time=red;action=bold;button=yellow' --cmd niri-session";
-        user = "greeter";
+  # Display manager — greetd, with tuigreet wrapped in foot under cage.
+  # cage owns the DRM master and handles monitor hotplug as Wayland output
+  # events, so plugging/unplugging displays no longer reflows the kernel
+  # framebuffer console mid-render (the cause of the duplicated-line
+  # artifacts on raw VT2). After auth, greetd kills the cage/foot/tuigreet
+  # tree and execs niri-session on the same VT.
+  services.greetd =
+    let
+      # cage doesn't advertise a scale, so disable foot's dpi-aware path
+      # and pick a font size large enough for the 2560x1600 panel.
+      # Palette is max-neon CGA — tuigreet's --theme uses ANSI color
+      # names, so the rendered look is entirely down to the palette.
+      footConfig = pkgs.writeText "foot-greeter.ini" ''
+        font=CaskaydiaCove Nerd Font:size=24
+        dpi-aware=no
+        pad=24x24
+
+        [colors-dark]
+        foreground=cccccc
+        background=000000
+        regular0=000000
+        regular1=ff003c
+        regular2=00ff66
+        regular3=ffd000
+        regular4=00aaff
+        regular5=ff00ff
+        regular6=00ffff
+        regular7=cccccc
+        bright0=555555
+        bright1=ff5577
+        bright2=55ff88
+        bright3=ffdf55
+        bright4=55bbff
+        bright5=ff55ff
+        bright6=55ffff
+        bright7=ffffff
+      '';
+      tuigreetArgs = lib.escapeShellArgs [
+        "--time" "--remember" "--remember-session" "--asterisks"
+        "--greeting" "hack the planet"
+        "--theme" "border=magenta;text=cyan;prompt=green;time=red;action=bold;button=yellow"
+        "--cmd" "niri-session"
+      ];
+    in
+    {
+      enable = true;
+      settings = {
+        terminal.vt = lib.mkForce 2;
+        default_session = {
+          # -m last: only render on the last-connected output. cage's
+          # `extend` default spans the greeter across both displays
+          # when docked; cage 0.3 has no per-output picker.
+          command = "${pkgs.cage}/bin/cage -s -m last -- "
+            + "${pkgs.foot}/bin/foot --config=${footConfig} -- "
+            + "${pkgs.tuigreet}/bin/tuigreet ${tuigreetArgs}";
+          user = "greeter";
+        };
       };
     };
-  };
+  # Suppress the cursor in the greeter — cage has no --no-cursor flag, so
+  # we point it at a custom xcursor theme whose every entry is a 1x1
+  # transparent pixel. cage loads it happily and draws nothing visible.
+  # Scoped to greetd's unit so the rest of the system is unaffected.
+  systemd.services.greetd.environment =
+    let
+      # Inline base64 of a 67-byte 1x1 transparent PNG — avoids pulling
+      # imagemagick (~150MB build dep) just to emit one tiny file.
+      invisibleCursors = pkgs.runCommandLocal "invisible-cursor" {
+        nativeBuildInputs = [ pkgs.xorg.xcursorgen ];
+      } ''
+        themeDir=$out/share/icons/invisible
+        mkdir -p $themeDir/cursors
+        printf '[Icon Theme]\nName=Invisible\n' > $themeDir/index.theme
+        printf '%s' 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lxKUAAAAASUVORK5CYII=' \
+          | base64 -d > $TMPDIR/blank.png
+        echo "1 0 0 $TMPDIR/blank.png" > $TMPDIR/cfg
+        xcursorgen $TMPDIR/cfg $themeDir/cursors/default
+        for name in left_ptr arrow text xterm pointer pointing_hand \
+                    hand1 hand2 grabbing crosshair fleur watch wait progress \
+                    top_left_corner top_right_corner bottom_left_corner \
+                    bottom_right_corner left_side right_side top_side \
+                    bottom_side sb_v_double_arrow sb_h_double_arrow help \
+                    question_arrow x_cursor; do
+          ln -s default $themeDir/cursors/$name
+        done
+      '';
+    in
+    {
+      XCURSOR_THEME = "invisible";
+      XCURSOR_PATH = "${invisibleCursors}/share/icons";
+    };
 
   # Audio — PipeWire
   services.pipewire = {
