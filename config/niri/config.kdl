@@ -527,7 +527,7 @@ binds {
     // (unlike Sway), which would let us drive voxtype entirely from the compositor.
     Mod+Apostrophe hotkey-overlay-title="Dictation" { spawn "true"; }
     Mod+D hotkey-overlay-title="Open Vicinae" { spawn "vicinae" "toggle"; }
-    Ctrl+Alt+Space hotkey-overlay-title="Emoji Picker" { spawn "vicinae" "deeplink" "vicinae://extensions/vicinae/core/search-emojis"; }
+    Ctrl+Mod+Space hotkey-overlay-title="Emoji Picker" { spawn "vicinae" "deeplink" "vicinae://extensions/vicinae/core/search-emojis"; }
     Ctrl+Mod+Q hotkey-overlay-title="Lock the Screen" { spawn "noctalia-shell" "ipc" "call" "lockScreen" "lock"; }
     Mod+Shift+Comma hotkey-overlay-title="Noctalia Settings" { spawn "noctalia-shell" "ipc" "call" "settings" "toggle"; }
 
