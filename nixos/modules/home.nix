@@ -461,12 +461,24 @@ in
   # the restart path through niri-session's cleanup.
   #
   # This oneshot gates graphical-session.target by polling until
-  # WAYLAND_DISPLAY appears in the systemd user environment (~50ms in
-  # practice).  Same pattern as UWSM's wayland-session-waitenv.service.
+  # WAYLAND_DISPLAY and NIRI_SOCKET appear in the systemd user environment.
+  # Same pattern as UWSM's wayland-session-waitenv.service.
   # See: https://github.com/Vladimir-csp/uwsm
+  #
+  # No timeout: while ExecStart is running the unit stays "activating",
+  # which holds graphical-session.target in queue via Before=.  If niri
+  # never comes back (greeter never re-logs in), every dependent stays
+  # queued instead of half-starting into a Wayland-less session.  On a
+  # normal restart the loop exits within seconds.  Logout → greeter →
+  # relogin can take 30–60s; the gate covers that too.
+  #
+  # RequiredBy (not WantedBy): if the gate ever does exit failed,
+  # graphical-session.target fails with it, so dependents refuse to
+  # start instead of activating broken — closes the fail-open hole that
+  # the previous 5s timeout opened.
   systemd.user.services.niri-wayland-env-gate = {
     Unit = {
-      Description = "Wait for WAYLAND_DISPLAY in systemd environment";
+      Description = "Wait for WAYLAND_DISPLAY and NIRI_SOCKET in systemd environment";
       After = [ "niri.service" ];
       Before = [ "graphical-session.target" ];
       BindsTo = [ "graphical-session.target" ];
@@ -475,15 +487,14 @@ in
       Type = "oneshot";
       RemainAfterExit = true;
       ExecStart = pkgs.writeShellScript "wait-wayland-env" ''
-        for i in $(seq 1 50); do
-          ${pkgs.systemd}/bin/systemctl --user show-environment | grep -q '^WAYLAND_DISPLAY=' && exit 0
-          sleep 0.1
+        until env=$(${pkgs.systemd}/bin/systemctl --user show-environment) \
+              && echo "$env" | grep -q '^WAYLAND_DISPLAY=' \
+              && echo "$env" | grep -q '^NIRI_SOCKET='; do
+          sleep 0.2
         done
-        echo "WAYLAND_DISPLAY not found after 5s" >&2
-        exit 1
       '';
     };
-    Install.WantedBy = [ "graphical-session.target" ];
+    Install.RequiredBy = [ "graphical-session.target" ];
   };
 
   # ── niri.service ExecStop drop-in ────────────────────────────────
