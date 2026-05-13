@@ -42,6 +42,7 @@ style = "#e5c76b"
 
 [nix_shell]
 style = "#67b0e8"
+symbol = "❄️ "
 
 [custom.bud]
 command = "bud starship"
