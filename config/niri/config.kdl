@@ -485,7 +485,6 @@ layer-rule {
         xray false
     }
 }
-
 binds {
     // Keys consist of modifiers separated by + signs, followed by an XKB key name
     // in the end. To find an XKB name for a particular key, you may use a program
@@ -794,7 +793,7 @@ binds {
     // which ensures niri always processes them, even when an inhibitor is active.
     Mod+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
 
-    Ctrl+Mod+Alt+BracketLeft hotkey-overlay-title="Swap Monitors" { spawn-sh "swap-monitors"; }
+    Ctrl+Mod+Alt+BracketLeft hotkey-overlay-title="Swap Workspaces Here" { spawn-sh "swap-monitors"; }
 
     // Workaround for niri#2435 — see local/bin/niri-quit.
     Mod+Shift+E { spawn "niri-quit"; }

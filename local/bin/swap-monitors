@@ -1,43 +1,39 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Swap all workspaces between the focused monitor and the other monitor.
-# Talks directly to niri's IPC socket using workspace IDs (stable across moves).
-# Assumes exactly two monitors (picks the first non-focused one).
+# Swap content workspaces between the focused (mouse) monitor and the other
+# monitor. No-op if the other monitor has no real workspaces to give, so we
+# don't shove your stuff onto an empty display. Focus ends up on the mouse
+# monitor, showing the workspace that just arrived. Assumes two monitors.
 
 if [ -z "${NIRI_SOCKET:-}" ]; then
     echo "Not running inside a niri session." >&2
     exit 1
 fi
 
-ws_json=$(niri msg --json workspaces)
+niri msg --json workspaces | jq -c '
+    # A workspace is worth moving if it has windows or is user-named.
+    # Filters out niris auto-placeholder trailing empties AND any other
+    # unnamed empty (e.g. a mid-stack one awaiting cleanup, or the
+    # trailing empty while it happens to be active) so they cannot
+    # sneak into $pull and become a misleading focus target.
+    def is_movable: .active_window_id != null or .name != null;
 
-focused_output=$(echo "$ws_json" | jq -r '[.[] | select(.is_focused)][0].output')
-other_output=$(echo "$ws_json" | jq -r --arg fo "$focused_output" \
-    '[.[] | select(.output != $fo)][0].output')
+    ([ .[] | select(.is_focused) ][0].output)    as $fo |
+    ([ .[] | select(.output != $fo) ][0].output) as $oo |
+    ([ .[] | select(.output == $fo and is_movable) ] | sort_by(.idx)) as $push |
+    ([ .[] | select(.output == $oo and is_movable) ] | sort_by(.idx)) as $pull |
 
-if [ -z "$other_output" ] || [ "$other_output" = "null" ]; then
-    exit 1
-fi
-
-# Build all IPC commands in one jq pass, then send via a single socat connection.
-echo "$ws_json" | jq -c --arg fo "$focused_output" --arg oo "$other_output" '
-    # Split workspaces by monitor, sorted by index
-    [ .[] | select(.output == $fo) ] | sort_by(.idx) as $ws_fo |
-    [ .[] | select(.output == $oo) ] | sort_by(.idx) as $ws_oo |
-
-    # Remember focused workspace to restore after the swap
-    ([ .[] | select(.is_focused) ][0].id // null) as $focused_id |
-
-    # Skip trailing empty workspace on each monitor (niri always keeps one)
-    ($ws_fo | if length > 1 then .[:-1] else [] end) as $move_fo |
-    ($ws_oo | if length > 1 then .[:-1] else [] end) as $move_oo |
-
-    # Move focused→other, then other→focused, then restore focus
-    ( [ $move_fo[] | {"Action":{"MoveWorkspaceToMonitor":{"output":$oo,"reference":{"Id":.id}}}} ] +
-      [ $move_oo[] | {"Action":{"MoveWorkspaceToMonitor":{"output":$fo,"reference":{"Id":.id}}}} ] +
-      if $focused_id then
-        [{"Action":{"FocusWorkspace":{"reference":{"Id":$focused_id}}}}]
-      else [] end
-    )[]
+    if $oo == null or ($pull | length) == 0 then empty
+    else
+      # Prefer the workspace that was active on the other monitor; fall
+      # back to the first movable one if the active one was an empty we
+      # just filtered out. Either way, always emit a FocusWorkspace —
+      # otherwise niri would silently follow our pushed workspaces to $oo.
+      (([ $pull[] | select(.is_active) ][0]) // $pull[0]).id as $target |
+      ( [ $push[] | {"Action":{"MoveWorkspaceToMonitor":{"output":$oo,"reference":{"Id":.id}}}} ]
+      + [ $pull[] | {"Action":{"MoveWorkspaceToMonitor":{"output":$fo,"reference":{"Id":.id}}}} ]
+      + [{"Action":{"FocusWorkspace":{"reference":{"Id":$target}}}}]
+      )[]
+    end
 ' | socat - UNIX-CONNECT:"$NIRI_SOCKET" > /dev/null
