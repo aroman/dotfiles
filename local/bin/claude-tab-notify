@@ -1,28 +1,35 @@
 #!/usr/bin/env bash
-# Claude Code hook: sets terminal tab title + bell on notifications,
-# clears it on prompt submit.
+# Claude Code hook: tab title + bell + yellow bg tint when Claude is
+# waiting for input; clears them on prompt submit.
 
 # Check TTY before consuming stdin
 tty_dev="/dev/$(ps -o tty= -p "$PPID" 2>/dev/null | tr -d ' ')"
 [[ -w "$tty_dev" ]] || exit 0
 
 input=$(cat)
+event=$(echo "$input" | jq -r '.hook_event_name // ""')
 
-# UserPromptSubmit just resets the tab title — skip all parsing
-if [[ "$input" == *'"UserPromptSubmit"'* ]]; then
-  printf '\033]2;\033\\' > "$tty_dev"
-  exit 0
-fi
+# Yellow tint — same depth as the sudo red wrapper (#1f1315).
+waiting_bg='\033]11;#1f1d13\033\\'
 
-# Notification: parse details and set tab title + bell
-IFS='|' read -r _ notification_type cwd < <(
-  echo "$input" | jq -r '[(.hook_event_name // ""), (.notification_type // ""), (.cwd // "")] | join("|")')
-
-name=$(ps -o args= -p "$PPID" 2>/dev/null | sed -n 's/.*--name  *\([^ ]*\).*/\1/p')
-[[ -z "$name" ]] && name="${cwd/#$HOME/~}"
-
-# First \a terminates OSC 2, second \a rings the bell
-case "$notification_type" in
-  permission_prompt) printf '\033]2;✋ %s\a\a' "$name" > "$tty_dev" ;;
-  *)                 printf '\033]2;💬 %s\a\a' "$name" > "$tty_dev" ;;
+case "$event" in
+  UserPromptSubmit | SessionEnd)
+    # Clear title, reset background.
+    printf '\033]2;\033\\\033]111\033\\' > "$tty_dev"
+    ;;
+  Stop)
+    printf "$waiting_bg" > "$tty_dev"
+    ;;
+  Notification)
+    notification_type=$(echo "$input" | jq -r '.notification_type // ""')
+    cwd=$(echo "$input" | jq -r '.cwd // ""')
+    name=$(ps -o args= -p "$PPID" 2>/dev/null | sed -n 's/.*--name  *\([^ ]*\).*/\1/p')
+    [[ -z "$name" ]] && name="${cwd/#$HOME/~}"
+    case "$notification_type" in
+      permission_prompt) icon='✋' ;;
+      *)                 icon='💬' ;;
+    esac
+    # First \a terminates OSC 2, second \a rings the bell.
+    printf '\033]2;%s %s\a\a'"$waiting_bg" "$icon" "$name" > "$tty_dev"
+    ;;
 esac
