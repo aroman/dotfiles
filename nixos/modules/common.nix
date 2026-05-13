@@ -131,7 +131,7 @@
       # Inline base64 of a 67-byte 1x1 transparent PNG — avoids pulling
       # imagemagick (~150MB build dep) just to emit one tiny file.
       invisibleCursors = pkgs.runCommandLocal "invisible-cursor" {
-        nativeBuildInputs = [ pkgs.xorg.xcursorgen ];
+        nativeBuildInputs = [ pkgs.xcursorgen ];
       } ''
         themeDir=$out/share/icons/invisible
         mkdir -p $themeDir/cursors
