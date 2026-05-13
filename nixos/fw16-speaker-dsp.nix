@@ -227,6 +227,11 @@
             "node.target" = "alsa_output.pci-0000_c2_00.6.HiFi__Speaker__sink";
             "audio.channels" = 2;
             "audio.position" = [ "FL" "FR" ];
+            # Noctalia's iconExists() check (Quickshell.iconPath(..., true)) returns
+            # empty for theme icon names, even for icons that exist (Quickshell quirk).
+            # iconExists() accepts absolute paths unconditionally — so point at the SVG
+            # directly. Icon lives at ~/.local/share/icons/hicolor/scalable/apps/.
+            "application.icon-name" = "/home/aroman/.local/share/icons/hicolor/scalable/apps/framework.svg";
           };
         };
       }
