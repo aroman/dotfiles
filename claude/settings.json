@@ -42,8 +42,8 @@
     "rust-analyzer-lsp@claude-plugins-official": false
   },
   "effortLevel": "high",
+  "tui": "default",
   "skipDangerousModePermissionPrompt": true,
   "agentPushNotifEnabled": true,
-  "voiceEnabled": false,
-  "tui": "fullscreen"
+  "voiceEnabled": false
 }
