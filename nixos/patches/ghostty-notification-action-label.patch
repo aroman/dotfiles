@@ -1,0 +1,16 @@
+Give the GNotification action an explicit label so notification daemons
+like Noctalia render a sensible button caption ("Go to") instead of
+falling back to a generic placeholder for the unlabeled `default` action.
+
+--- a/src/apprt/gtk/class/application.zig
++++ b/src/apprt/gtk/class/application.zig
+@@ -1951,7 +1951,8 @@ pub const Application = extern struct {
+         const icon = gio.ThemedIcon.new("com.mitchellh.ghostty");
+         defer icon.unref();
+         notification.setIcon(icon.as(gio.Icon));
+-        notification.setDefaultActionAndTargetValue(
++        notification.addButtonWithTargetValue(
++            "Go to",
+             "app.present-surface",
+             glib.Variant.newUint64(0),
+         );

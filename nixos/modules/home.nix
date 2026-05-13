@@ -267,7 +267,12 @@ in
     bat
     eza
     fzf
-    ghostty
+    # Custom patch: GNotification's `default` action arrives unlabeled, and
+    # Noctalia renders it as a button captioned "Action". Convert it to an
+    # explicit button so the caption reads "Go to" instead.
+    (ghostty.overrideAttrs (old: {
+      patches = (old.patches or []) ++ [ ../patches/ghostty-notification-action-label.patch ];
+    }))
     kitty.kitten   # just the kitten CLI (icat for image previews), not the terminal app
     tree
     tmux
