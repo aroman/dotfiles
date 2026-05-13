@@ -9,8 +9,9 @@ tty_dev="/dev/$(ps -o tty= -p "$PPID" 2>/dev/null | tr -d ' ')"
 input=$(cat)
 event=$(echo "$input" | jq -r '.hook_event_name // ""')
 
-# Yellow tint — same depth as the sudo red wrapper (#1f1315).
-waiting_bg='\033]11;#1f1d13\033\\'
+# Subtle blue tint — offset from the theme bg (#141b1e) mirrors the
+# sudo red wrapper's depth but on the blue channel.
+waiting_bg='\033]11;#1c2433\033\\'
 
 case "$event" in
   UserPromptSubmit | SessionEnd)

@@ -274,6 +274,25 @@
       no-mouse
       xkb-repeat-delay=250
       xkb-repeat-rate=40
+      palette=custom
+      palette-foreground=218,218,218
+      palette-background=10,13,16
+      palette-black=35,42,45
+      palette-red=229,116,116
+      palette-green=140,207,126
+      palette-yellow=229,199,107
+      palette-blue=103,176,232
+      palette-magenta=196,127,213
+      palette-cyan=108,191,191
+      palette-light-grey=179,185,184
+      palette-dark-grey=70,78,80
+      palette-light-red=239,126,126
+      palette-light-green=150,217,136
+      palette-light-yellow=244,214,122
+      palette-light-blue=113,186,242
+      palette-light-magenta=206,137,223
+      palette-light-cyan=103,203,231
+      palette-white=189,195,194
     '';
   };
   systemd.services."kmsconvt@tty2".enable = false;
