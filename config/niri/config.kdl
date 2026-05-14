@@ -801,5 +801,6 @@ binds {
 
     // Powers off the monitors. To turn them back on, do any input like
     // moving the mouse or pressing any other key.
-    Mod+Shift+P { power-off-monitors; }
+    // Disabled — swayidle already blanks monitors at 10min idle.
+    // Mod+Shift+P { power-off-monitors; }
 }
