@@ -157,6 +157,7 @@ in
         modifiers = [ "SUPER" ];
         mode = "push_to_talk";
       };
+      audio.max_duration_secs = 600;
       audio.feedback = {
         enabled = true;
         theme = "${config.home.homeDirectory}/.local/share/voxtype/sounds/wispr";
