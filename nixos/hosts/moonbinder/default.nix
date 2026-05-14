@@ -51,6 +51,15 @@
   # re-associate on failover, adding seconds of downtime.
   networking.networkmanager.wifi.powersave = false;
 
+  # Per-connection WiFi tweaks NOT captured declaratively (NM stores them in
+  # /etc/NetworkManager/system-connections/, which survives rebuilds but not
+  # reimages). Re-apply after a reimage:
+  #
+  #   nmcli connection modify Larnathord 802-11-wireless.band a
+  #
+  # `band=a` restricts Larnathord to 5/6 GHz, skipping 2.4 GHz scan time on
+  # connect. Safe because all home APs broadcast 5+6 GHz.
+
   # Graphics (AMD iGPU — Ryzen AI 300 series)
   hardware.graphics.enable = true;
 
