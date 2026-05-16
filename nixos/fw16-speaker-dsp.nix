@@ -17,9 +17,11 @@
   # Rename the raw ALSA speaker node
   services.pipewire.wireplumber.extraConfig."50-fw16-speaker-rename" = {
     "monitor.alsa.rules" = [
+      # Regex match — PCI bus number can shift when other devices appear/move
+      # (e.g. plugging in the dGPU module changed the speaker from c2 to c3)
       {
         matches = [
-          { "node.name" = "alsa_output.pci-0000_c2_00.6.HiFi__Speaker__sink"; }
+          { "node.name" = "~alsa_output\\.pci-.*\\.HiFi__Speaker__sink"; }
         ];
         actions.update-props = {
           "node.description" = "Raw Laptop Speakers";
@@ -27,7 +29,7 @@
       }
       {
         matches = [
-          { "node.name" = "alsa_input.pci-0000_c2_00.6.HiFi__Mic1__source"; }
+          { "node.name" = "~alsa_input\\.pci-.*\\.HiFi__Mic1__source"; }
         ];
         actions.update-props = {
           "node.description" = "Framework 16 Microphone";
