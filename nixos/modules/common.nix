@@ -403,6 +403,17 @@
     freeSwapKillThreshold = 5;  # ... and <5% swap free (~700 MB)
   };
 
+  # PSI-driven userspace OOM: watch cgroup memory pressure (time-stalled, not
+  # free%) and kill whole cgroups before the kernel OOM has to fire. Pairs
+  # with earlyoom (PSI handles the "thrashing but RAM not yet empty" case;
+  # earlyoom handles the "RAM gone, no PSI signal" case).
+  systemd.oomd = {
+    enable = true;
+    enableUserSlices = true;
+    enableRootSlice = true;
+    settings.OOM.DefaultMemoryPressureDurationSec = "20s";
+  };
+
   # Let downloaded binaries find the dynamic linker (Prisma, Playwright, etc.)
   programs.nix-ld.enable = true;
   programs.localsend.enable = true;
@@ -450,6 +461,39 @@
       "niri.cachix.org-1:Wv0OmO7PsuocRKzfDoJ3mulSl7Z6oezYhGhR+3W2964="
       "vicinae.cachix.org-1:1kDrfienkGHPYbkpNj1mWTr7Fm1+zcenzgTizIcI3oc="
     ];
+    # Cap parallelism to leave interactive headroom. Default is
+    # max-jobs=nproc × cores=nproc = 16×16 = 256 potential compiler procs.
+    # 2×4 = 8 of 16 threads (~50%), 8 always free for niri/shell/browser.
+    max-jobs = 2;
+    cores = 4;
+  };
+
+  # Run nix-daemon (and all build children) at idle CPU + IO priority. Builds
+  # only get scheduled when no SCHED_NORMAL task wants the CPU, so backgrounded
+  # `nixos-rebuild` stays out of the way of interactive work entirely. Cost is
+  # a small build-time increase only while you're actively using the machine.
+  nix.daemonCPUSchedPolicy = "idle";
+  nix.daemonIOSchedClass = "idle";
+  nix.daemonIOSchedPriority = 7;
+
+  # Cgroup isolation for nix builds. SCHED_IDLE handles the "build never
+  # preempts interactive work" case absolutely; the slice gives proportional
+  # throttling (CPUWeight=20 vs user.slice default 100 → user gets ~5× share
+  # under contention) and — most importantly — a memory ceiling so builds
+  # can't push the working set to disk swap. nix-daemon spawns builds in
+  # child cgroups, so weights set on the slice (not the service) propagate.
+  systemd.slices."nix-builds" = {
+    description = "Nix builds (background, deprioritized)";
+    sliceConfig = {
+      CPUWeight = 20;
+      IOWeight = 20;
+      MemoryHigh = "60%";
+      MemoryMax = "85%";
+    };
+  };
+  systemd.services.nix-daemon.serviceConfig = {
+    Slice = "nix-builds.slice";
+    OOMScoreAdjust = 500;  # prefer killing builds over interactive procs
   };
 
   # Automatic garbage collection
