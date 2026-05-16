@@ -36,6 +36,13 @@
     # Resume from hibernate (swap file on root ext4).
     # Offset found via: sudo filefrag -v /swapfile | awk '$1=="0:"{print $4}'
     "resume_offset=225771520"
+
+    # Switch PREEMPT_DYNAMIC from "voluntary" (NixOS default) to "full".
+    # Adds preemption points on more kernel-return paths, shortening worst-case
+    # non-preemptible regions during heavy fs/mm syscalls (the proximate cause
+    # of "cursor froze for ¼ sec" during big writes). Throughput cost is
+    # single-digit % on syscall-heavy benchmarks, invisible interactively.
+    "preempt=full"
   ];
   boot.extraModulePackages = [ ];
 
