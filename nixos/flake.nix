@@ -16,42 +16,26 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Niri: vanilla via niri-flake (`pkgs.niri-unstable`).  As of v26.04,
-    # blur landed in upstream main, so the pure-blur fork override we used
-    # to carry is no longer needed.  niri-flake auto-bumps niri-unstable
-    # ~daily and pushes binaries to niri.cachix.org.
+    # Niri: cursor-zoom variant via Atan-D-RP4's feat/cursor-zoom branch
+    # (PR #3246).  Branch is rebased on niri main, so blur (which landed in
+    # v26.04) is included.  No companion patch needed at this pin.
     #
-    # ── Parked: cursor-zoom variant ──
-    # Cursor-zoom (PR #3246) hasn't merged into niri main yet.  When it
-    # does, drop this block; until then, re-enable it by:
+    # Pin is 601fcdc1 — HEAD of feat/cursor-zoom on 2026-05-12.  The branch
+    # is force-pushed regularly during development; bump this commit when
+    # updating.  The API is unstable and the author has stated they plan a
+    # from-scratch rewrite with cleaner history before YaLTeR review, so
+    # config syntax may change.
     #
-    #   1. Uncommenting the `niri-blur` input below.
-    #   2. Adding `inputs.niri-unstable.follows = "niri-blur";` to the
-    #      niri input below.
-    #   3. Uncommenting the matching blur-patch overlay further down in
-    #      `mkSystem`.
-    #   4. Saving the companion patch to nixos/niri-blur-zoom.patch.
-    #      Source: "The rest of the blur PR" by YaLTeR (niri's maintainer),
-    #      commit 1ba37d7c from 2026-02-21.  Download:
-    #        https://github.com/niri-wm/niri/pull/3246#issuecomment-4194759585
-    #
-    # Pin is c6d807427 — the commit that was HEAD when Atan-D-RP4 posted
-    # the blur-companion patch attachment on 2026-04-06.  Later rebases of
-    # that branch force-pushed newer history which partially-merged the
-    # blur PR's rendering half but not its config structs, breaking patch
-    # compatibility and leaving blur unconfigurable.
-    #
-    # Caveat: the patch's rendering-path hunks may also conflict with
-    # v26.04's blur pipeline (zoom-then-blur vs. blur-then-zoom), so on
-    # its own it can produce a broken build.  Keep parked until upstream
-    # reconciliation.
-    # niri-blur = {
-    #   url = "github:Atan-D-RP4/niri/c6d807427";
-    #   flake = false;
-    # };
+    # To drop back to vanilla niri-unstable: remove niri-cursor-zoom input,
+    # remove the `inputs.niri-unstable.follows` line on the niri input.
+    niri-cursor-zoom = {
+      url = "github:Atan-D-RP4/niri/601fcdc110";
+      flake = false;
+    };
 
     niri = {
       url = "github:sodiboo/niri-flake";
+      inputs.niri-unstable.follows = "niri-cursor-zoom";
     };
 
     voxtype = {
