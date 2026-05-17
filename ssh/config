@@ -11,23 +11,33 @@ Match host * exec "test -f ~/.orbstack/ssh/config"
 Host *
   SendEnv COLORTERM
 
-Host moonbinder moonbinder.marlin-antares.ts.net dawnbinder dawnbinder.marlin-antares.ts.net wizardtower wizardtower.marlin-antares.ts.net
+Host moonbinder moonbinder.marlin-antares.ts.net dawnbinder dawnbinder.marlin-antares.ts.net wizardtower wizardtower.marlin-antares.ts.net dad dad.tail5c0d6f.ts.net
   ControlMaster auto
   ControlPath ~/.ssh/cm-%r@%h:%p
   ControlPersist 10m
 
+# HostName uses the raw Tailscale IP instead of the MagicDNS FQDN because
+# tailscaled's split-DNS-via-systemd-resolved mode pushes a public anycast
+# resolver (199.247.155.53) that only answers for the ts.net root + Funnel
+# devices — regular MagicDNS lookups return NXDOMAIN. Hardcoding the 100.x
+# IPs sidesteps DNS entirely. IPs are sticky per registered node.
+# See https://github.com/tailscale/tailscale/issues/16558
 Host moonbinder moonbinder.marlin-antares.ts.net
-  HostName moonbinder.marlin-antares.ts.net
+  HostName 100.106.254.15
   SendEnv GHOSTTY_RESOURCES_DIR
   ForwardAgent yes
 
 Host dawnbinder dawnbinder.marlin-antares.ts.net
-  HostName dawnbinder.marlin-antares.ts.net
+  HostName 100.76.66.127
   SendEnv GHOSTTY_RESOURCES_DIR
   ForwardAgent yes
 
 Host wizardtower wizardtower.marlin-antares.ts.net
-  HostName wizardtower.marlin-antares.ts.net
+  HostName 100.116.179.31
+  SendEnv GHOSTTY_RESOURCES_DIR
+
+Host dad dad.tail5c0d6f.ts.net
+  HostName 100.71.243.105
   SendEnv GHOSTTY_RESOURCES_DIR
 
 # Forward the opener(1) socket so xdg-open on the remote opens URLs in the
