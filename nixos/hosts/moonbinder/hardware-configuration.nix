@@ -43,6 +43,39 @@
     # of "cursor froze for ¼ sec" during big writes). Throughput cost is
     # single-digit % on syscall-heavy benchmarks, invisible interactively.
     "preempt=full"
+
+    # Re-enable scatter/gather display, overriding nixos-hardware's
+    # `amdgpu.sg_display=0` for the FW16 AI 300 module.
+    #
+    # The nixos-hardware default came in via copy-paste from a config written
+    # for FW16 Phoenix/DCN 3.1.4 (lbrame's gist), where it was a "last-ditch"
+    # workaround for flicker/white-frame bugs. Those bugs were on DCN 2.1.0
+    # through DCN 3.1.5 silicon — this machine is DCN 3.5 (Krackan Point), a
+    # different display block that the original bug never affected. Mario
+    # Limonciello (AMD upstream amdgpu maintainer) has explicitly told AI 300
+    # users to drop sg_display=0 in Framework community discussion.
+    # nixos-hardware itself removed the equivalent workaround for Raphael
+    # iGPU on kernel 6.6+ in PR #980; the AI 300 module is leftover scaffolding.
+    #
+    # Keeping sg_display=0 forced every display framebuffer to be pinned in
+    # the 512 MB contiguous UMA VRAM carveout. Hotplugging a 4K external on
+    # the TS4/TS3 dock would intermittently fail to pin (-ENOMEM), cascading
+    # into DPIA AUX failure and a wedged DP-over-USB4 tunnel. Per AMD, S/G
+    # off causes "frame-buffer errors and blank displays when under memory
+    # pressure" — which is the TS4-wedge bug we've been hitting.
+    #
+    # Linux kernel module params: when the same key appears multiple times on
+    # the cmdline, the last one wins (already exercised by our existing
+    # `amdgpu.dcdebugmask=0x10 amdgpu.dcdebugmask=0x410`). So appending =1
+    # here overrides the =0 contributed by the nixos-hardware module without
+    # needing to filter or mkForce its kernelParams list. Verify with
+    # `cat /proc/cmdline | tr ' ' '\n' | grep sg_display` — should show both,
+    # the last one being =1.
+    #
+    # Discussion:
+    #   - nixos-hardware PR #980 (Raphael sg_display dropped on kernel 6.6+)
+    #   - Framework community thread: AMD GPU MES Timeouts on FW13 AI 300
+    "amdgpu.sg_display=1"
   ];
   boot.extraModulePackages = [ ];
 
