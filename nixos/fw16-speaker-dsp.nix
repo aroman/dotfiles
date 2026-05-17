@@ -14,17 +14,39 @@
   systemd.user.services.pipewire.environment.LV2_PATH =
     lib.mkForce "${pkgs.lsp-plugins}/lib/lv2:${pkgs.calf}/lib/lv2";
 
-  # Rename the raw ALSA speaker node
+  # Rename + lock down the raw ALSA speaker node.
+  #
+  # The raw sink is the *backend* that the DSP filter chain routes to (via
+  # node.target below). It is not meant to be user-selectable:
+  #
+  #   1. node.volume = 1.0 pins it to unity. The DSP chain does all gain
+  #      staging (HPF +36 dB → limiter g_out attenuation). Any non-unity
+  #      gain on the raw sink double-attenuates and breaks the bass
+  #      enhancer / limiter calibration.
+  #
+  #   2. media.class = "Audio/Sink/Internal" hides it from pavucontrol,
+  #      noctalia volume UI, and the pipewire-pulse bridge — so it can't
+  #      be picked as default. The filter chain still targets it by
+  #      node.name, so audio keeps flowing through it.
+  #
+  # For A/B demos ("listen to how bad raw sounds"): run `dsp-toggle` —
+  # flips the default sink to the hidden raw node and moves streams over.
+  # Run it again to flip back. No rebuild needed.
   services.pipewire.wireplumber.extraConfig."50-fw16-speaker-rename" = {
     "monitor.alsa.rules" = [
       # Regex match — PCI bus number can shift when other devices appear/move
-      # (e.g. plugging in the dGPU module changed the speaker from c2 to c3)
+      # (e.g. plugging in the dGPU module changed the speaker from c2 to c3).
+      # We also rewrite node.name to a stable identifier so the DSP filter
+      # chain's node.target (below) doesn't have to chase the PCI address.
       {
         matches = [
           { "node.name" = "~alsa_output\\.pci-.*\\.HiFi__Speaker__sink"; }
         ];
         actions.update-props = {
+          "node.name" = "fw16_speakers_internal";
           "node.description" = "Raw Laptop Speakers";
+          "node.volume" = 1.0;
+          "media.class" = "Audio/Sink/Internal";
         };
       }
       {
@@ -226,7 +248,7 @@
           "playback.props" = {
             "node.name" = "effect_output.fw16_speaker_dsp";
             "node.passive" = true;
-            "node.target" = "alsa_output.pci-0000_c2_00.6.HiFi__Speaker__sink";
+            "node.target" = "fw16_speakers_internal";
             "audio.channels" = 2;
             "audio.position" = [ "FL" "FR" ];
             # Noctalia's iconExists() check (Quickshell.iconPath(..., true)) returns

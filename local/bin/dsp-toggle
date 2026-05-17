@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Toggle between DSP-processed and raw speaker output.
-# Moves all active streams and syncs volume when switching.
+# A/B toggle between DSP-processed and raw speaker output on the internal
+# speakers. The raw sink is normally hidden (media.class=Audio/Sink/Internal)
+# but still targetable directly by node.name, so the toggle just flips the
+# default sink between the two and moves active streams.
 DSP_NODE="effect_input.fw16_speaker_dsp"
-RAW_NODE="alsa_output.pci-0000_c2_00.6.HiFi__Speaker__sink"
+RAW_NODE="fw16_speakers_internal"
 
 # Get node IDs (single pw-dump call)
 dump=$(pw-dump)
