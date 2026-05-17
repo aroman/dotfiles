@@ -1,59 +1,56 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# A/B toggle between DSP-processed and raw speaker output on the internal
-# speakers. The raw sink is normally hidden (media.class=Audio/Sink/Internal)
-# but still targetable directly by node.name, so the toggle just flips the
-# default sink between the two and moves active streams.
-DSP_NODE="effect_input.fw16_speaker_dsp"
-RAW_NODE="fw16_speakers_internal"
+# A/B toggle between DSP-processed and raw output on the internal speakers.
+# wireplumber refuses to route streams into the hidden raw sink
+# (Audio/Sink/Internal), so we re-link them directly with pw-link.
 
-# Get node IDs (single pw-dump call)
-dump=$(pw-dump)
-get_id() { echo "$dump" | jq -r "[.[] | select(.info.props[\"node.name\"]? == \"$1\")] | first | .id"; }
+DSP_SINK="effect_input.fw16_speaker_dsp"
+RAW_SINK="fw16_speakers_internal"
+DSP_OUTPUT="effect_output.fw16_speaker_dsp"
 
-dsp_id=$(get_id "$DSP_NODE")
-raw_id=$(get_id "$RAW_NODE")
-
-if [ -z "$dsp_id" ] || [ "$dsp_id" = "null" ]; then
-  echo "DSP node not found"
-  exit 1
-fi
-if [ -z "$raw_id" ] || [ "$raw_id" = "null" ]; then
-  echo "Raw speaker node not found"
-  exit 1
-fi
-
-# Move all application playback streams by clearing their pinned target.object
-# metadata, so WirePlumber reassigns them to the new default sink.
-move_streams() {
-  echo "$dump" | jq -r '
-    .[] | select(.info.props["media.class"]? == "Stream/Output/Audio")
-        | select(.info.props["node.name"]? // "" | startswith("effect_") | not)
-        | .id' | while read -r stream_id; do
-    [ -z "$stream_id" ] || [ "$stream_id" = "null" ] && continue
-    pw-metadata -n default -d "$stream_id" target.object 2>/dev/null || true
-  done
+# Emit "<source_port> <sink_port>" for every user-stream link feeding $1.
+# The DSP filter chain's own output is excluded (it's a permanent link).
+user_links_into() {
+  local target=$1
+  pw-link -l | awk -v target="$target" -v skip="$DSP_OUTPUT" '
+    /^[^ ]/ { sink = $1; next }
+    /\|<-/ && index(sink, target ":") == 1 && index($2, skip ":") != 1 {
+      print $2, sink
+    }
+  '
 }
 
-get_vol() { wpctl get-volume "$1" | awk '{print $2}'; }
+# Move all user-stream links from $1 sink to $2 sink. Echo unique stream count.
+swap_links() {
+  local from=$1 to=$2
+  local -A streams=()
+  while read -r src sink; do
+    pw-link -d "$src" "$sink" 2>/dev/null || true
+    pw-link "$src" "${sink/#$from:/$to:}" 2>/dev/null || true
+    streams[${src%%:*}]=1
+  done < <(user_links_into "$from")
+  echo "${#streams[@]}"
+}
 
-# Check current default sink
-default_sink=$(wpctl inspect @DEFAULT_AUDIO_SINK@ 2>/dev/null | grep "node.name" | head -1 | sed 's/.*= "\(.*\)"/\1/')
+bold="" dim="" reset=""
+if [ -t 1 ]; then
+  bold=$(tput bold 2>/dev/null || true)
+  dim=$(tput dim 2>/dev/null || true)
+  reset=$(tput sgr0 2>/dev/null || true)
+fi
 
-if [ "$default_sink" = "$DSP_NODE" ]; then
-  # Switching DSP -> Raw
-  vol=$(get_vol "$dsp_id")
-  wpctl set-default "$raw_id"
-  move_streams
-  wpctl set-volume "$raw_id" "$vol"
-  echo "DSP OFF (raw speaker, vol=$vol)"
+# Derive current state from the graph: any user stream feeding raw → "off".
+if [ -n "$(user_links_into "$RAW_SINK")" ]; then
+  from=$RAW_SINK to=$DSP_SINK label="on " dest="filter chain"
 else
-  # Switching Raw -> DSP
-  vol=$(get_vol "$raw_id")
-  wpctl set-volume "$raw_id" 1.0
-  wpctl set-default "$dsp_id"
-  move_streams
-  wpctl set-volume "$dsp_id" "$vol"
-  echo "DSP ON (vol=$vol)"
+  from=$DSP_SINK to=$RAW_SINK label="off" dest="raw speakers"
+fi
+
+n=$(swap_links "$from" "$to")
+if [ "$n" -eq 0 ]; then
+  printf '%sno active audio streams to toggle%s\n' "$dim" "$reset"
+else
+  printf '%sDSP %s%s %s· %s stream(s) → %s%s\n' \
+    "$bold" "$label" "$reset" "$dim" "$n" "$dest" "$reset"
 fi
