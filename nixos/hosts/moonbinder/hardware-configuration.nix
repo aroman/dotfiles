@@ -76,6 +76,42 @@
     #   - nixos-hardware PR #980 (Raphael sg_display dropped on kernel 6.6+)
     #   - Framework community thread: AMD GPU MES Timeouts on FW13 AI 300
     "amdgpu.sg_display=1"
+
+    # Re-enable Panel Self Refresh and IPS2 Dynamic, overriding nixos-hardware's
+    # `amdgpu.dcdebugmask=0x10` (from framework/16-inch/common/amd.nix, disables
+    # PSR) and `=0x410` (from amd-ai-300-series, adds DC_DISABLE_IPS2_DYNAMIC).
+    #
+    # Bit layout:
+    #   0x010 = DC_DISABLE_PSR        (Panel Self Refresh)
+    #   0x400 = DC_DISABLE_IPS2_DYNAMIC
+    #   0x000 = restore defaults (PSR and IPS2 dynamic both enabled)
+    #
+    # PSR lets the panel refresh itself from its internal framebuffer when no
+    # new content is being produced, letting the GPU display engine and eDP
+    # link drop into deep power-save states. Worth ~1-2 hours of idle battery
+    # on this hardware. Disabled by the nixos-hardware modules because of
+    # historical hang/flicker bugs on Phoenix-era (DCN 3.1.x) silicon.
+    #
+    # On DCN 3.5 (Krackan Point) with kernel 7.0.8 and recent DMUB firmware,
+    # the situation has improved: nixos-hardware contributors are debating
+    # whether to keep this workaround on by default (PR #1692). One tester
+    # reported "removed it, latest kernel works fine"; another (a maintainer)
+    # said dcdebugmask=0x410 was still load-bearing. Bug is intermittent
+    # enough that only empirical testing on this specific machine can settle
+    # it. We test by re-enabling and watching for symptoms.
+    #
+    # Watch for (would indicate keeping it on is still needed):
+    #   - Random whole-system freezes where the cursor still moves but
+    #     everything else is unresponsive — the FW13 AI 300 PSR signature
+    #     (FrameworkComputer/SoftwareFirmwareIssueTracker#110)
+    #   - Display flicker on light backgrounds, especially in browsers
+    #   - Janky first frame after a period of idle (PSR exit glitch)
+    #   - Black/white frames briefly during transitions
+    #
+    # Revert: just remove this line (nixos-hardware's 0x410 takes over again).
+    # Bisect: if symptoms appear, try 0x400 to re-enable PSR but keep IPS2
+    # dynamic disabled, to learn which half of the bitmask is problematic.
+    "amdgpu.dcdebugmask=0x0"
   ];
   boot.extraModulePackages = [ ];
 
