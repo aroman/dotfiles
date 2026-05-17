@@ -44,7 +44,9 @@ end
 fish_add_path $ANDROID_HOME/platform-tools
 fish_add_path $ANDROID_HOME/emulator
 abbr --add c "claude --dangerously-skip-permissions"
+abbr --add cr "claude --dangerously-skip-permissions --resume"
 abbr --add x "codex --yolo"
+abbr --add xr "codex --yolo resume"
 abbr --add dotc "cd $DOTFILES_DIR && claude --dangerously-skip-permissions"
 abbr --add aic ai-commit
 abbr --add lg lazygit
