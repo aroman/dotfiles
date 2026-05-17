@@ -179,34 +179,13 @@ layout {
         // off
 
         // How many logical pixels the ring extends out from the windows.
-        width 4
+        width 3
 
-        // Colors can be set in a variety of ways:
-        // - CSS named colors: "red"
-        // - RGB hex: "#rgb", "#rgba", "#rrggbb", "#rrggbbaa"
-        // - CSS-like notation: "rgb(255, 127, 0)", rgba(), hsl() and a few others.
+        // Warm yellow at top → sage green at bottom.
+        active-color "#8ccf7e"
+        inactive-color "#232a2d"
 
-        // Color of the ring on the active monitor.
-        // active-color "#58a6ff"
-        // active-color "#58a6ff"
-        // active-color "#c3c0ff"
-        // active-color "#ffb4ab"
-
-        // Color of the ring on inactive monitors.
-        //
-        // The focus ring only draws around the active window, so the only place
-        // where you can see its inactive-color is on other monitors.
-        inactive-color "#30363d"
-
-        // You can also use gradients. They take precedence over solid colors.
-        // Gradients are rendered the same as CSS linear-gradient(angle, from, to).
-        // The angle is the same as in linear-gradient, and is optional,
-        // defaulting to 180 (top-to-bottom gradient).
-        // You can use any CSS linear-gradient tool on the web to set these up.
-        // Changing the color space is also supported, check the wiki for more info.
-        //
-        // active-gradient from="#80c8ff" to="#c7ff7f" angle=45
-        active-gradient from="#58a6ff" to="#ffb4ab" angle=45
+        active-gradient from="#e5c76b" to="#8ccf7e" angle=180 in="oklch"
 
         // You can also color the gradient relative to the entire view
         // of the workspace, rather than relative to just the window itself.
