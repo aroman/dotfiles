@@ -1,0 +1,44 @@
+// Moonbinder-specific niri config (Framework 16, AMD Ryzen AI 300, eDP + travel monitors).
+// Included from config.kdl via `include "host-moonbinder.kdl" optional=true`.
+// On other hosts, this file is loaded but its outputs simply don't exist, so the stanzas are no-ops.
+
+// VRR (variable-refresh-rate) deliberately omitted on all outputs.
+// On RDNA 3.5 / DCN 3.5 (Ryzen AI 300, kernel 7.0.3), enabling VRR triggers
+// a kernel WARN in amdgpu_dm_handle_vrr_transition() every time the system
+// resumes from s0ix: drm_crtc_vblank_get() returns -EINVAL during the
+// drm_atomic_helper_resume() replay, before the CRTC's vblank infrastructure
+// is re-armed. The WARN is non-fatal but the missing vblank reference leaves
+// the CRTC's vupdate/vblank IRQ machinery in a poisoned state — any later
+// atomic commit that depends on vblank signaling (e.g. teardown when an
+// external output goes away) hangs indefinitely, freezing the whole session
+// and requiring a hard reboot. Caused our TS3 surprise-disconnect at
+// 2026-05-15 10:10 to take both screens down instead of just the external.
+// Removing this line means the !old_vrr_active && new_vrr_active branch is
+// never entered on resume; no WARN, no poisoned state. VRR provides no
+// visible benefit on this workload (no gaming/video). Restore once amdgpu
+// fixes the resume-replay path. amdgpu_dm.c:9757.
+// Wizardtower has Nvidia, doesn't have this bug — its outputs may enable VRR.
+
+// External: Home monitor (LG 27GN950 4K) — to the left, vertically centered
+output "LG Electronics 27GN950 203NTCZC4835" {
+    scale 1.5
+    backdrop-color "#1D2029"
+    position x=0 y=0
+}
+
+// External: Work monitor (Acer XV282K 4K) — to the left, vertically centered
+output "Acer Technologies XV282K KV 13250DC7C4200" {
+    scale 1.5
+    backdrop-color "#1D2029"
+    position x=0 y=0
+}
+
+// Internal: Framework 16 laptop display (BOE 2560x1600)
+// Both known externals are 4K@1.5x = 2560 logical wide, so x=2560 puts this to the right.
+// y=187 vertically centers against the taller 1440-logical-tall externals.
+output "BOE NE160QDM-NZ6 Unknown" {
+    scale 1.5
+    transform "normal"
+    backdrop-color "#1D2029"
+    position x=2560 y=187
+}

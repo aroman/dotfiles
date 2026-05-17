@@ -1,0 +1,12 @@
+// Wizardtower-specific niri config (desktop, Nvidia GPU).
+// Included from config.kdl via `include "host-wizardtower.kdl" optional=true`.
+// On other hosts, this file is loaded but its outputs simply don't exist, so the stanzas are no-ops.
+
+// HDMI dummy plug for Moonlight streaming (3024x1964 = MacBook Pro native res).
+// Always on so Sunshine has a display at startup. toggle-streaming-res disables
+// DP-1 during streaming and re-enables it on disconnect.
+output "Ugreen Group Ltd. UGREEN 0x20200210" {
+    scale 2.0
+    backdrop-color "#1D2029"
+    position x=-9999 y=0
+}
