@@ -57,7 +57,14 @@
           "node.description" = "Framework 16 Microphone";
         };
       }
-    ];
+    ] ++ (map (n: {
+      matches = [
+        { "node.name" = "~alsa_output\\.pci-.*\\.HiFi__HDMI${toString n}__sink"; }
+      ];
+      actions.update-props = {
+        "node.description" = "External Display ${toString n}";
+      };
+    }) [ 1 2 3 4 ]);
   };
 
   # Make DSP the default audio sink
