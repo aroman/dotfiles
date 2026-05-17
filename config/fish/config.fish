@@ -48,6 +48,7 @@ abbr --add cr "claude --dangerously-skip-permissions --resume"
 abbr --add x "codex --yolo"
 abbr --add xr "codex --yolo resume"
 abbr --add dotc "cd $DOTFILES_DIR && claude --dangerously-skip-permissions"
+abbr --add dr "cd $DOTFILES_DIR && claude --dangerously-skip-permissions --resume"
 # `bp` sends clipboard contents to `bud new -p` as a single argument — sidesteps
 # quote escaping for prompts with mixed single+double quotes. See bpe (function)
 # for the editor-based variant when you want to compose/edit first.
