@@ -51,6 +51,29 @@
   # re-associate on failover, adding seconds of downtime.
   networking.networkmanager.wifi.powersave = false;
 
+  # Use iwd instead of wpa_supplicant as NetworkManager's WiFi backend.
+  #
+  # Drove this by observing wpa_supplicant doing classic full re-association
+  # on every BTM-driven roam (eero "Client Steering" pushing us between two
+  # APs every few minutes — confirmed in journal: SME auth + full association
+  # + EAPOL 4-way handshake each time, no FT). 200-500ms gap per roam was
+  # killing long-lived HTTP/WebSocket connections (Claude Code, etc.).
+  #
+  # eero Client Steering is now also off (settled the immediate problem), but
+  # iwd is the right long-term backend on this hardware:
+  #   - native 802.11k/v/r evaluation: declines marginal BTM requests rather
+  #     than blindly accepting (closer to macOS roaming behavior)
+  #   - faster connect/resume — less protocol round-tripping
+  #   - smaller, more modern codebase (~30k LOC vs ~200k for wpa_supplicant)
+  #   - per-connection MAC randomization defaults
+  #   - actively developed; wpa_supplicant is essentially in maintenance mode
+  #
+  # NetworkManager connection profiles in /etc/NetworkManager/system-connections/
+  # are backend-agnostic, so saved networks (Larnathord, etc.) keep working
+  # across the switch. No reconfig needed.
+  networking.wireless.iwd.enable = true;
+  networking.networkmanager.wifi.backend = "iwd";
+
   # Per-connection WiFi tweaks NOT captured declaratively (NM stores them in
   # /etc/NetworkManager/system-connections/, which survives rebuilds but not
   # reimages). Re-apply after a reimage:
