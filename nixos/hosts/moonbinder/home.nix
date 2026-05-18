@@ -43,7 +43,7 @@ in
     brightnessctl
     websocat     # WebSocket CLI — used by figma-open to navigate via CDP
     figma-agent  # serves local fonts to Figma web (needs Windows user-agent)
-    vesktop
+    discord
     slack
   ]) ++ [
     # OSD frontend for voxtype. The main `voxtype` package ships a

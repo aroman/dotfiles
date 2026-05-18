@@ -37,7 +37,7 @@
       "/home/aroman/.mozilla/firefox/*/cache2"
       "/home/aroman/.config/google-chrome"
       "/home/aroman/.config/chromium"
-      "/home/aroman/.config/Vesktop/sessionData"
+      "/home/aroman/.config/discord"
 
       # Downloads (ephemeral)
       "/home/aroman/Downloads"
