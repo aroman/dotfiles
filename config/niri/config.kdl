@@ -420,8 +420,6 @@ window-rule {
 
 layer-rule {
     match namespace="^vicinae$"
-    // Match vicinae's CSD rounding (config.hpp: rounding = 10) so niri's
-    // shadow follows the actual corner instead of a square inset.
     geometry-corner-radius 10
     shadow {
         on
