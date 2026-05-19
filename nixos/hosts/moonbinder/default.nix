@@ -102,6 +102,19 @@
     # Hard-lockup detector fires periodic NMIs on every core, preventing the
     # deepest idle. Disable on a daily-driver laptop where we'd reboot anyway.
     "kernel.nmi_watchdog" = 0;
+    # Faster TCP failure detection for laptop interface churn (dock unplug,
+    # wifi roam). Defaults assume server-room stable networks where brief
+    # blips shouldn't kill long sessions. Here, sockets bound to a gone-away
+    # source IP (e.g. ethernet via TS4) would otherwise hang for ~15min
+    # before erroring, stalling apps that would've retried cleanly.
+    #   retries2=8  → ~100s ceiling (RFC 1122 minimum) instead of ~924s
+    #   keepalive   → detect dead idle sockets in ~2min instead of ~2h
+    # Tradeoff: long-running TCP (SSH, big uploads) won't survive a real
+    # 30-90s outage. Acceptable for this workload.
+    "net.ipv4.tcp_retries2" = 8;
+    "net.ipv4.tcp_keepalive_time" = 60;
+    "net.ipv4.tcp_keepalive_intvl" = 10;
+    "net.ipv4.tcp_keepalive_probes" = 6;
   };
 
   # Firmware updates (Framework)
