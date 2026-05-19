@@ -10,13 +10,6 @@ let
       patches = (prev.patches or []) ++ [
         ../../patches/voxtype-paste-dotool-fallback.patch
       ];
-      # Upstream example imports the `ort` crate unconditionally, but `ort`
-      # is feature-gated behind `cohere`/`onnx-common`. Without a
-      # `required-features` entry in Cargo.toml, cargo tries to build it
-      # and fails. Drop the example until upstream gates it properly.
-      postPatch = (prev.postPatch or "") + ''
-        rm -f examples/inspect_cohere_onnx.rs
-      '';
     });
     runtimeDeps = with pkgs; [ dotool wtype wl-clipboard libnotify ];
   in pkgs.symlinkJoin {
