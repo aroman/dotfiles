@@ -510,6 +510,38 @@
     OOMScoreAdjust = 500;  # prefer killing builds over interactive procs
   };
 
+  # Protect the interactive user session from system-side resource pressure.
+  # Mirrors what Fedora's `uresourced` daemon does dynamically — done
+  # statically here because this is a single-user box that never switches
+  # accounts. Without this, a misbehaving system.slice service can push the
+  # user's working set to swap and steal I/O. 2026-05-18 incident:
+  # systemd-coredump processing a quickshell crash dump triggered exactly
+  # this — 65% iowait, 1.3 GB/s swap-in, load avg 18, ~10 min of unusable
+  # desktop. nix-builds.slice was already capped (CPUWeight=20), but the
+  # rest of system.slice wasn't, so this is the structural complement.
+  systemd.slices."user-1000" = {
+    sliceConfig = {
+      MemoryLow = "1G";    # protect 1G of working set from reclaim
+      CPUWeight = 200;     # 2× default; tips contention toward user
+      IOWeight = 200;
+    };
+  };
+
+  # Cap systemd-coredump's own resource use while it processes a crash.
+  # Upstream's unit has Nice=9 but no I/O or memory caps — compressing a
+  # multi-hundred-MB Qt/QML core (zstd buffers ~hundreds of MB at default
+  # level) pulls the working set into page cache and evicts everything
+  # else. Upstream fix is pending streaming-compression rewrite
+  # (systemd#29263); cap locally in the meantime. MemoryMax kicks the
+  # cgroup OOM if compression genuinely needs >1G — losing the crash
+  # dump is strictly better than losing the desktop.
+  systemd.services."systemd-coredump@".serviceConfig = {
+    CPUWeight = 10;
+    IOWeight = 10;
+    MemoryHigh = "512M";
+    MemoryMax = "1G";
+  };
+
   # Automatic garbage collection
   nix.gc = {
     automatic = true;
