@@ -2,6 +2,11 @@ Give the GNotification action an explicit label so notification daemons
 like Noctalia render a sensible button caption ("Go to") instead of
 falling back to a generic placeholder for the unlabeled `default` action.
 
+The real notification path for terminal-triggered notifications is in
+surface.zig — the application.zig path is only taken for app-targeted
+notifications, which essentially never fire — but patch both for
+consistency.
+
 --- a/src/apprt/gtk/class/application.zig
 +++ b/src/apprt/gtk/class/application.zig
 @@ -1951,7 +1951,8 @@ pub const Application = extern struct {
@@ -13,4 +18,16 @@ falling back to a generic placeholder for the unlabeled `default` action.
 +            "Go to",
              "app.present-surface",
              glib.Variant.newUint64(0),
+         );
+--- a/src/apprt/gtk/class/surface.zig
++++ b/src/apprt/gtk/class/surface.zig
+@@ -1738,7 +1738,8 @@ pub const Surface = extern struct {
+         notification.setIcon(icon.as(gio.Icon));
+
+         const pointer = glib.Variant.newUint64(@intFromPtr(core_surface));
+-        notification.setDefaultActionAndTargetValue(
++        notification.addButtonWithTargetValue(
++            "Go to",
+             "app.present-surface",
+             pointer,
          );
