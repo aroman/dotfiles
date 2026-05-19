@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, inputs, ... }:
 
 {
   # Boot
@@ -347,6 +347,20 @@
   security.polkit.enable = true;
   # Disable niri-flake's bundled KDE polkit agent (badged replaces it)
   systemd.user.services.niri-flake-polkit.enable = false;
+
+  # Vicinae 0.21+ expects its input-injection helper at
+  # /run/wrappers/bin/vicinae-input-server with elevated access so it can
+  # open /dev/uinput. Upstream's installer applies cap_dac_override=ep, but
+  # that's a global DAC bypass — way broader than this needs. Since
+  # /dev/uinput is group `uinput` (created by hardware.uinput, which
+  # sunshine pulls in), setgid'ing the wrapper to that group gives the
+  # helper exactly the access it needs and nothing else.
+  security.wrappers.vicinae-input-server = {
+    source = "${inputs.vicinae.packages.${pkgs.stdenv.hostPlatform.system}.default}/libexec/vicinae/vicinae-input-server";
+    owner = "root";
+    group = "uinput";
+    setgid = true;
+  };
 
   # GNOME Keyring (for libsecret consumers — NetworkManager Wi-Fi, Chromium
   # logins, etc.). Daemon is D-Bus activated on first use.
