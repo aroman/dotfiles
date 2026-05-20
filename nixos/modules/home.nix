@@ -454,35 +454,47 @@ in
   };
 
   # ── Wayland environment gate ──────────────────────────────────────
-  # When niri quits (logout, exit dialog, crash), niri-session runs
-  # `systemctl --user unset-environment WAYLAND_DISPLAY` as cleanup.
-  # niri.service then restarts automatically — but graphical-session.target
-  # re-activates before niri finishes starting and re-exporting the
-  # variable.  Every service bound to graphical-session.target (voxtype,
-  # swayidle, niri-dwt-toggle, vicinae, polkit-badged, etc.) launches
-  # into a session where WAYLAND_DISPLAY is gone, so wtype, wl-copy,
-  # and `niri msg` all fail silently.
+  # Workaround for a niri ↔ systemd async-D-Bus race.
   #
-  # On a fresh boot this doesn't happen — niri synchronously exports
-  # the variable before sending sd_notify.  The bug is specific to
-  # the restart path through niri-session's cleanup.
+  # On niri exit, niri-session runs `systemctl --user unset-environment
+  # WAYLAND_DISPLAY` as cleanup, and niri.service restarts automatically.
+  # niri *does* import WAYLAND_DISPLAY + NIRI_SOCKET into systemd's
+  # activation env (via UpdateActivationEnvironment) before sending
+  # sd_notify(READY=1) — but UpdateActivationEnvironment is async, so
+  # systemd can mark niri.service active and activate graphical-session
+  # .target before the D-Bus call actually lands.  Dependents (voxtype,
+  # swayidle, niri-dwt-toggle, vicinae, polkit-badged, etc.) get pulled
+  # in by graphical-session.target and launch into a session where the
+  # variables aren't set, so wtype, wl-copy, and `niri msg` fail silently.
   #
-  # This oneshot gates graphical-session.target by polling until
-  # WAYLAND_DISPLAY and NIRI_SOCKET appear in the systemd user environment.
-  # Same pattern as UWSM's wayland-session-waitenv.service.
-  # See: https://github.com/Vladimir-csp/uwsm
+  # Fresh boot doesn't hit this — boot is slow enough that the D-Bus
+  # call lands before dependents are scheduled.  The race is specific
+  # to the restart path through niri-session's cleanup.
   #
-  # No timeout: while ExecStart is running the unit stays "activating",
-  # which holds graphical-session.target in queue via Before=.  If niri
-  # never comes back (greeter never re-logs in), every dependent stays
-  # queued instead of half-starting into a Wayland-less session.  On a
-  # normal restart the loop exits within seconds.  Logout → greeter →
-  # relogin can take 30–60s; the gate covers that too.
+  # NOT redundant with home-manager #5785 / #6253.  Those fixed an
+  # orthogonal bug (services using After=graphical-session-pre.target
+  # instead of After=graphical-session.target).  Their fix assumes
+  # graphical-session.target activation means env is set; this race
+  # means it doesn't.  Future home-manager updates won't change that.
+  # uwsm has the same workaround built-in as wayland-session-waitenv
+  # .service — migrating to uwsm replaces this gate with theirs, same
+  # mechanism.  YaLTeR declined an upstream niri fix in niri#633; see
+  # also uwsm#40 where Vladimir-csp acknowledges the race directly.
   #
-  # RequiredBy (not WantedBy): if the gate ever does exit failed,
+  # Mechanism: oneshot polls `systemctl --user show-environment` until
+  # both vars appear, holding graphical-session.target via Before=.
+  #
+  # No timeout: while ExecStart runs the unit stays "activating", which
+  # holds graphical-session.target in queue.  Normal restart exits in
+  # seconds; logout → greeter → relogin can take 30–60s (cage/foot/
+  # fingerprint + DRM init); the gate covers both.  If niri never
+  # comes back, dependents stay queued instead of half-starting into
+  # a Wayland-less session.
+  #
+  # RequiredBy (not WantedBy): if the gate ever exits failed,
   # graphical-session.target fails with it, so dependents refuse to
-  # start instead of activating broken — closes the fail-open hole that
-  # the previous 5s timeout opened.
+  # start instead of activating broken — closes the fail-open hole
+  # the previous 5s-timeout version had.
   systemd.user.services.niri-wayland-env-gate = {
     Unit = {
       Description = "Wait for WAYLAND_DISPLAY and NIRI_SOCKET in systemd environment";
