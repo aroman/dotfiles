@@ -66,11 +66,11 @@ in
     };
   };
 
-  # Sunshine needs uinput access for remote keyboard/mouse input
-  services.udev.extraRules = ''
-    KERNEL=="uinput", MODE="0660", GROUP="input", SYMLINK+="uinput"
-  '';
-  users.users.aroman.extraGroups = [ "input" ];
+  # Sunshine needs uinput access for remote keyboard/mouse input.
+  # nixpkgs' sunshine module installs its own udev rule setting
+  # /dev/uinput to group=uinput (more specific SUBSYSTEM rule wins over a
+  # bare KERNEL match), so the user must be in `uinput`, not `input`.
+  users.users.aroman.extraGroups = [ "input" "uinput" ];
 
   # 1Password
   programs._1password.enable = true;
