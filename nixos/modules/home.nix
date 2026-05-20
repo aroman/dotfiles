@@ -322,6 +322,7 @@ in
     celluloid
     video-trimmer
     newsflash
+    moonlight-qt # Sunshine client — pairs with wizardtower/moonbinder sunshine hosts
 
     # Browsers
     firefox
