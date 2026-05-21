@@ -361,7 +361,7 @@ in
     # vicinae — installed via services.vicinae below
 
     # Development
-    nodejs_22
+    nodejs_24
   ];
 
 
