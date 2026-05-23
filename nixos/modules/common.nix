@@ -474,6 +474,19 @@
   # Bluetooth
   hardware.bluetooth.enable = true;
 
+  # MT7925 BT (USB 0e8d:0717) wedges under USB autosuspend: remote-wakeup
+  # events corrupt the chip's internal firmware state machine. Once wedged
+  # the adapter is DOWN with BD Address 00:00:00:00:00:00 and dmesg shows
+  # `wmt func ctrl (-22)`; only a true cold power cycle clears it (warm
+  # reboot keeps USB VBUS alive and the bad state survives). Pin power
+  # management off for just this device — global usbcore.autosuspend=-1
+  # would cost real battery, this radio idles in the ~10-30 mW range.
+  # No upstream firmware fix in flight as of 2026-05; tracked at
+  # https://bugzilla.redhat.com/show_bug.cgi?id=2372880
+  services.udev.extraRules = ''
+    ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="0e8d", ATTR{idProduct}=="0717", ATTR{power/control}="on"
+  '';
+
   # I2C access for DDC/CI external monitor brightness control (via ddcutil)
   hardware.i2c.enable = true;
 
