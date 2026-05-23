@@ -213,6 +213,78 @@
     22  # SSH
   ];
 
+  # Apple TVs / HomePods act as Thread Border Routers and broadcast IPv6
+  # Router Advertisements on Wi-Fi with short prefix lifetimes (~28min). Each
+  # cycle the kernel adds/removes ULA addresses, which tailscale treats as a
+  # "major link change" and rebinds every wireguard socket, stalling all
+  # streams. See https://isc.sans.edu/diary/30336. No toggle on the Apple TV
+  # to stop this; the categorical fix for a roaming laptop is to accept RAs
+  # only from the current network's actual IPv6 default gateway.
+  #
+  # nft chain stays empty (fail-open: accept all RAs) until the NM dispatcher
+  # populates it on connection-up with the discovered gateway's MAC. On
+  # IPv4-only networks the chain stays empty and nothing is filtered. On
+  # disconnect the dispatcher flushes the chain.
+  networking.nftables.enable = true;
+  networking.nftables.tables.ra-filter = {
+    family = "ip6";
+    content = ''
+      chain input {
+        type filter hook input priority -200; policy accept;
+      }
+    '';
+  };
+  networking.networkmanager.dispatcherScripts = [
+    {
+      type = "basic";
+      source = pkgs.writeShellScript "ra-whitelist" ''
+        set -u
+        IFACE="''${1:-}"
+        ACTION="''${2:-}"
+        [ "$IFACE" = "lo" ] && exit 0
+
+        NFT=${pkgs.nftables}/bin/nft
+        IP=${pkgs.iproute2}/bin/ip
+
+        flush_chain() {
+          $NFT flush chain ip6 ra-filter input 2>/dev/null || true
+        }
+
+        case "$ACTION" in
+          up|dhcp6-change)
+            # Wait briefly for the IPv6 default route to land via SLAAC.
+            gw=""
+            for _ in 1 2 3 4 5 6 7 8 9 10; do
+              gw=$($IP -6 route show default dev "$IFACE" 2>/dev/null \
+                | awk '/^default via/ {print $3; exit}')
+              [ -n "$gw" ] && break
+              sleep 1
+            done
+            # IPv4-only network (no v6 gateway) — leave RAs unfiltered.
+            [ -z "$gw" ] && { flush_chain; exit 0; }
+
+            # Resolve gateway link-local → MAC via the neighbor table.
+            mac=""
+            for _ in 1 2 3 4 5; do
+              mac=$($IP -6 neigh show "$gw" dev "$IFACE" 2>/dev/null \
+                | awk '/lladdr/ {print $5; exit}')
+              [ -n "$mac" ] && break
+              sleep 1
+            done
+            [ -z "$mac" ] && { flush_chain; exit 0; }
+
+            $NFT -e "flush chain ip6 ra-filter input
+              add rule ip6 ra-filter input iifname \"$IFACE\" icmpv6 type 134 ether saddr $mac accept
+              add rule ip6 ra-filter input iifname \"$IFACE\" icmpv6 type 134 drop"
+            ;;
+          down)
+            flush_chain
+            ;;
+        esac
+      '';
+    }
+  ];
+
   # SSH + Mosh
   services.openssh.enable = true;
   services.openssh.settings.AcceptEnv = [ "GHOSTTY_RESOURCES_DIR" "COLORTERM" ];
