@@ -2,13 +2,16 @@
 # Switch between local and remote display modes on wizardtower.
 #
 # Local mode:  LG monitor (DP-1) on, HDMI dummy off
-# Remote mode: LG off, HDMI dummy (HDMI-A-1) on at a mode matching
-#              the Moonlight client's requested resolution.
+# Remote mode: LG off, HDMI dummy (HDMI-A-1) on
+#
+# HDMI mode + scale are pinned in niri (host-wizardtower.kdl) and never
+# changed here — Sunshine's KMS capture wedges across streams if HDMI's
+# mode changes between sessions, with the bad state living below niri
+# (kernel/NVIDIA-DRM) and surviving systemd restart. So this script just
+# toggles outputs on/off; clients receive whatever mode niri has pinned.
 #
 # Usage: toggle-streaming-res [remote|local]
-#   remote  — switch to remote mode. If called from Sunshine prep-cmd,
-#             reads SUNSHINE_CLIENT_WIDTH/HEIGHT/FPS to pick the best mode.
-#             Otherwise defaults to 3024x1964@90Hz (Mac 16" MBP).
+#   remote  — switch to remote mode (HDMI on, DP off).
 #   local   — switch back to local (LG) mode.
 #   (none)  — toggle between modes.
 #
@@ -39,55 +42,23 @@ wait_for_niri() {
 
 wait_for_niri
 
-# Default remote mode (Mac 16" MBP native)
-DEFAULT_W=3024
-DEFAULT_H=1964
-DEFAULT_FPS=90
-
-# Pick best niri mode for target width/height/fps using jq.
-# Strategy: exact width×height match → closest refresh rate ≤ fps*1.1, else lowest.
-# If no exact match, fall back to closest by total pixel count.
-pick_mode() {
-    local tw=$1 th=$2 tfps=$3
-    local tfps_mhz=$((tfps * 1000))
-    local cap=$((tfps_mhz * 11 / 10))
-
-    niri msg -j outputs | jq -r --argjson tw "$tw" --argjson th "$th" --argjson cap "$cap" '
-        to_entries[] | select(.value.name == "HDMI-A-1") | .value.modes as $modes |
-        (
-            [ $modes[] | select(.width == $tw and .height == $th) ] as $exact |
-            if ($exact | length) > 0 then $exact
-            else
-                # No exact match: pick resolution closest in total pixels
-                ($tw * $th) as $target_px |
-                ($modes | min_by(((.width * .height) - $target_px) | fabs)) as $best |
-                [ $modes[] | select(.width == $best.width and .height == $best.height) ]
-            end
-        ) as $candidates |
-        ( [ $candidates[] | select(.refresh_rate <= $cap) ] ) as $within |
-        (if ($within | length) > 0
-            then ($within | max_by(.refresh_rate))
-            else ($candidates | min_by(.refresh_rate))
-        end) |
-        "\(.width)x\(.height)@\(.refresh_rate / 1000 | tostring | if contains(".") then . else . + ".0" end)"
-    '
-}
-
 switch_to_remote() {
-    local w="${SUNSHINE_CLIENT_WIDTH:-$DEFAULT_W}"
-    local h="${SUNSHINE_CLIENT_HEIGHT:-$DEFAULT_H}"
-    local fps="${SUNSHINE_CLIENT_FPS:-$DEFAULT_FPS}"
-    local mode
-    mode=$(pick_mode "$w" "$h" "$fps")
-
     niri msg output "$HDMI" on
-    niri msg output "$HDMI" mode "$mode"
-    niri msg output "$HDMI" scale 2.0
     niri msg output "$DP" off
-    notify-send "Display" "Remote mode: $mode (client asked ${w}x${h}@${fps})" 2>/dev/null || true
+    notify-send "Display" "Remote mode (HDMI dummy)" 2>/dev/null || true
 }
 
 switch_to_local() {
+    # If LG (DP-1) isn't physically connected, switching would leave the
+    # box with no enabled outputs — sunshine then can't find a monitor on
+    # the next stream attempt. Bail and leave HDMI on so things stay
+    # captureable.
+    local dp_status
+    dp_status=$(cat /sys/class/drm/card*-${DP}/status 2>/dev/null | head -1)
+    if [ "$dp_status" != "connected" ]; then
+        notify-send "Display" "$DP disconnected — staying in remote mode" 2>/dev/null || true
+        return 0
+    fi
     niri msg output "$DP" on
     niri msg output "$HDMI" off
     notify-send "Display" "Local mode (LG)" 2>/dev/null || true

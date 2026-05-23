@@ -2,11 +2,19 @@
 // Included from config.kdl via `include "host-wizardtower.kdl" optional=true`.
 // On other hosts, this file is loaded but its outputs simply don't exist, so the stanzas are no-ops.
 
-// HDMI dummy plug for Moonlight streaming (3024x1964 = MacBook Pro native res).
-// Always on so Sunshine has a display at startup. toggle-streaming-res disables
-// DP-1 during streaming and re-enables it on disconnect.
+// HDMI dummy plug for Moonlight streaming. Locked to a single mode + scale.
+// Always on so Sunshine has a display at startup. toggle-streaming-res just
+// disables DP-1 during streaming; it does not touch HDMI mode anymore.
+//
+// Why fixed: Sunshine's KMS capture wedges with "Couldn't find monitor [0]"
+// on every stream after the first if HDMI mode changes between streams —
+// the bad state lives in kernel/NVIDIA-DRM and survives
+// `systemctl --user restart sunshine`. Only a full reboot recovers.
+// 2560x1600@120 is a compromise across Mac MBP retina, moonbinder, and
+// 1080p clients. Scale 1.5 → logical 1707x1067 (comfortable UI size).
 output "Ugreen Group Ltd. UGREEN 0x20200210" {
-    scale 2.0
+    mode "2560x1600@120.000"
+    scale 1.5
     backdrop-color "#1D2029"
     position x=-9999 y=0
 }
