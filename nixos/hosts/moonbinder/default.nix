@@ -30,6 +30,17 @@
   # downstream patch is no longer needed.
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
+  # MT7925 Bluetooth: 7.0.7 added an overly-strict WMT FUNC_CTRL length check
+  # (634a4408c061) that rejects the chip's short-payload init event with
+  # -EINVAL, leaving hci0 DOWN with BD Address 00:00:00:00:00:00 and dmesg
+  # spamming "Failed to send wmt func ctrl (-22)". Fix relaxes the check.
+  # Mainlined 2026-04-24, in stable 7.0.10. Drop this once nixpkgs ships ≥7.0.10.
+  # https://git.kernel.org/torvalds/c/e3ac0d9f1a205f33a43fba3b79ef74d2f604c78b
+  boot.kernelPatches = [{
+    name = "btmtk-wmt-funcctrl";
+    patch = ../../patches/btmtk-wmt-funcctrl.patch;
+  }];
+
   # Seamless ethernet↔WiFi failover (like macOS):
   # Both interfaces stay connected simultaneously. Route metrics control which
   # one carries traffic — lower metric = higher priority. When ethernet is
