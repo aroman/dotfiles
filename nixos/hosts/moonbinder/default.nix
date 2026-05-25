@@ -34,8 +34,12 @@
   # (634a4408c061) that rejects the chip's short-payload init event with
   # -EINVAL, leaving hci0 DOWN with BD Address 00:00:00:00:00:00 and dmesg
   # spamming "Failed to send wmt func ctrl (-22)". Fix relaxes the check.
-  # Mainlined 2026-04-24, in stable 7.0.10. Drop this once nixpkgs ships ≥7.0.10.
-  # https://git.kernel.org/torvalds/c/e3ac0d9f1a205f33a43fba3b79ef74d2f604c78b
+  # Mainlined 2026-04-24, in stable 7.0.10. https://git.kernel.org/torvalds/c/e3ac0d9f1a20
+  #
+  # Drop this block AND nixos/patches/btmtk-wmt-funcctrl.patch once nixpkgs ships
+  # linuxPackages_latest with kernel ≥7.0.10. Check via nix-check-updates after a
+  # flake bump, or directly:
+  #   nix eval --raw 'github:NixOS/nixpkgs/nixos-unstable#linuxPackages_latest.kernel.version'
   boot.kernelPatches = [{
     name = "btmtk-wmt-funcctrl";
     patch = ../../patches/btmtk-wmt-funcctrl.patch;
