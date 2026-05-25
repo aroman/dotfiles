@@ -1,15 +1,16 @@
-# Out-of-tree build of the mt7925 WiFi driver with deadlock and mutex fixes.
+# Out-of-tree build of the mt7925 WiFi driver with mutex/NULL fixes.
 # Builds only the mt7925 subdirectory (~1-2 min) instead of the full kernel.
 #
-# Fixes not yet upstream as of 6.18.x / 6.19 (targeting 6.20+):
-#   - Sean Wang: fix ROC deadlock in mt7925_roc_abort_sync
+# Sean Wang's ROC deadlock fix landed upstream in kernel 7.0.10 and was
+# dropped here on 2026-05-25. The remaining patch:
 #   - zbowling: mutex protection in reset/suspend/PM + NULL checks
 #
 # References:
 #   https://github.com/zbowling/mt7925
 #   https://community.frame.work/t/tracking-kernel-panic-from-wifi-mediatek-mt7925-nullptr-dereference/79301
 #
-# When these fixes land upstream, delete this file and both .patch files.
+# When the remaining patch lands upstream, delete this file, the .patch,
+# and the boot.extraModulePackages block in hosts/moonbinder/default.nix.
 { pkgs, lib, kernel }:
 
 pkgs.stdenv.mkDerivation {
@@ -17,7 +18,6 @@ pkgs.stdenv.mkDerivation {
   inherit (kernel) src version postPatch nativeBuildInputs;
 
   patches = [
-    ./mt7925-fix-roc-deadlock.patch
     ./mt7925-mutex-and-null-fixes.patch
   ];
 
