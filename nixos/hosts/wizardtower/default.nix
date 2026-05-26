@@ -15,6 +15,17 @@ in
     { from = 4000; to = 5000; }
   ];
 
+  # Sunshine — tailnet-only. NixOS's tailscale module only adds tailscale0
+  # to trustedInterfaces when useRoutingFeatures is "server"/"both"; on the
+  # default "client" the host firewall fully applies to tailnet traffic, so
+  # per-interface allow rules are required.
+  networking.firewall.interfaces.tailscale0.allowedTCPPorts = [
+    47984 47989 47990 48010
+  ];
+  networking.firewall.interfaces.tailscale0.allowedUDPPorts = [
+    47998 47999 48000 48010
+  ];
+
   # Use latest stable kernel
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
@@ -44,7 +55,7 @@ in
     package = sunshine-cuda;
     autoStart = true;
     capSysAdmin = true; # required for KMS capture on Wayland
-    openFirewall = false; # Tailscale's ts-input chain already allows traffic between peers
+    openFirewall = false; # tailnet-only; see firewall.interfaces.tailscale0 above
     settings = {
       encoder = "nvenc";
       capture = "kms";

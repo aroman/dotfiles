@@ -244,7 +244,12 @@
     enable = true;
     autoStart = true;
     capSysAdmin = true; # still recommended for full Wayland capture support
-    openFirewall = false; # Tailscale's ts-input chain already allows traffic between peers
+    # NixOS's tailscale module only adds tailscale0 to trustedInterfaces when
+    # useRoutingFeatures is "server"/"both"; on the default "client" the host
+    # firewall fully applies to tailnet traffic. Sunshine here isn't currently
+    # used remotely — if that changes, add per-interface allow rules like the
+    # tailscale0 block in nixos/hosts/wizardtower/default.nix.
+    openFirewall = false;
     settings = {
       encoder = "vaapi";
       capture = "wlr";
