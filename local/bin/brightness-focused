@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Adjust brightness of the focused niri output only.
+#
+# Internal panel (eDP-*) uses sysfs backlight via brightnessctl; Noctalia OSDs
+# off the inotify event. External monitors use DDC/CI via ddcutil, targeting
+# the focused output by EDID serial (stable across plug/unplug, unlike the
+# --display number).
+#
+# Usage: brightness-focused up|down [step]   (step defaults to 10)
+set -euo pipefail
+
+direction=${1:?usage: brightness-focused up|down [step]}
+step=${2:-10}
+
+case "$direction" in
+  up)   bctl_arg="+${step}%"; ddc_sign="+" ;;
+  down) bctl_arg="${step}%-"; ddc_sign="-" ;;
+  *) echo "usage: $0 up|down [step]" >&2; exit 2 ;;
+esac
+
+outputs_json=$(niri msg --json outputs)
+focused=$(niri msg --json focused-output | jq -r '.name')
+
+if [[ "$focused" == eDP-* ]]; then
+  exec brightnessctl -e --class=backlight set "$bctl_arg"
+fi
+
+serial=$(jq -r --arg n "$focused" '.[$n].serial // ""' <<<"$outputs_json")
+model=$(jq -r --arg n "$focused" '.[$n].model // ""' <<<"$outputs_json")
+
+selector=()
+if [[ -n "$serial" ]]; then
+  selector=(--sn "$serial")
+elif [[ -n "$model" ]]; then
+  selector=(--model "$model")
+fi
+
+ddcutil --noverify --sleep-multiplier=0.05 "${selector[@]}" \
+  setvcp 10 "$ddc_sign" "$step" >/dev/null 2>&1 &
