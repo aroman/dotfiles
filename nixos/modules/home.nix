@@ -15,6 +15,11 @@ in
   # (spawned by niri) reads from the writable runtime copy.
   systemd.user.sessionVariables = {
     NOCTALIA_CONFIG_DIR = "${config.home.homeDirectory}/.local/share/noctalia-config";
+    # Point nautilus at the aggregated user profile so it loads libnautilus-python.so
+    # (and the other extensions in home.packages, which would otherwise be invisible
+    # because nautilus's build-time NAUTILUS_EXTENSIONDIR points only into its own
+    # store path). nixpkgs patches nautilus to honor this env var.
+    NAUTILUS_4_EXTENSION_DIR = "${config.home.profileDirectory}/lib/nautilus/extensions-4";
   };
   home.pointerCursor = {
     name = "Adwaita";
@@ -277,6 +282,12 @@ in
     # explicit button so the caption reads "Go to" instead.
     (ghostty.overrideAttrs (old: {
       patches = (old.patches or []) ++ [ ../patches/ghostty-notification-action-label.patch ];
+      # Drop the bundled nautilus-python extension. It registers the same
+      # "Open in Ghostty" item via both get_file_items and get_background_items,
+      # which nautilus 50 surfaces as two identical menu entries.
+      postInstall = (old.postInstall or "") + ''
+        rm -f $out/share/nautilus-python/extensions/ghostty.py
+      '';
     }))
     kitty.kitten   # just the kitten CLI (icat for image previews), not the terminal app
     tree
@@ -341,6 +352,34 @@ in
     adw-gtk3 # libadwaita look for GTK3 apps (Nemo, Thunar, etc.)
 
     nautilus
+    nautilus-python # Python ↔ Nautilus bridge for the copy-path extension below
+    (stdenvNoCC.mkDerivation rec {
+      pname = "nautilus-copy-path";
+      version = "1.10.3";
+      src = fetchFromGitHub {
+        owner = "chr314";
+        repo = "nautilus-copy-path";
+        rev = version;
+        hash = "sha256-DvBwqko45tcjfoBWpuas8pLGmkw2Gibwt5BtrN7gF0k=";
+      };
+      dontConfigure = true;
+      dontBuild = true;
+      installPhase = ''
+        runHook preInstall
+        dest=$out/share/nautilus-python/extensions
+        mkdir -p $dest/nautilus-copy-path
+        cp nautilus-copy-path.py $dest/
+        cp nautilus_copy_path.py translation.py config.json $dest/nautilus-copy-path/
+        cp -r translations $dest/nautilus-copy-path/
+        runHook postInstall
+      '';
+      meta = {
+        description = "Nautilus extension: right-click → Copy Path / URI / Name";
+        homepage = "https://github.com/chr314/nautilus-copy-path";
+        license = lib.licenses.mit;
+        platforms = lib.platforms.linux;
+      };
+    })
     file-roller
     loupe
     snapshot

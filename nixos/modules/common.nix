@@ -510,6 +510,11 @@
   # Electron/Chromium apps: use native Wayland
   environment.sessionVariables.NIXOS_OZONE_WL = "1";
 
+  # nautilus-python's loader walks XDG_DATA_DIRS for .py extensions; the per-user
+  # profile aggregator needs this subdir whitelisted or the extensions vanish from
+  # /etc/profiles/per-user/<u>/share/nautilus-python/extensions/.
+  environment.pathsToLink = [ "/share/nautilus-python/extensions" ];
+
   # Qt theming — installs adwaita-qt for both Qt5 and Qt6 and sets
   # QT_STYLE_OVERRIDE / QT_QPA_PLATFORMTHEME. Required so Tiled's
   # "Native" application-style preference resolves to adwaita-dark
