@@ -51,6 +51,13 @@
     # a tag via `?ref=vX.Y.Z`.
     vicinae.url = "github:vicinaehq/vicinae";
 
+    # Sunshine 2026.516.143833 — pinned to NixOS/nixpkgs#521906 (Qubasa's
+    # bump branch). Carries security fix GHSA-ph75-mgxh-mv57 + KMS capture
+    # fixes (potentially relevant to the "Couldn't find monitor [0]" wedge).
+    # Drop this input once the PR merges and nixpkgs-unstable catches up.
+    # No `inputs.nixpkgs.follows` — the whole point is a different revision.
+    nixpkgs-sunshine.url = "github:Qubasa/nixpkgs/9672041e168ea7e431074220bb71920ddbe4106d";
+
   };
 
   outputs = inputs@{ self, nixpkgs, home-manager, nixos-hardware, niri, ... }:
@@ -112,6 +119,7 @@
             home-manager.users.aroman = import ./hosts/${hostname}/home.nix;
             home-manager.extraSpecialArgs = { inherit inputs; };
           }
+          ./modules/options.nix
           ./modules/common.nix
           ./modules/restic.nix
           ./hosts/${hostname}/default.nix

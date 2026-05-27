@@ -1,7 +1,16 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, inputs, ... }:
 
 let
-  sunshine-cuda = pkgs.sunshine.override { cudaSupport = true; };
+  # Pull Sunshine from the pinned nixpkgs-sunshine input (PR #521906) until
+  # the bump lands in our main nixpkgs input. See flake.nix for context.
+  # Instantiate explicitly so we inherit allowUnfree (CUDA EULA) from the
+  # main nixpkgs config — `legacyPackages` uses the input's *default* config
+  # which refuses CUDA.
+  pkgs-sunshine = import inputs.nixpkgs-sunshine {
+    inherit (pkgs.stdenv.hostPlatform) system;
+    inherit (pkgs) config;
+  };
+  sunshine-cuda = pkgs-sunshine.sunshine.override { cudaSupport = true; };
 in
 {
   imports = [
@@ -9,6 +18,10 @@ in
   ];
 
   networking.hostName = "wizardtower";
+
+  # No real monitor — drives a Ugreen HDMI dummy plug for Sunshine streaming.
+  # Disables idle-driven monitor power-off (see modules/options.nix).
+  local.headlessDisplay = true;
 
   # Magic Circle dev servers — exposed to Tailscale peers only (loopback is already exempt).
   networking.firewall.interfaces.tailscale0.allowedTCPPortRanges = [
@@ -64,6 +77,9 @@ in
       # active output. (Sunshine misparses string output_names like "HDMI-A-1" as
       # integers on this version; numeric indices work but are fragile.)
       origin_web_ui_allowed = "wan"; # allow access from Tailscale IPs
+      # 2026.516+ requires CSRF allow-list for non-localhost web UI origins.
+      # Localhost variants are exempt by default; add tailnet origins here.
+      csrf_allowed_origins = "https://100.116.179.31:47990,https://wizardtower.marlin-antares.ts.net:47990";
     };
     applications = {
       apps = [{

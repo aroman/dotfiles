@@ -1,4 +1,4 @@
-{ config, pkgs, lib, inputs, ... }:
+{ config, pkgs, lib, inputs, osConfig, ... }:
 
 let
   dotfiles = "${config.home.homeDirectory}/Projects/dotfiles";
@@ -457,10 +457,13 @@ in
   # Ref: https://man.archlinux.org/man/swayidle.1
   services.swayidle = {
     enable = true;
-    timeouts = [
+    timeouts = lib.optionals (!osConfig.local.headlessDisplay) [
       # Power off monitors after 10 minutes idle.
       # Any input (mouse move, keypress) wakes them back up.
+      # Skipped on headlessDisplay hosts: powering off the dummy plug
+      # tears down the CRTC, which breaks Sunshine's KMS capture.
       { timeout = 600; command = "${pkgs.niri-unstable}/bin/niri msg action power-off-monitors"; }
+    ] ++ [
       # Lock the session after 15 minutes idle.
       { timeout = 900; command = "noctalia-shell ipc call lockScreen lock"; }
     ];
