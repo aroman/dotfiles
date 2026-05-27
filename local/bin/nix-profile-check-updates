@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# Check whether `nix profile` entries have newer upstream versions available.
+#
+# Reads the installed version from each entry's store path, then evaluates
+# the upstream flake's `default.version` for comparison. Falls back to
+# git-rev comparison if a flake doesn't expose `version`.
+#
+# Does NOT modify your profile. To apply updates:
+#   nix profile upgrade <name>     # by name
+#   nix profile upgrade --all      # everything
+
+set -euo pipefail
+
+# Color codes (skip if stdout isn't a tty)
+if [ -t 1 ]; then
+    C_GREEN=$'\e[32m'
+    C_YELLOW=$'\e[33m'
+    C_RED=$'\e[31m'
+    C_DIM=$'\e[2m'
+    C_BOLD=$'\e[1m'
+    C_RESET=$'\e[0m'
+else
+    C_GREEN= C_YELLOW= C_RED= C_DIM= C_BOLD= C_RESET=
+fi
+
+# Extract a version-like trailing token from a store-path basename.
+# e.g. "...-claude-code-2.1.148" -> "2.1.148"
+parse_version() {
+    basename "$1" | grep -oE '[0-9][^-]*(\.[0-9]+)+[^-]*$' || true
+}
+
+entries=$(nix profile list --json | jq -r '
+  .elements
+  | (if type == "object"
+     then to_entries | map({name: .key} + .value)
+     else map({name: (.attrPath // "?")} + .)
+     end)
+  | .[]
+  | [.name, .originalUrl, .url, (.storePaths[0] // "")] | @tsv
+')
+
+if [ -z "$entries" ]; then
+    echo "No nix profile entries."
+    exit 0
+fi
+
+updates=0
+while IFS=$'\t' read -r name original locked store_path; do
+    locked_rev=$(echo "$locked" | grep -oE '[a-f0-9]{40}' | head -n1 || true)
+    locked_ver=$(parse_version "$store_path")
+
+    upstream_rev=$(nix flake metadata "$original" --refresh --json 2>/dev/null \
+                     | jq -r '.revision // empty')
+    upstream_ver=$(nix eval "$original#default.version" --raw 2>/dev/null || true)
+
+    # Prefer version comparison; fall back to rev if either version is missing.
+    if [ -n "$locked_ver" ] && [ -n "$upstream_ver" ]; then
+        from="$locked_ver"
+        to="$upstream_ver"
+        same=$([ "$locked_ver" = "$upstream_ver" ] && echo yes || echo no)
+    else
+        from="${locked_rev:0:12}"
+        to="${upstream_rev:0:12}"
+        same=$([ "$locked_rev" = "$upstream_rev" ] && [ -n "$locked_rev" ] && echo yes || echo no)
+    fi
+
+    if [ -z "$to" ] || [ "$to" = "" ]; then
+        marker="${C_RED}?${C_RESET} unknown"
+    elif [ "$same" = "yes" ]; then
+        marker="${C_GREEN}✓${C_RESET} latest "
+    else
+        marker="${C_YELLOW}󰑐${C_RESET} update "
+        updates=$((updates + 1))
+    fi
+
+    if [ "$same" = "yes" ]; then
+        printf '%s  %-22s %s%s%s\n' \
+            "$marker" "$name" "$C_DIM" "$from" "$C_RESET"
+    else
+        printf '%s  %-22s %s%s%s → %s%s%s\n' \
+            "$marker" "$name" \
+            "$C_DIM" "${from:-?}" "$C_RESET" \
+            "$C_BOLD" "${to:-?}" "$C_RESET"
+    fi
+done <<< "$entries"
+
+echo
+if [ "$updates" -gt 0 ]; then
+    echo "$updates update(s) available. Run 'nix profile upgrade --all' to apply."
+else
+    echo "All profile entries are at upstream HEAD."
+fi
