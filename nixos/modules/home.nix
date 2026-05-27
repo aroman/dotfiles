@@ -329,7 +329,25 @@ in
 
     # Media & audio
     pwvucontrol # TODO: missing icons (emblem-default-symbolic) — https://github.com/saivert/pwvucontrol/issues/71
-    spotify
+    # Spotify ≥ 1.2.86.502 forces its GPU subprocess onto X11/Xwayland
+    # when DISPLAY is set, even with --ozone-platform=wayland passed to
+    # the main process. On fractional scale that gives a bitmap-upscaled
+    # 2× cursor and slower Xwayland-buffer-copy compositing. Unsetting
+    # DISPLAY lets the internal auto-detect pick Wayland for every
+    # subprocess. Drop the wrapper once upstream restores flag-based
+    # selection:
+    # https://community.spotify.com/t5/Desktop-Linux/1-2-86-502-forces-X11-backend-can-t-enable-Wayland-via-flags/td-p/7401416
+    (symlinkJoin {
+      name = "spotify-wayland";
+      paths = [ spotify ];
+      nativeBuildInputs = [ makeWrapper ];
+      postBuild = ''
+        rm $out/bin/spotify
+        makeWrapper ${spotify}/bin/spotify $out/bin/spotify \
+          --unset DISPLAY
+      '';
+      inherit (spotify) meta;
+    })
     celluloid
     video-trimmer
     newsflash
