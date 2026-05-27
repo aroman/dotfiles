@@ -1,0 +1,7 @@
+# Use the Nerd Font variant of Cascadia Code so PUA icons (refresh,
+# package, etc.) render properly. Setting `font-family =` to empty
+# clears the prior value from `config`; otherwise ghostty stacks
+# multiple entries as fallbacks, leaving Cascadia Code (non-NF) as
+# the primary and most NF glyphs unreachable.
+font-family =
+font-family = CaskaydiaCove Nerd Font Mono

@@ -1,1 +1,1 @@
-EXCLUDES="fish_variables"
+EXCLUDES="fish_variables linux"

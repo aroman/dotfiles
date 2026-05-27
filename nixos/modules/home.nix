@@ -42,12 +42,13 @@ in
     # dirty the dotfiles repo (noctalia-shell#2214).  See the
     # home.activation.noctalia-config block below.
     "fuzzel".source = link "config/fuzzel";
-    # Symlink ghostty pieces individually so the macOS-only override
-    # file isn't deployed on Linux (ghostty's `config-file = ?macos`
-    # only checks file existence, not OS — if the file is present it
-    # gets loaded and bumps font-size to the macOS value).
+    # Symlink ghostty pieces individually so each OS only loads its own
+    # override file (ghostty's `config-file = ?<name>` only checks file
+    # existence, not OS — if the file is present it gets loaded).
+    # `macos` is deliberately omitted; `linux` is deliberately included.
     "ghostty/config".source = link "config/ghostty/config";
     "ghostty/themes".source = link "config/ghostty/themes";
+    "ghostty/linux".source = link "config/ghostty/linux";
     "lazygit".source = link "config/lazygit";
     "starship.toml".source = link "config/starship.toml";
     "xdg-terminals.list".text = "com.mitchellh.ghostty.desktop\n";

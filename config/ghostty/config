@@ -37,5 +37,9 @@ notify-on-command-finish = never
 # Undo close tab: extend recovery window from 5s default
 undo-timeout = 30s
 
-# OS-specific overrides (silently ignored if file doesn't exist)
+# OS-specific overrides (silently ignored if file doesn't exist).
+# Each OS only gets its own file in ~/.config/ghostty/:
+#   macOS → rcm symlinks it (and `linux` is in rcrc EXCLUDES)
+#   Linux → home-manager symlinks it (and `macos` is omitted there)
 config-file = ?macos
+config-file = ?linux
