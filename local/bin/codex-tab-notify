@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Codex CLI hook: tab title + bell + blue bg tint when codex is
+# waiting for input; clears them on prompt submit. Mirrors
+# claude-tab-notify but for codex's event set (no Notification /
+# SessionEnd; uses PermissionRequest as the attention event).
+
+tty_dev="/dev/$(ps -o tty= -p "$PPID" 2>/dev/null | tr -d ' ')"
+[[ -w "$tty_dev" ]] || exit 0
+
+input=$(cat)
+event=$(echo "$input" | jq -r '.hook_event_name // ""')
+
+waiting_bg='\033]11;#1c2433\033\\'
+
+case "$event" in
+  UserPromptSubmit | SessionStart)
+    printf '\033]2;\033\\\033]111\033\\' > "$tty_dev"
+    ;;
+  Stop)
+    printf "$waiting_bg" > "$tty_dev"
+    ;;
+  PermissionRequest)
+    cwd=$(echo "$input" | jq -r '.cwd // ""')
+    name="${cwd/#$HOME/~}"
+    printf '\033]2;✋ %s\a\a'"$waiting_bg" "$name" > "$tty_dev"
+    ;;
+esac
