@@ -92,6 +92,23 @@ in
     Categories=Development
     MimeType=application/vnd.codeandweb.de.tps;application/vnd.codeandweb.de.pvr;application/vnd.codeandweb.de.pvr.ccz;application/vnd.codeandweb.de.pvr.gz
   '';
+  # Flatpak per-app override. common.nix's `qt.platformTheme = "gnome"` exports
+  # QT_QPA_PLATFORMTHEME=gnome system-wide, which leaks into the sandbox — but
+  # TexturePacker bundles only `gtk3` and `xdgdesktopportal` Qt platform theme
+  # plugins (no `gnome`), so Qt fails the lookup and falls back to light Fusion.
+  # Pin to xdgdesktopportal so Qt follows the freedesktop color-scheme via the
+  # portal (= prefer-dark, set in dconf below). QT_STYLE_OVERRIDE=adwaita-dark
+  # also leaks in but is silently ignored (no adwaita style in the sandbox).
+  xdg.dataFile."flatpak/overrides/com.codeandweb.texturepacker".force = true;
+  xdg.dataFile."flatpak/overrides/com.codeandweb.texturepacker".text = ''
+    [Context]
+    sockets=wayland;
+    unset-environment=QT_STYLE_OVERRIDE;
+
+    [Environment]
+    QT_QPA_PLATFORM=wayland
+    QT_QPA_PLATFORMTHEME=xdgdesktopportal
+  '';
   xdg.dataFile."applications/flatpak-install.desktop".text = ''
     [Desktop Entry]
     Name=Flatpak Install
