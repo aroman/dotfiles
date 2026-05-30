@@ -160,7 +160,24 @@
 
   zramSwap = {
     enable = true;
-    memoryPercent = 50;
+    # 75% (≈23 GiB logical) up from the 50% default. This box runs a chronically
+    # over-committed working set (Chrome + multiple GiB-scale terminals + LLM CLIs
+    # + Rust builds), so it lives deep in swap. At 50% (15 GiB) zram fills and the
+    # tail spills to the slow disk /swapfile (prio -1), and faulting interactive
+    # threads block on that disk I/O — observed as UI lag (user.slice io.pressure
+    # full ~63% during builds, while CPU full-pressure stayed 0: this is a memory,
+    # not a scheduling, problem).
+    #
+    # memoryPercent sets the *logical (uncompressed)* device size, not a
+    # compression promise. Physical RAM cost = stored ÷ ratio; at the observed
+    # ~4.5:1 zstd ratio, a full 23 GiB device costs only ~5 GiB physical, which
+    # comfortably holds the current ~23 GiB swapped set in RAM instead of on disk.
+    #
+    # Not 100%: zram (prio 5) fills before the disk swapfile, and a full device's
+    # worst-case (incompressible, ~1:1) cost would consume all RAM and OOM before
+    # ever spilling to disk. 75% keeps a survivable working-set floor if the ratio
+    # degrades and preserves the disk swapfile as a genuine last-resort valve.
+    memoryPercent = 75;
   };
 
   # Optimize sysctl parameters for zram swap.
