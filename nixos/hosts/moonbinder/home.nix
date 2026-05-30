@@ -165,4 +165,10 @@ in
       whisper.language = "en";
     };
   };
+
+  # Pin voxtype to the FW16 internal mic so docking a headset/dock doesn't
+  # silently steal input. pipewire-alsa honors PIPEWIRE_NODE at open time.
+  systemd.user.services.voxtype.Service.Environment = [
+    "PIPEWIRE_NODE=alsa_input.pci-0000_c3_00.6.HiFi__Mic1__source"
+  ];
 }

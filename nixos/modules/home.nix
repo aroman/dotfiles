@@ -42,12 +42,13 @@ in
     # dirty the dotfiles repo (noctalia-shell#2214).  See the
     # home.activation.noctalia-config block below.
     "fuzzel".source = link "config/fuzzel";
-    # Symlink ghostty pieces individually so the macOS-only override
-    # file isn't deployed on Linux (ghostty's `config-file = ?macos`
-    # only checks file existence, not OS — if the file is present it
-    # gets loaded and bumps font-size to the macOS value).
+    # Symlink ghostty pieces individually so each OS only loads its own
+    # override file (ghostty's `config-file = ?<name>` only checks file
+    # existence, not OS — if the file is present it gets loaded).
+    # `macos` is deliberately omitted; `linux` is deliberately included.
     "ghostty/config".source = link "config/ghostty/config";
     "ghostty/themes".source = link "config/ghostty/themes";
+    "ghostty/linux".source = link "config/ghostty/linux";
     "lazygit".source = link "config/lazygit";
     "starship.toml".source = link "config/starship.toml";
     "xdg-terminals.list".text = "com.mitchellh.ghostty.desktop\n";
@@ -90,6 +91,23 @@ in
     Type=Application
     Categories=Development
     MimeType=application/vnd.codeandweb.de.tps;application/vnd.codeandweb.de.pvr;application/vnd.codeandweb.de.pvr.ccz;application/vnd.codeandweb.de.pvr.gz
+  '';
+  # Flatpak per-app override. common.nix's `qt.platformTheme = "gnome"` exports
+  # QT_QPA_PLATFORMTHEME=gnome system-wide, which leaks into the sandbox — but
+  # TexturePacker bundles only `gtk3` and `xdgdesktopportal` Qt platform theme
+  # plugins (no `gnome`), so Qt fails the lookup and falls back to light Fusion.
+  # Pin to xdgdesktopportal so Qt follows the freedesktop color-scheme via the
+  # portal (= prefer-dark, set in dconf below). QT_STYLE_OVERRIDE=adwaita-dark
+  # also leaks in but is silently ignored (no adwaita style in the sandbox).
+  xdg.dataFile."flatpak/overrides/com.codeandweb.texturepacker".force = true;
+  xdg.dataFile."flatpak/overrides/com.codeandweb.texturepacker".text = ''
+    [Context]
+    sockets=wayland;
+    unset-environment=QT_STYLE_OVERRIDE;
+
+    [Environment]
+    QT_QPA_PLATFORM=wayland
+    QT_QPA_PLATFORMTHEME=xdgdesktopportal
   '';
   xdg.dataFile."applications/flatpak-install.desktop".text = ''
     [Desktop Entry]
@@ -329,7 +347,25 @@ in
 
     # Media & audio
     pwvucontrol # TODO: missing icons (emblem-default-symbolic) — https://github.com/saivert/pwvucontrol/issues/71
-    spotify
+    # Spotify ≥ 1.2.86.502 forces its GPU subprocess onto X11/Xwayland
+    # when DISPLAY is set, even with --ozone-platform=wayland passed to
+    # the main process. On fractional scale that gives a bitmap-upscaled
+    # 2× cursor and slower Xwayland-buffer-copy compositing. Unsetting
+    # DISPLAY lets the internal auto-detect pick Wayland for every
+    # subprocess. Drop the wrapper once upstream restores flag-based
+    # selection:
+    # https://community.spotify.com/t5/Desktop-Linux/1-2-86-502-forces-X11-backend-can-t-enable-Wayland-via-flags/td-p/7401416
+    (symlinkJoin {
+      name = "spotify-wayland";
+      paths = [ spotify ];
+      nativeBuildInputs = [ makeWrapper ];
+      postBuild = ''
+        rm $out/bin/spotify
+        makeWrapper ${spotify}/bin/spotify $out/bin/spotify \
+          --unset DISPLAY
+      '';
+      inherit (spotify) meta;
+    })
     celluloid
     video-trimmer
     newsflash
