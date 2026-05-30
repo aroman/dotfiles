@@ -61,8 +61,8 @@
     "swift-lsp@claude-plugins-official": false,
     "rust-analyzer-lsp@claude-plugins-official": false
   },
-  "effortLevel": "max",
-  "tui": "default",
+  "effortLevel": "xhigh",
+  "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "agentPushNotifEnabled": true,
   "voiceEnabled": false,
