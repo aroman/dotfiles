@@ -46,7 +46,8 @@ fish_add_path $ANDROID_HOME/emulator
 abbr --add c "claude --dangerously-skip-permissions"
 abbr --add cr "claude --dangerously-skip-permissions --resume"
 abbr --add x "codex --yolo"
-abbr --add xr "codex --yolo resume"
+# `xr` is a function (config/fish/functions/xr.fish): codex resume, but auto-opens
+# the session when it is the only one recorded for the current directory.
 abbr --add dotc "cd $DOTFILES_DIR && claude --dangerously-skip-permissions"
 abbr --add dr "cd $DOTFILES_DIR && claude --dangerously-skip-permissions --resume"
 # `bp` sends clipboard contents to `bud new -p` as a single argument — sidesteps
