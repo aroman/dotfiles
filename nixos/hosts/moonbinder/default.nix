@@ -36,13 +36,27 @@
   # unplugged, the kernel routing table already has WiFi routes so traffic
   # fails over instantly (sub-second) with no reconnection needed.
   networking.networkmanager.settings = {
+    # Real wired ethernet (docks) wins by default — but exclude the iPhone's
+    # USB-tether interface, which also presents as ethernet and would otherwise
+    # grab metric 100 and hijack the default route the instant the phone is
+    # plugged in. ipheth is the Apple-tether-only driver, so excluding it never
+    # affects a dock's wired NIC.
     "connection-ethernet" = {
-      "match-device" = "type:ethernet";
+      "match-device" = "type:ethernet,except:driver:ipheth";
       "ipv4.route-metric" = 100;
     };
     "connection-wifi" = {
       "match-device" = "type:wifi";
       "ipv4.route-metric" = 600;
+    };
+    # iPhone USB tether: bottom of the fallback order — carries traffic only
+    # when both wired and Wi-Fi are down. Metric 700 sits just below Wi-Fi (600).
+    # ipv6 is set explicitly because ipheth is an ethernet-type link and would
+    # otherwise default to metric 100 on v6 and win there.
+    "connection-iphone-tether" = {
+      "match-device" = "driver:ipheth";
+      "ipv4.route-metric" = 700;
+      "ipv6.route-metric" = 700;
     };
   };
 
@@ -74,14 +88,20 @@
   networking.wireless.iwd.enable = true;
   networking.networkmanager.wifi.backend = "iwd";
 
-  # Per-connection WiFi tweaks NOT captured declaratively (NM stores them in
+  # Per-connection tweaks NOT captured declaratively (NM stores these in
   # /etc/NetworkManager/system-connections/, which survives rebuilds but not
   # reimages). Re-apply after a reimage:
   #
   #   nmcli connection modify Larnathord 802-11-wireless.band a
+  #   nmcli connection modify "Wired connection 2" connection.id "iPhone Hotspot"
   #
   # `band=a` restricts Larnathord to 5/6 GHz, skipping 2.4 GHz scan time on
   # connect. Safe because all home APs broadcast 5+6 GHz.
+  #
+  # The iPhone rename is cosmetic: NM auto-creates "Wired connection 2" for the
+  # ipheth tether (interface eth0); renaming gives a friendly label in the menu.
+  # The route demotion itself is handled declaratively via the route-metric
+  # match-device rules above, so naming has no functional effect.
 
   # Graphics (AMD iGPU — Ryzen AI 300 series)
   hardware.graphics.enable = true;
