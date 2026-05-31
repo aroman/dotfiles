@@ -93,15 +93,18 @@
   # reimages). Re-apply after a reimage:
   #
   #   nmcli connection modify Larnathord 802-11-wireless.band a
+  #   nmcli connection modify "Wired connection 1" connection.id "TS4 Ethernet"
   #   nmcli connection modify "Wired connection 2" connection.id "iPhone Hotspot"
   #
   # `band=a` restricts Larnathord to 5/6 GHz, skipping 2.4 GHz scan time on
   # connect. Safe because all home APs broadcast 5+6 GHz.
   #
-  # The iPhone rename is cosmetic: NM auto-creates "Wired connection 2" for the
-  # ipheth tether (interface eth0); renaming gives a friendly label in the menu.
-  # The route demotion itself is handled declaratively via the route-metric
-  # match-device rules above, so naming has no functional effect.
+  # The two renames are cosmetic — NM auto-creates "Wired connection 1" (the TS4
+  # dock's onboard Intel I225 2.5GbE, interface enp95s0) and "Wired connection 2"
+  # (the ipheth iPhone tether, interface eth0); renaming gives friendly menu
+  # labels. The route ordering is handled declaratively via the route-metric
+  # match-device rules above, so naming has no functional effect. ("TS4 Ethernet"
+  # is TS4-specific — the TS3 at work presents a different interface name.)
 
   # Graphics (AMD iGPU — Ryzen AI 300 series)
   hardware.graphics.enable = true;
