@@ -321,6 +321,7 @@ in
     gnupg
     cloudflared
     btop
+    resources    # net.nokyan.Resources — GTK4 GUI system/process monitor (btop's graphical counterpart)
     tokei
     unzip
 
@@ -420,7 +421,6 @@ in
     loupe
     snapshot
     papers
-    mission-center
     font-manager
     seahorse
     adwaita-icon-theme
