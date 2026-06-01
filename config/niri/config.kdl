@@ -86,10 +86,13 @@ input {
     mouse {
         // off
         // natural-scroll
-        // accel-speed 0.2
-        // accel-profile "flat"
+        // No pointer acceleration: constant 1:1 tracking, then a flat speed multiplier.
+        accel-profile "flat"
+        // With flat profile this is a linear speed multiplier. 0 = default, 1.0 = fastest.
+        accel-speed -0.3
         // scroll-method "no-scroll"
-        // scroll-factor 0.25
+        // Speed up wheel scrolling (mouse only; touchpad has its own factor above).
+        scroll-factor 3.0
     }
 
     trackpoint {
