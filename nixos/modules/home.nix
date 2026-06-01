@@ -515,10 +515,16 @@ in
   # ── Services ─────────────────────────────────────────────────────
 
   # ── Clipboard persistence ───────────────────────────────────────
-  # On Wayland the clipboard dies when the source process exits.
-  # wl-clip-persist takes over ownership so content survives, which
-  # also fixes paste mode for voxtype (whose wl-copy child gets
-  # killed by systemd cgroup cleanup).
+  # On Wayland the clipboard dies when the source process exits, and voxtype's
+  # paste mode needs it to outlive its cgroup-reaped wl-copy child. wl-clip-persist
+  # takes over ownership (via wlr-data-control) so both survive.
+  #
+  # --ignore-event-on-error is the fix for the bug that started all this: Chrome
+  # offers selections with internal MIME types (chromium/x-internal-source-rfh-token,
+  # …); when a read of one errored, wl-clip-persist would still take over ownership
+  # serving a half/empty cache, so pasting a Chrome copy gave stale/empty text. With
+  # -e it skips errored selections and lets the source keep serving — copies paste
+  # correctly. vicinae stays the clipboard-history manager alongside it.
   systemd.user.services.wl-clip-persist = {
     Unit = {
       Description = "Keep Wayland clipboard after source exits";
@@ -526,7 +532,7 @@ in
       PartOf = [ "graphical-session.target" ];
     };
     Service = {
-      ExecStart = "${pkgs.wl-clip-persist}/bin/wl-clip-persist --clipboard regular";
+      ExecStart = "${pkgs.wl-clip-persist}/bin/wl-clip-persist --clipboard regular --ignore-event-on-error";
       Restart = "on-failure";
     };
     Install.WantedBy = [ "graphical-session.target" ];

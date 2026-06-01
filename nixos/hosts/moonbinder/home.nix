@@ -156,6 +156,13 @@ in
         theme = "${config.home.homeDirectory}/.local/share/voxtype/sounds/wispr";
         volume = 0.7;
       };
+      # Paste mode: voxtype puts the transcript on the clipboard and sends
+      # Ctrl+Shift+V (via the dotool patch, so GTK4 shortcut controllers fire),
+      # dumping the whole transcript instantly. Type mode (wtype/dotool) types
+      # char-by-char — too slow for dictation, so we stay on paste. This needs
+      # the clipboard to outlive voxtype's cgroup-reaped wl-copy child, so
+      # wl-clip-persist is back (modules/home.nix) — now hardened with
+      # --ignore-event-on-error so it stops corrupting Chrome copies.
       output = {
         mode = "paste";
         paste_keys = "ctrl+shift+v";
