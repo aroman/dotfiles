@@ -22,15 +22,22 @@ Host moonbinder moonbinder.marlin-antares.ts.net dawnbinder dawnbinder.marlin-an
 # devices — regular MagicDNS lookups return NXDOMAIN. Hardcoding the 100.x
 # IPs sidesteps DNS entirely. IPs are sticky per registered node.
 # See https://github.com/tailscale/tailscale/issues/16558
+# Agent-forwarding policy: every machine in this file is one we own and trust,
+# and each carries its own SSH key (see the "machine-specific key" setup in
+# README.md) used via its local ssh-agent (programs.ssh.startAgent + linger).
+# We deliberately do NOT ForwardAgent between them. Forwarding exists to borrow
+# a key onto a host you don't want to store one on — the opposite of our case,
+# so it buys nothing here. It also widens attack surface and, worse, pins
+# SSH_AUTH_SOCK to a per-connection socket that goes stale inside long-lived
+# tmux panes, silently breaking commit signing in reattached sessions. For a
+# genuine onward hop using this machine's identity, prefer ProxyJump (-J).
 Host moonbinder moonbinder.marlin-antares.ts.net
   HostName 100.106.254.15
   SendEnv GHOSTTY_RESOURCES_DIR
-  ForwardAgent yes
 
 Host dawnbinder dawnbinder.marlin-antares.ts.net
   HostName 100.76.66.127
   SendEnv GHOSTTY_RESOURCES_DIR
-  ForwardAgent yes
 
 Host wizardtower wizardtower.marlin-antares.ts.net
   HostName 100.116.179.31
