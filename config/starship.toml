@@ -46,8 +46,8 @@ symbol = "❄️ "
 
 [custom.bud]
 command = "bud starship"
-when = "bud starship"
-format = "$output "
+when = true
+format = "$output"
 unsafe_no_escape = true
 shell = ["bash", "--noprofile", "--norc"]
 description = "Bud Local Servers status"
