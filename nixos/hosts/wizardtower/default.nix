@@ -26,15 +26,22 @@ in
   # Exit node — route other tailnet peers' internet egress through this host.
   # "server" flips on net.ipv4/ipv6 forwarding and adds tailscale0 to
   # networking.firewall.trustedInterfaces. (Use "both" if wizardtower should
-  # also *use* other exit nodes / accept subnet routes itself.) After a rebuild,
-  # run once on the host: `sudo tailscale set --advertise-exit-node`, then
-  # approve the exit node in the Tailscale admin console.
+  # also *use* other exit nodes / accept subnet routes itself.)
+  #
+  # extraSetFlags drives a tailscaled-set.service oneshot that re-runs
+  # `tailscale set --advertise-exit-node` on every activation, so the
+  # advertisement lives in the flake rather than only in tailscaled's local
+  # state — idempotent, no re-auth. The exit node still has to be approved once
+  # in the Tailscale admin console. To stop advertising later, change the flag
+  # to "--advertise-exit-node=false" instead of just deleting the line (a flag
+  # that's no longer passed isn't un-set in tailscaled's prefs).
   #
   # Note: because tailscale0 is now a trusted interface, the per-port allow
   # rules below are redundant — every listening port is already reachable from
   # tailnet peers. Kept so this host still curates tailnet exposure if exit-node
   # routing is ever turned back off.
   services.tailscale.useRoutingFeatures = "server";
+  services.tailscale.extraSetFlags = [ "--advertise-exit-node" ];
 
   # Magic Circle dev servers — exposed to Tailscale peers only (loopback is already exempt).
   networking.firewall.interfaces.tailscale0.allowedTCPPortRanges = [
