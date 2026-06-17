@@ -23,6 +23,19 @@ in
   # Disables idle-driven monitor power-off (see modules/options.nix).
   local.headlessDisplay = true;
 
+  # Exit node — route other tailnet peers' internet egress through this host.
+  # "server" flips on net.ipv4/ipv6 forwarding and adds tailscale0 to
+  # networking.firewall.trustedInterfaces. (Use "both" if wizardtower should
+  # also *use* other exit nodes / accept subnet routes itself.) After a rebuild,
+  # run once on the host: `sudo tailscale set --advertise-exit-node`, then
+  # approve the exit node in the Tailscale admin console.
+  #
+  # Note: because tailscale0 is now a trusted interface, the per-port allow
+  # rules below are redundant — every listening port is already reachable from
+  # tailnet peers. Kept so this host still curates tailnet exposure if exit-node
+  # routing is ever turned back off.
+  services.tailscale.useRoutingFeatures = "server";
+
   # Magic Circle dev servers — exposed to Tailscale peers only (loopback is already exempt).
   networking.firewall.interfaces.tailscale0.allowedTCPPortRanges = [
     { from = 4000; to = 5000; }
