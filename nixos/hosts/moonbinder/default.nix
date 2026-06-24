@@ -8,7 +8,11 @@
 
   networking.hostName = "moonbinder";
 
-  # TODO: Remove when fixes land upstream (targeting 6.20+). Check:
+  # TODO: Remove when fixes land upstream. NOT upstream as of 7.1.0 (verified
+  # 2026-06-23): zbowling's series is stuck in review (re-rolled to v7) and the
+  # locking slice we carry is contested — maintainers want the root fix in
+  # mac80211 core, not driver-local NULL checks. ROC-deadlock half already
+  # landed (7.0.10). Check:
   #   - LKML: https://lore.kernel.org/linux-wireless/?q=mt7925+deadlock
   #   - Tracker: https://community.frame.work/t/tracking-kernel-panic-from-wifi-mediatek-mt7925-nullptr-dereference/79301
   #   - Patches: https://github.com/zbowling/mt7925

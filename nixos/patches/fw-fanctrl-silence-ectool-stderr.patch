@@ -4,8 +4,9 @@ dGPU is present but idle (drivers blacklisted, or the GPU has powered
 down on its own — the f75303 thermal ICs disconnect, ectool prints
 "Sensor N disabled" to stderr every poll).
 
-Tracked upstream by PR #164 (CrOS_EC_Python hardware controller), which
-would obviate this when merged.
+Upstream PR #164 (CrOS_EC_Python hardware controller) was CLOSED without
+merging (checked 2026-06-23), so no fix is coming via that route — this
+patch is effectively permanent unless reworked and re-submitted upstream.
 
 --- a/src/fw_fanctrl/hardwareController/EctoolHardwareController.py
 +++ b/src/fw_fanctrl/hardwareController/EctoolHardwareController.py

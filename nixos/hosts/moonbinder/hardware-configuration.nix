@@ -23,8 +23,12 @@
     #   `journalctl -k | grep "detected ip block"`).
     # Bug: https://bugzilla.kernel.org/show_bug.cgi?id=220812
     # Patch: https://lore.kernel.org/amd-gfx/20251130014631.29755-1-superm1@kernel.org/
-    # AMD says the underlying fix will come in a BIOS update (BIOS 03.04 does
-    # not include it yet). Remove this once a fixed BIOS ships for FW16 AI 300.
+    # AMD says the fix comes via SoC firmware in a BIOS update, NOT the kernel:
+    # the in-kernel workaround (commit 31ab31433c "skip power ungate during
+    # suspend for VPE") was reverted upstream and the revert is in 7.1. As of
+    # BIOS 03.06 (current; AMD PI StrixKrackanPI-FP8 1.1.0.2d, unchanged since
+    # 3.05) it's still not fixed. Drop this + re-enable VPE once a BIOS bumps
+    # that AMD PI firmware version and survives several suspend cycles.
     "amdgpu.ip_block_mask=0xFFFFF7FF"
 
     # Log ACPI LPS0 constraint failures during s2idle to dmesg. Needed to
