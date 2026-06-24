@@ -74,3 +74,6 @@ function killport
         echo "No process found listening on port $port"
     end
 end
+
+# Force UTF-8 for non-GUI ssh logins; macOS leaves LANG empty so the C locale breaks TUI glyph widths
+set -gx LANG en_US.UTF-8
