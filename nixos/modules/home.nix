@@ -433,7 +433,7 @@ in
     }))
 
     # Desktop shell & launcher
-    # vicinae — installed via services.vicinae below
+    # vicinae — installed via programs.vicinae below
 
     # Development
     nodejs_24
@@ -442,7 +442,7 @@ in
 
   # ── Vicinae launcher ─────────────────────────────────────────────
 
-  services.vicinae = {
+  programs.vicinae = {
     enable = true;
     systemd = {
       enable = true;
