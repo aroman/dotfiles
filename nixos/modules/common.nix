@@ -331,41 +331,39 @@
   services.kmscon = {
     enable = true;
     useXkbConfig = true;
-    hwRender = false;  # pixman software rendering; GL backend has been flakier
-    fonts = [{
-      name = "CaskaydiaCove Nerd Font";
-      package = pkgs.nerd-fonts.caskaydia-cove;
-    }];
-    extraConfig = ''
-      font-size=24
-      sb-size=10000
+    # hwaccel defaults off → pixman software rendering; GL backend has been flakier.
+    config = {
+      # Font lives in fonts.packages (nerd-fonts.caskaydia-cove); reference by name.
+      font-name = "CaskaydiaCove Nerd Font";
+      font-size = 24;
+      sb-size = 10000;
       # kmscon uses evdev directly (no libinput), so touchpad gestures
       # don't work — instead, raw BTN_* events from tap-to-click cause
       # accidental PRIMARY-selection pastes. Disable mouse entirely; use
-      # Shift+PgUp/PgDn for scrollback.
-      no-mouse
-      xkb-repeat-delay=250
-      xkb-repeat-rate=40
-      palette=custom
-      palette-foreground=218,218,218
-      palette-background=10,13,16
-      palette-black=35,42,45
-      palette-red=229,116,116
-      palette-green=140,207,126
-      palette-yellow=229,199,107
-      palette-blue=103,176,232
-      palette-magenta=196,127,213
-      palette-cyan=108,191,191
-      palette-light-grey=179,185,184
-      palette-dark-grey=70,78,80
-      palette-light-red=239,126,126
-      palette-light-green=150,217,136
-      palette-light-yellow=244,214,122
-      palette-light-blue=113,186,242
-      palette-light-magenta=206,137,223
-      palette-light-cyan=103,203,231
-      palette-white=189,195,194
-    '';
+      # Shift+PgUp/PgDn for scrollback. (boolean false → renders as `no-mouse`)
+      mouse = false;
+      xkb-repeat-delay = 250;
+      xkb-repeat-rate = 40;
+      palette = "custom";
+      palette-foreground = "218,218,218";
+      palette-background = "10,13,16";
+      palette-black = "35,42,45";
+      palette-red = "229,116,116";
+      palette-green = "140,207,126";
+      palette-yellow = "229,199,107";
+      palette-blue = "103,176,232";
+      palette-magenta = "196,127,213";
+      palette-cyan = "108,191,191";
+      palette-light-grey = "179,185,184";
+      palette-dark-grey = "70,78,80";
+      palette-light-red = "239,126,126";
+      palette-light-green = "150,217,136";
+      palette-light-yellow = "244,214,122";
+      palette-light-blue = "113,186,242";
+      palette-light-magenta = "206,137,223";
+      palette-light-cyan = "103,203,231";
+      palette-white = "189,195,194";
+    };
   };
   systemd.services."kmsconvt@tty2".enable = false;
 
