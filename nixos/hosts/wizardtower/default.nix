@@ -8,7 +8,12 @@ let
   # which refuses CUDA.
   pkgs-sunshine = import inputs.nixpkgs-sunshine {
     inherit (pkgs.stdenv.hostPlatform) system;
-    inherit (pkgs) config;
+    # Inherit allowUnfree (CUDA EULA) etc. from the main nixpkgs config, but
+    # drop `rewriteURL`: main nixpkgs now defaults it to `null`, while this
+    # older fork still types it as a (non-nullable) function — passing the
+    # null straight through fails the fork's type check. removeAttrs lets the
+    # fork apply its own default (lib.id).
+    config = builtins.removeAttrs pkgs.config [ "rewriteURL" ];
   };
   sunshine-cuda = pkgs-sunshine.sunshine.override { cudaSupport = true; };
 in
