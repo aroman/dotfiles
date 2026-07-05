@@ -22,12 +22,24 @@
         ]
       }
     ],
-    "UserPromptSubmit": [
+    "SessionEnd": [
       {
         "hooks": [
           {
             "type": "command",
             "command": "claude-tab-notify"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/aroman/.claude/hooks/herdr-agent-state.sh' session",
+            "timeout": 10
           }
         ]
       }
@@ -42,7 +54,7 @@
         ]
       }
     ],
-    "SessionEnd": [
+    "UserPromptSubmit": [
       {
         "hooks": [
           {
@@ -58,13 +70,14 @@
     "command": "command -v bud >/dev/null && bud statusline"
   },
   "enabledPlugins": {
-    "swift-lsp@claude-plugins-official": false,
-    "rust-analyzer-lsp@claude-plugins-official": false
+    "figma@claude-plugins-official": true,
+    "rust-analyzer-lsp@claude-plugins-official": false,
+    "swift-lsp@claude-plugins-official": false
   },
   "effortLevel": "xhigh",
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
+  "remoteControlAtStartup": true,
   "agentPushNotifEnabled": true,
-  "voiceEnabled": false,
-  "remoteControlAtStartup": true
+  "voiceEnabled": false
 }
