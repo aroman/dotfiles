@@ -4,4 +4,4 @@ agent_panel_sort = "spaces"
 
 [keys]
 # Prefix key to enter prefix mode (default: "ctrl+b")
-prefix = "ctrl+e"
+prefix = "ctrl+f"
