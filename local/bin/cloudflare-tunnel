@@ -3,6 +3,11 @@ set -uo pipefail
 
 METRICS_ADDR="127.0.0.1:20241"
 PIDFILE="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/cloudflare-tunnel.pid"
+# The tunnel token is a static credential. Keep it in a 0600 file outside the
+# dotfiles repo so this works identically on the desktop and over SSH, with no
+# password-manager / GUI dependency. Populate it once with:
+#   install -m600 /dev/stdin ~/.config/cloudflare-tunnel/token   (paste, ^D)
+TOKEN_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/cloudflare-tunnel/token"
 
 is_running() {
   [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null
@@ -14,7 +19,13 @@ case "${1:-start}" in
       exit 0
     fi
 
-    token=$(op read --account my.1password.com "op://Private/Cloudflare Tunnel - avi.magiccircle.dev/token") || exit 1
+    if [[ ! -s "$TOKEN_FILE" ]]; then
+      echo "cloudflare-tunnel: no token at $TOKEN_FILE." \
+           "Create it (mode 0600) with the tunnel token from the Cloudflare" \
+           "Zero Trust dashboard." >&2
+      exit 1
+    fi
+    token=$(cat "$TOKEN_FILE")
 
     LOGFILE="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/cloudflare-tunnel.log"
     TUNNEL_TOKEN="$token" nohup cloudflared tunnel --metrics "$METRICS_ADDR" run \
