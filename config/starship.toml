@@ -43,7 +43,7 @@ style = "#e5c76b"
 [nix_shell]
 style = "#67b0e8"
 symbol = "❄️ "
-format = "[$symbol( \\($name\\))]($style) "
+format = "[$symbol\\($name\\)]($style) "
 
 [custom.bud]
 command = "bud starship"
