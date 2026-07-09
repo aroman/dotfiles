@@ -24,7 +24,70 @@
       options = [ "fmask=0077" "dmask=0077" ];
     };
 
-  swapDevices = [ ];
+  zramSwap = {
+    enable = true;
+    # Ported from moonbinder (see its hardware-configuration.nix for the full
+    # rationale). Same chronically over-committed working set here — a fleet of
+    # vite/workerd dev servers + LLM CLIs + Chromium. Running with no swap at
+    # all, this box hit a hard OOM on 2026-07-09: with zero swap the kernel
+    # can't reclaim anonymous pages, so idle GiB-scale JS heaps were unevictable
+    # and earlyoom's only lever was killing processes — it escalated until it
+    # SIGKILLed `systemd --user` itself. Mostly-idle dev-server heaps compress
+    # well, so zram absorbs exactly this workload.
+    #
+    # memoryPercent sets the *logical (uncompressed)* device size, not a
+    # compression promise. Physical RAM cost = stored ÷ ratio; at the ~4.5:1
+    # zstd ratio observed on moonbinder, a full ~23 GiB device costs ~5 GiB
+    # physical.
+    #
+    # Not 100%: a full device's worst-case (incompressible, ~1:1) cost would
+    # consume all RAM and OOM before ever spilling to disk. 75% keeps a
+    # survivable working-set floor if the ratio degrades and preserves the disk
+    # swapfile below as a genuine last-resort valve.
+    memoryPercent = 75;
+  };
+
+  # Optimize sysctl parameters for zram swap.
+  #
+  # With zram, "swapping" means compressing pages in RAM rather than writing
+  # to disk, so the cost/benefit tradeoffs of these tunables change significantly.
+  #
+  # References:
+  #   - https://wiki.archlinux.org/title/Zram#Optimizing_swap_on_zram
+  #   - https://docs.kernel.org/admin-guide/sysctl/vm.html
+  #   - https://github.com/NixOS/nixpkgs/pull/351002
+  boot.kernel.sysctl = {
+    # Default is 60. Range is 0-200 (expanded from 0-100 for zram/zswap).
+    # Higher values tell the kernel to prefer compressing cold anonymous pages
+    # into zram over evicting file cache. Since zram decompression (~µs) is
+    # orders of magnitude faster than even NVMe reads (~100µs), this keeps
+    # more hot file cache in RAM at the cost of cheap compression CPU cycles.
+    "vm.swappiness" = 180;
+
+    # Default is 15000. Controls reclaim of watermark_boost pages after an
+    # external fragmentation event. Not useful with zram (no disk seek penalty
+    # to amortize).
+    "vm.watermark_boost_factor" = 0;
+
+    # Default is 10 (0.1% of RAM). Distance between min/low/high watermarks.
+    # Higher value gives kswapd more runway to reclaim in the background before
+    # direct reclaim stalls occur, reducing latency spikes under pressure.
+    "vm.watermark_scale_factor" = 125;
+
+    # Default is 3 (read 2^3=8 pages at a time from swap). Swap readahead
+    # helps with sequential disk access but zram has no seek penalty, so
+    # readahead just wastes memory bandwidth. 0 disables it.
+    "vm.page-cluster" = 0;
+  };
+
+  # Disk-backed overflow valve. zram (prio 5) handles day-to-day swapping;
+  # this only takes pages once zram is full, buying earlyoom room to act
+  # instead of the system going straight from "zram full" to OOM kills.
+  # (No hibernate on this box, so no need to match RAM size like moonbinder.)
+  swapDevices = [{
+    device = "/swapfile";
+    size = 16 * 1024;  # 16 GiB
+  }];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
