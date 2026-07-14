@@ -84,6 +84,15 @@ in
     user = "aroman";
   };
 
+  # Power button — this headless always-on tower was accidentally powered off
+  # by a short press of the chassis power button (2026-07-13), so ignore the
+  # short press entirely. A deliberate ~1s hold still does a clean shutdown via
+  # logind, and the firmware ~4s force-off remains as the hardware fallback.
+  services.logind.settings.Login = {
+    HandlePowerKey = "ignore";
+    HandlePowerKeyLongPress = "poweroff";
+  };
+
   # ── Sunshine (remote desktop streaming) ──────────────────────────
   # Streams the desktop to Moonlight clients. NvENC for hardware-accelerated
   # encoding on the RTX 2060 Super, KMS capture reads the framebuffer
