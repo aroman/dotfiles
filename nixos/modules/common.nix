@@ -529,13 +529,9 @@
     chafa
     curl
     file
-    # herdr — agent-aware terminal multiplexer. In systemPackages (not
-    # home.packages) on purpose: `herdr --remote <host>` runs `ssh <host>
-    # herdr …` non-interactively, and /run/current-system/sw/bin is reliably
-    # on that PATH whereas ~/.nix-profile/bin / the home-manager profile may
-    # not be. wizardtower is the always-on host; keeping it common means the
-    # laptop can also drive a herd or act as a host.
-    herdr
+    # herdr is deliberately not here (nor in home.packages) — it's managed
+    # imperatively via `nix profile install github:ogulcancelik/herdr`, so it
+    # can be upgraded independently of a system rebuild.
     git
     lazygit
     lsof
