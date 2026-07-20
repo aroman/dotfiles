@@ -10,7 +10,7 @@ Most macOS packages are in the [Brewfile](https://github.com/aroman/dotfiles/blo
 - **Terminal**: Ghostty (Everblush theme)
 - **Editor**: Zed (primary), Neovim (lazy.nvim), vim (barebones fallback)
 - **Git**: difftastic (structural diffs), SSH signing, git-lfs
-- **NixOS**: niri compositor, Ptyxis terminal, handlr-regex URL dispatching
+- **NixOS**: niri compositor, handlr-regex URL dispatching
 - **macOS**: Caps Lock → Escape (hidutil), Touch ID sudo, Dock/Finder defaults
 
 ### Non-brew apps (macOS)

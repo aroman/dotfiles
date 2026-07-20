@@ -118,54 +118,6 @@ in
     NoDisplay=true
     MimeType=application/vnd.flatpak.ref
   '';
-  xdg.dataFile."org.gnome.Ptyxis/palettes/everblush-custom.palette".text = ''
-    [Palette]
-    Name=Everblush Custom
-
-    [Dark]
-    Background=#141B1E
-    Foreground=#DADADA
-    Color0=#232A2D
-    Color1=#E57474
-    Color2=#8CCF7E
-    Color3=#E5C76B
-    Color4=#67B0E8
-    Color5=#C47FD5
-    Color6=#6CBFBF
-    Color7=#B3B9B8
-    Color8=#8A9399
-    Color9=#EF7E7E
-    Color10=#96D988
-    Color11=#F4D67A
-    Color12=#71BAF2
-    Color13=#CE89DF
-    Color14=#67CBE7
-    Color15=#BDC3C2
-    SuperuserBackground=#1C0A0C
-    SuperuserForeground=#DADADA
-
-    [Light]
-    Background=#141B1E
-    Foreground=#DADADA
-    Color0=#232A2D
-    Color1=#E57474
-    Color2=#8CCF7E
-    Color3=#E5C76B
-    Color4=#67B0E8
-    Color5=#C47FD5
-    Color6=#6CBFBF
-    Color7=#B3B9B8
-    Color8=#8A9399
-    Color9=#EF7E7E
-    Color10=#96D988
-    Color11=#F4D67A
-    Color12=#71BAF2
-    Color13=#CE89DF
-    Color14=#67CBE7
-    Color15=#BDC3C2
-    SuperuserBackground=#1C0A0C
-    SuperuserForeground=#DADADA
-  '';
   xdg.desktopEntries.linear = {
     name = "Linear";
     comment = "Linear (Chrome app mode)";
@@ -425,13 +377,6 @@ in
     seahorse
     adwaita-icon-theme
 
-    # Terminal — custom patch hides the AdwHeaderBar and tweaks superuser bg.
-    # `enable-zoom-scroll-ctrl` (the original reason for pinning to 50.rc) is
-    # in stable 50.1, so the version pin is gone.
-    (ptyxis.overrideAttrs (old: {
-      patches = (old.patches or []) ++ [ ../ptyxis-no-headerbar.patch ];
-    }))
-
     # Desktop shell & launcher
     # vicinae — installed via programs.vicinae below
 
@@ -472,10 +417,6 @@ in
       cursor-theme = "Adwaita";
       cursor-size = 24;
       gtk-enable-primary-paste = false;
-    };
-    # TODO: manage Ptyxis settings declaratively (dconf module doesn't re-apply after manual changes)
-    "org/gnome/Ptyxis" = {
-      enable-zoom-scroll-ctrl = false;
     };
     "org/gnome/nautilus/preferences" = {
       default-sort-order = "mtime";

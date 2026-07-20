@@ -304,7 +304,7 @@ prefer-no-csd
 // shows a notification with an "Open in Gradia" action button.
 screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 
-// Allow apps to steal focus (e.g. clicking a link in ptyxis opens and focuses Firefox)
+// Allow apps to steal focus (e.g. clicking a link in ghostty opens and focuses Firefox)
 debug {
     honor-xdg-activation-with-invalid-serial
 }
