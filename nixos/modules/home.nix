@@ -49,6 +49,11 @@ in
     "ghostty/config".source = link "config/ghostty/config";
     "ghostty/themes".source = link "config/ghostty/themes";
     "ghostty/linux".source = link "config/ghostty/linux";
+    # Only the config file — herdr keeps its logs, sockets and session
+    # state in this dir too, which must stay out of the dotfiles repo.
+    # Keybindings are read from the *client's* config, so this is needed
+    # on every machine that attaches, not just the one running a server.
+    "herdr/config.toml".source = link "config/herdr/config.toml";
     "lazygit".source = link "config/lazygit";
     "starship.toml".source = link "config/starship.toml";
     "xdg-terminals.list".text = "com.mitchellh.ghostty.desktop\n";
