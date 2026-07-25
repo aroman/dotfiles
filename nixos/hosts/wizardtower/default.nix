@@ -64,6 +64,22 @@ in
     47998 47999 48000 48010
   ];
 
+  # ── SSH: keys only ───────────────────────────────────────────────
+  # sshd here binds 0.0.0.0:22 and services.openssh.openFirewall defaults to
+  # true, so port 22 is reachable on every interface — not just tailscale0.
+  # Password logins over that are the exposure worth closing.
+  #
+  # BOTH settings are required. Disabling PasswordAuthentication alone is not
+  # enough: UsePAM is yes and KbdInteractiveAuthentication was yes, and PAM
+  # will happily perform ordinary password auth through the keyboard-interactive
+  # path. Turning off only the first gives the appearance of key-only auth
+  # while passwords still work.
+  #
+  # This affects SSH only — console/tty login and sudo still use the account
+  # password, so physical access remains a way back in.
+  services.openssh.settings.PasswordAuthentication = false;
+  services.openssh.settings.KbdInteractiveAuthentication = false;
+
   # Use latest stable kernel
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
