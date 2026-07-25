@@ -181,6 +181,38 @@
                     "textColor": "none"
                 },
                 {
+                    "generalTooltipText": "Toggle refresh rate (165/60 Hz)",
+                    "hideMode": "alwaysExpanded",
+                    "icon": "device-desktop",
+                    "iconPosition": "left",
+                    "id": "CustomButton",
+                    "leftClickExec": "/home/aroman/.local/bin/refresh-toggle",
+                    "leftClickUpdateText": true,
+                    "maxTextLength": {
+                        "horizontal": 10,
+                        "vertical": 10
+                    },
+                    "middleClickExec": "",
+                    "middleClickUpdateText": false,
+                    "parseJson": false,
+                    "rightClickExec": "",
+                    "rightClickUpdateText": false,
+                    "showExecTooltip": false,
+                    "showIcon": true,
+                    "showTextTooltip": true,
+                    "textCollapse": "",
+                    "textCommand": "sleep 2; /home/aroman/.local/bin/refresh-toggle status",
+                    "textIntervalMs": 30000,
+                    "textStream": false,
+                    "wheelDownExec": "",
+                    "wheelDownUpdateText": false,
+                    "wheelExec": "",
+                    "wheelMode": "unified",
+                    "wheelUpExec": "",
+                    "wheelUpUpdateText": false,
+                    "wheelUpdateText": false
+                },
+                {
                     "deviceNativePath": "__default__",
                     "displayMode": "graphic",
                     "hideIfIdle": false,
