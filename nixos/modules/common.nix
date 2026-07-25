@@ -418,13 +418,24 @@
   # Disable niri-flake's bundled KDE polkit agent (badged replaces it)
   systemd.user.services.niri-flake-polkit.enable = false;
 
+  # Owns the `uinput` group that the wrapper below setgids to. This MUST be
+  # declared explicitly: it used to arrive transitively via services.sunshine,
+  # and when sunshine was disabled on moonbinder (62993a3) the group vanished.
+  # security.wrappers then failed `chown root:uinput`, and because the wrapper
+  # script runs under `set -e` it aborted before creating /run/wrappers/bin at
+  # all — so pam_unix could not exec /run/wrappers/bin/unix_chkpwd and every
+  # PAM stack (user@, greetd, kmscon) failed, leaving the host unloggable.
+  # One missing group takes down the entire login path; do not rely on another
+  # module to provide it.
+  hardware.uinput.enable = true;
+
   # Vicinae 0.21+ expects its input-injection helper at
   # /run/wrappers/bin/vicinae-input-server with elevated access so it can
   # open /dev/uinput. Upstream's installer applies cap_dac_override=ep, but
   # that's a global DAC bypass — way broader than this needs. Since
-  # /dev/uinput is group `uinput` (created by hardware.uinput, which
-  # sunshine pulls in), setgid'ing the wrapper to that group gives the
-  # helper exactly the access it needs and nothing else.
+  # /dev/uinput is group `uinput` (see hardware.uinput above), setgid'ing the
+  # wrapper to that group gives the helper exactly the access it needs and
+  # nothing else.
   security.wrappers.vicinae-input-server = {
     source = "${inputs.vicinae.packages.${pkgs.stdenv.hostPlatform.system}.default}/libexec/vicinae/vicinae-input-server";
     owner = "root";
