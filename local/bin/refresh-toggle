@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# refresh-toggle — flip the Framework 16 internal panel between 165 Hz and 60 Hz.
+#
+# The BOE panel exposes only two refresh rates at native resolution:
+#   2560x1600@165.000  (preferred — what niri picks by default)
+#   2560x1600@60.002
+# There is no 120 Hz mode, so this is a two-position switch, not a cycle.
+#
+# Why bother: the compositor and every animating client repaint at the panel
+# rate, so refresh rate scales GPU work almost linearly. Measured on battery
+# with a WebGL tab open — 28.8 W @ 165 Hz vs 23.6 W @ 60 Hz, gpu_busy 89% -> 54%.
+#
+# Implementation note: `niri msg output ... mode` is a *runtime* override — it
+# is never written to the config file. It survives config hot-reloads because
+# host-moonbinder.kdl deliberately has no `mode` line on this output, so a
+# reload has no mode to re-apply and clobber it. (If you ever add one, this
+# script's changes will start getting reset by niri-dwt-toggle, which edits
+# config.kdl on every focus change.) It does reset to 165 Hz when niri
+# restarts, which is intended: a fresh session starts at full rate.
+#
+# Usage: refresh-toggle [60|165|status]
+#   60     — force 60 Hz
+#   165    — force 165 Hz
+#   status — print the current rate as bare Hz ("165"/"60"), for bar widgets
+#   (none) — toggle
+#
+# Bound to Mod+Shift+Period in niri config, and to the noctalia bar's
+# CustomButton widget (leftClickExec + textCommand).
+
+set -euo pipefail
+
+OUTPUT="BOE NE160QDM-NZ6 Unknown"
+NAME="eDP-1"
+HIGH="2560x1600@165.000"
+LOW="2560x1600@60.002"
+
+# Current refresh rate in whole Hz, or empty if the output is off/absent.
+current_hz() {
+    niri msg -j outputs 2>/dev/null | jq -r --arg n "$NAME" '
+        to_entries[] | .value | select(.name == $n)
+        | select(.current_mode != null)
+        | .modes[.current_mode].refresh_rate / 1000 | floor
+    '
+}
+
+apply() {
+    local mode=$1 label=$2
+    niri msg output "$OUTPUT" mode "$mode" >/dev/null
+    notify-send -a refresh-toggle "Display" "$label" 2>/dev/null || true
+    if [ -t 1 ]; then printf '%s\n' "$label"; fi
+}
+
+to_high() { apply "$HIGH" "165 Hz (full rate)"; }
+to_low()  { apply "$LOW"  "60 Hz (battery saver)"; }
+
+hz=$(current_hz)
+if [ -z "$hz" ]; then
+    echo "refresh-toggle: $NAME not found or turned off" >&2
+    exit 1
+fi
+
+case "${1:-}" in
+    status) printf '%s\n' "$hz"; exit 0 ;;
+    60)  to_low ;;
+    165) to_high ;;
+    "")
+        # Anything above 60 counts as the high mode.
+        if [ "$hz" -gt 60 ]; then to_low; else to_high; fi
+        ;;
+    *)
+        echo "refresh-toggle: unknown argument '$1' (expected 60, 165, status, or nothing)" >&2
+        exit 1
+        ;;
+esac

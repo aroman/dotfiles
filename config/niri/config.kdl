@@ -464,6 +464,7 @@ binds {
 
     Mod+Shift+D hotkey-overlay-title="Toggle Streaming Res" { spawn "sh" "-c" "~/.local/bin/toggle-streaming-res"; }
     Mod+Shift+Semicolon hotkey-overlay-title="Toggle DSP" { spawn "sh" "-c" "~/.local/bin/dsp-toggle"; }
+    Mod+Shift+Period hotkey-overlay-title="Toggle Refresh Rate (165/60 Hz)" { spawn "sh" "-c" "~/.local/bin/refresh-toggle"; }
     Mod+I hotkey-overlay-title="Edit Worktree" { spawn "sh" "-c" "~/.local/bin/worktree-picker"; }
     Mod+U hotkey-overlay-title="Start Batman" { spawn "sh" "-c" "~/.local/bin/batman-picker"; }
     Mod+G hotkey-overlay-title="magiccircle.gg" { spawn "google-chrome-stable" "--profile-directory=Profile 1" "--new-window" "--hide-crash-restore-bubble" "https://magiccircle.gg"; }
