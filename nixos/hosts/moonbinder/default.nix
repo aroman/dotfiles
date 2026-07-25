@@ -267,8 +267,15 @@
   # KMS capture (used on wizardtower) returns 0x0 plane resolution against
   # niri's atomic modesetting on AMD, so wlr is the working path here.
   # uinput rule + input group are already configured above / in common.nix.
+  # Disabled 2026-07-25: never actually used remotely from this host (the
+  # openFirewall note below said as much), and it's a permanently-listening
+  # service holding CAP_SYS_ADMIN for no benefit. Costs no battery — it burned
+  # 0 s of CPU across a 2 h uptime — this is purely about not running a server
+  # we don't use. Flip back to true to restore; the capture/encoder settings
+  # below are correct for this hardware and should not be changed (see the
+  # wlr-vs-KMS note above).
   services.sunshine = {
-    enable = true;
+    enable = false;
     autoStart = true;
     capSysAdmin = true; # still recommended for full Wayland capture support
     # NixOS's tailscale module only adds tailscale0 to trustedInterfaces when
