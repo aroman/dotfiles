@@ -11,12 +11,12 @@ macos-icon = chalkboard
 macos-option-as-alt = true
 macos-titlebar-proxy-icon = hidden
 
-# Quick terminal (quake visor)
-keybind = global:super+grave_accent=toggle_quick_terminal
-quick-terminal-position = top
-quick-terminal-screen = main
-quick-terminal-animation-duration = 0.2
-quick-terminal-autohide = true
+# Quick terminal (quake visor) — disabled; cmd+` goes back to macOS window cycling
+# keybind = global:super+grave_accent=toggle_quick_terminal
+# quick-terminal-position = top
+# quick-terminal-screen = main
+# quick-terminal-animation-duration = 0.2
+# quick-terminal-autohide = true
 
 # Cmd+Delete sends Ctrl+U (kill line, matches iTerm2)
 keybind = super+backspace=text:\x15
