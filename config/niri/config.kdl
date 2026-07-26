@@ -184,11 +184,18 @@ layout {
         // How many logical pixels the ring extends out from the windows.
         width 3
 
-        // Warm yellow at top → sage green at bottom.
-        active-color "#8ccf7e"
-        inactive-color "#232a2d"
+        // Signal red at top → cyan at bottom.
+        active-color "#ff2e4d"
+        inactive-color "#1a2426"
 
-        active-gradient from="#e5c76b" to="#8ccf7e" angle=180 in="oklch"
+        // Magenta at top → cyan in the middle → red-orange at the bottom.
+        // Niri gradients only take two stops, so the middle color is whatever
+        // the oklch hue arc passes through. Cyan is hue 183.3, nearly opposite
+        // magenta at 335.5, so centering it forces the endpoint to hue 31 and
+        // makes the arc take the long way round — 304 of 360 degrees. That
+        // means the bottom half sweeps through green and yellow on its way to
+        // the endpoint. It is close to a full spectrum, by construction.
+        active-gradient from="#ff2ee0" to="#f76049" angle=180 in="oklch longer hue"
 
         // You can also color the gradient relative to the entire view
         // of the workspace, rather than relative to just the window itself.
@@ -204,11 +211,11 @@ layout {
         off
 
         width 4
-        active-color "#ffc87f"
-        inactive-color "#505050"
+        active-color "#ff2e4d"
+        inactive-color "#1a2426"
 
         // Color of the border around windows that request your attention.
-        urgent-color "#9b0000"
+        urgent-color "#ffb300"
 
         // Gradients can use a few different interpolation color spaces.
         // For example, this is a pastel rainbow gradient via in="oklch longer hue".
