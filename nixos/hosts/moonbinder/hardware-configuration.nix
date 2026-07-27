@@ -81,41 +81,67 @@
     #   - Framework community thread: AMD GPU MES Timeouts on FW13 AI 300
     "amdgpu.sg_display=1"
 
-    # Re-enable Panel Self Refresh and IPS2 Dynamic, overriding nixos-hardware's
-    # `amdgpu.dcdebugmask=0x10` (from framework/16-inch/common/amd.nix, disables
-    # PSR) and `=0x410` (from amd-ai-300-series, adds DC_DISABLE_IPS2_DYNAMIC).
+    # Block IPS2 while keeping Panel Self Refresh and Panel Replay. Overrides
+    # nixos-hardware's `amdgpu.dcdebugmask=0x10` (framework/16-inch/common/amd.nix)
+    # and `=0x410` (amd-ai-300-series).
     #
-    # Bit layout:
-    #   0x010 = DC_DISABLE_PSR        (Panel Self Refresh)
-    #   0x400 = DC_DISABLE_IPS2_DYNAMIC
-    #   0x000 = restore defaults (PSR and IPS2 dynamic both enabled)
+    # Bit layout, verified 2026-07-27 against enum DC_DEBUG_MASK in
+    # drivers/gpu/drm/amd/include/amd_shared.h. An earlier version of this comment
+    # had 0x400 wrong — do not trust it from memory, it is easy to misread:
+    #   0x0010 = DC_DISABLE_PSR            (Panel Self Refresh)
+    #   0x0400 = DC_DISABLE_REPLAY         (Panel Replay) — NOT an IPS bit
+    #   0x0800 = DC_DISABLE_IPS            (all IPS, including during suspend)
+    #   0x1000 = DC_DISABLE_IPS_DYNAMIC    (IPS at runtime; still allowed in suspend)
+    #   0x2000 = DC_DISABLE_IPS2_DYNAMIC   (IPS2 only, while displays are enabled)
     #
-    # PSR lets the panel refresh itself from its internal framebuffer when no
-    # new content is being produced, letting the GPU display engine and eDP
-    # link drop into deep power-save states. Worth ~1-2 hours of idle battery
-    # on this hardware. Disabled by the nixos-hardware modules because of
-    # historical hang/flicker bugs on Phoenix-era (DCN 3.1.x) silicon.
+    # PSR and Replay let the panel refresh itself from its own framebuffer when no
+    # new content is produced, so the display engine and eDP link can drop into
+    # deep power-save. Worth ~1-2 hours of idle battery here. The nixos-hardware
+    # modules disable both over historical hang/flicker bugs on Phoenix-era
+    # (DCN 3.1.x) silicon.
     #
-    # On DCN 3.5 (Krackan Point) with kernel 7.0.8 and recent DMUB firmware,
-    # the situation has improved: nixos-hardware contributors are debating
-    # whether to keep this workaround on by default (PR #1692). One tester
-    # reported "removed it, latest kernel works fine"; another (a maintainer)
-    # said dcdebugmask=0x410 was still load-bearing. Bug is intermittent
-    # enough that only empirical testing on this specific machine can settle
-    # it. We test by re-enabling and watching for symptoms.
+    # 2026-05-16 (ddb8cf6) we set =0x0 to test whether that was still needed on
+    # DCN 3.5. Note what =0x0 actually did: it enabled PSR and Replay. It did NOT
+    # "re-enable IPS2" — no dcdebugmask value in play ever touched IPS, so IPS has
+    # been enabled the whole time, before and after. Verdict after ~10 weeks:
     #
-    # Watch for (would indicate keeping it on is still needed):
-    #   - Random whole-system freezes where the cursor still moves but
-    #     everything else is unresponsive — the FW13 AI 300 PSR signature
-    #     (FrameworkComputer/SoftwareFirmwareIssueTracker#110)
-    #   - Display flicker on light backgrounds, especially in browsers
-    #   - Janky first frame after a period of idle (PSR exit glitch)
-    #   - Black/white frames briefly during transitions
+    #   2026-05-19 15:27  7.0.8  WARN dc_dmub_srv.c:1698, recovered
+    #   2026-07-25 00:07  7.1.0  WARN dc_dmub_srv.c:1705, recovered
+    #   2026-07-27 00:05  7.1.4  no warn — hard hang, power-cycle required
     #
-    # Revert: just remove this line (nixos-hardware's 0x410 takes over again).
-    # Bisect: if symptoms appear, try 0x400 to re-enable PSR but keep IPS2
-    # dynamic disabled, to learn which half of the bitmask is problematic.
-    "amdgpu.dcdebugmask=0x0"
+    # The hang: a scanout-position query inside amdgpu_dm_atomic_commit_tail
+    # (via drm_vblank_get -> drm_update_vblank_count) reaches
+    # dc_allow_idle_optimizations_internal -> dcn35_apply_idle_power_optimizations
+    # -> dc_dmub_srv_notify_idle, which busy-waits in dmub_srv_wait_for_idle for a
+    # DMCUB ack that never arrives. That worker owns every display commit, so the
+    # compositor dies with it: RCU stall on CPU 0, GPU fences stop signalling,
+    # then soft lockup. amdgpu has no recovery path for a wedged display block the
+    # way it does for a hung ring — the machine is gone until power-cycled.
+    #
+    # Why enabling PSR/Replay lit up an IPS bug: they are the precondition for
+    # deep idle. Without panel self-refresh the display engine must keep scanning
+    # out, DCN never reaches deep idle, and IPS2 is unreachable in practice. Turn
+    # PSR/Replay on and the IPS2 entry path becomes live for the first time.
+    # Upstream states plainly that "any DCN programming while we're in IPS leads
+    # to undefined behavior (mostly hangs)" — DC is supposed to exit IPS before
+    # touching DCN registers, and here that exit handshake is what deadlocked.
+    #
+    # Not the dock: internal eDP-1 only, no external display, no TBT activity.
+    # Both midnight hits landed ~5 min after the nix-gc timer fires at 00:00,
+    # consistent with a wakeup racing IPS2 entry while the panel sits idle.
+    #
+    # So: 0x2000 blocks IPS2 while displays are on, and leaves PSR and Replay
+    # enabled so the battery win survives. IPS1 entry stays live, so this is
+    # targeted rather than airtight.
+    #
+    # Escalate, in order, if freezes continue:
+    #   0x1000 — kill IPS at runtime too, but keep it during suspend so s0ix works
+    #   (drop this line) — back to nixos-hardware 0x410; proven stable pre-2026-05-16,
+    #                      but gives up PSR/Replay and the idle battery win
+    # Avoid 0x800: it disables IPS during suspend as well and can cost s0ix.
+    # Detect a recurrence with (note -k implies current boot only):
+    #   journalctl _TRANSPORT=kernel | grep dcn35_apply_idle_power_optimizations
+    "amdgpu.dcdebugmask=0x2000"
 
     # Disable the kernel TBT/USB4 host-router reset performed during driver
     # probe. Default is `true` (added by AMD in 6.6.29 / 6.8.8 via Sanath S's
