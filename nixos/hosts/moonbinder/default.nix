@@ -191,7 +191,7 @@
   #
   # When the lid closes:
   #   1. System enters s2idle (S0ix deep sleep, ~0.5 W)
-  #   2. After 4 hours, system hibernates to disk (0 W)
+  #   2. After HibernateDelaySec, system hibernates to disk (0 W)
   #   3. On lid open, resumes from whichever state it's in
   #
   # Why not just s2idle? Two reasons:
@@ -199,7 +199,7 @@
   #     prevents reaching the deepest S0i3 state. When that happens, the SoC
   #     idles at ~5-10 W instead of ~0.5 W. Hibernate is the safety net.
   #   - Even perfect s2idle still draws some power. For overnight/travel,
-  #     hibernate means zero battery drain after the 2-hour window.
+  #     hibernate means zero battery drain once the delay elapses.
   #
   # Requires: 32 GiB swap file (see hardware-configuration.nix) and
   #           boot.resumeDevice + resume_offset for hibernate resume.
@@ -210,7 +210,56 @@
   services.logind.settings.Login.HandleLidSwitch = "suspend-then-hibernate";
   systemd.sleep.settings.Sleep.HibernateDelaySec = "4h";
 
-  # MT7925 WiFi firmware doesn't survive hibernate (S4). After power-off, the
+  # Hibernate by powering off (ACPI S5) rather than entering ACPI S4.
+  #
+  # Hibernation is entirely the kernel's doing — snapshot RAM, write it to the
+  # swapfile, have the initrd read it back next boot. The firmware is only
+  # involved in *how the machine switches off*, and that choice is what was
+  # broken here. systemd's default HibernateMode is "platform shutdown": it
+  # tries "platform" first, which enters S4 via ACPI _PTS and leaves the
+  # firmware knowing the OS hibernated, so the next power-on takes a distinct
+  # S4-resume boot path. That path relocates an 8 KiB E820_TYPE_ACPI block in
+  # low memory (UEFI boot-services heap residue; every table we actually parse
+  # lives in the stable region up at 0x79f7f000). hibernation_e820_save()
+  # checksums e820_table_firmware byte-for-byte (CRC32 now, MD5 when the check
+  # landed in 62a03defeabd), so arch_hibernation_header_restore() returns
+  # -EINVAL and the image is thrown away:
+  #
+  #   Hibernate inconsistent memory map detected!
+  #   PM: hibernation: Image mismatch: architecture specific data
+  #   PM: hibernation: resume failed (-1)
+  #
+  # The result looks exactly like a flat battery: the image writes fine, the
+  # machine cold-boots, the session is gone. Broken 2026-04-25 (6.19.11 ->
+  # 7.0.1) through 2026-07-26, ~14 lost sessions.
+  #
+  # "shutdown" skips S4 entirely — a plain power-off, so the firmware sees an
+  # ordinary shutdown and the next boot is an ordinary cold boot, which
+  # reproduces the map byte-for-byte. Both modes are full hibernation at ~0 W;
+  # only the firmware's bookkeeping differs. This is systemd's own fallback
+  # mode, not a workaround.
+  #
+  # The underlying non-determinism is an Insyde UEFI trait, not a kernel bug —
+  # the check exists because a page frame from the hibernated kernel landing in
+  # the resume kernel's unmapped region would panic. Anything that perturbs
+  # pre-kernel EFI allocations can tip it over: Framework 13 hit the same error
+  # via GRUB's EFI pool allocations and fixed it by moving to systemd-boot
+  # (which we already use, hence S4 being the only remaining amplifier), and
+  # System76 hit it purely from charging over barrel vs USB-C. Expect the dock
+  # to be capable of the same. No kernel parameter disables the check, and
+  # memmap= doesn't help (it edits e820_table, not the firmware copy).
+  # Ref: https://community.frame.work/t/framework-16-with-ryzen-ai-and-nvidia-graphics-fails-to-hibernate/82648
+  #
+  # To verify a resume, grep the journal for 'hibernation exit' and the
+  # 'Timekeeping suspended for N seconds' line (which is how long it was really
+  # off) — never 'Image signature found', which the initrd kernel logs into a
+  # ring buffer that is discarded the moment the image takes over, making
+  # successes invisible. A successful resume also leaves `journalctl
+  # --list-boots` showing one boot, not two, because the restored kernel *is*
+  # the original one.
+  systemd.sleep.settings.Sleep.HibernateMode = "shutdown";
+
+  # MT7925 WiFi firmware doesn't survive hibernate. After power-off, the
   # firmware state is gone, and the driver's restore path hits an MCU timeout
   # ("Message 00020002 timeout") leaving the interface stuck in DOWN/DORMANT.
   # The upstream hibernate restore callback (commit d54424fbc53b) exists in
