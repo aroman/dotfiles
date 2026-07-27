@@ -5,6 +5,16 @@
 # dropped here on 2026-05-25. The remaining patch:
 #   - zbowling: mutex protection in reset/suspend/PM + NULL checks
 #
+# Rebased onto 7.1.4 on 2026-07-27 — it had drifted to the point where GNU
+# patch only applied it with fuzz 2 (its maximum), which nixpkgs does silently.
+# `patches` here runs through `patch -p1`, so fuzz never fails the build; it
+# just quietly places hunks by guesswork. If the kernel bumps and this still
+# builds, that is not proof the patch still applies cleanly — check with:
+#
+#   git -C <kernel-src> apply --check nixos/mt7925-mutex-and-null-fixes.patch
+#
+# and regenerate against the new tree if it complains. See the patch header.
+#
 # References:
 #   https://github.com/zbowling/mt7925
 #   https://community.frame.work/t/tracking-kernel-panic-from-wifi-mediatek-mt7925-nullptr-dereference/79301
