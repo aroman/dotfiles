@@ -8,14 +8,20 @@
 
   networking.hostName = "moonbinder";
 
-  # TODO: Remove when fixes land upstream. NOT upstream as of 7.1.0 (verified
-  # 2026-06-23): zbowling's series is stuck in review (re-rolled to v7) and the
-  # locking slice we carry is contested — maintainers want the root fix in
-  # mac80211 core, not driver-local NULL checks. ROC-deadlock half already
-  # landed (7.0.10). Check:
+  # TODO: Remove when fixes land upstream. Still NOT upstream as of 7.1.4 AND
+  # mainline master (verified 2026-07-27 by reading mt7925/{mac,main,pci}.c
+  # directly, not the list archives: mt7925_mlo_pm_iter still takes the mutex
+  # itself, mt7925_mlo_pm_work still doesn't, no bss_conf NULL checks anywhere).
+  # zbowling's series is parked at v7 and the repo has had no commit since
+  # 2026-01-29; the locking slice we carry is contested — maintainers want the
+  # root fix in mac80211 core, not driver-local NULL checks. ROC-deadlock half
+  # already landed (7.0.10) and is not in our patch. Check:
   #   - LKML: https://lore.kernel.org/linux-wireless/?q=mt7925+deadlock
   #   - Tracker: https://community.frame.work/t/tracking-kernel-panic-from-wifi-mediatek-mt7925-nullptr-dereference/79301
   #   - Patches: https://github.com/zbowling/mt7925
+  #   - Fastest upstream check (no Anubis wall, unlike git.kernel.org):
+  #     curl -s https://raw.githubusercontent.com/torvalds/linux/master/\
+  #     drivers/net/wireless/mediatek/mt76/mt7925/main.c | grep -A12 mlo_pm_work
   #   - To verify after reboot: modinfo mt7925e | grep filename
   #     (should show updates/mt7925e.ko.xz, not kernel/drivers/...)
   #
@@ -29,9 +35,13 @@
     })
   ];
 
-  # Use latest stable kernel (6.19.x) — s0ix deep sleep works on 6.19.2+.
-  # MES hang fix (TLB fence rework) was backported into 6.19.11 stable, so the
-  # downstream patch is no longer needed.
+  # Latest stable kernel — 7.1.4 as of 2026-07-27.
+  #
+  # Historical floors, both long since cleared, kept so the reason for tracking
+  # `latest` rather than the LTS is on record:
+  #   - 6.19.2  s0ix deep sleep started working on this platform
+  #   - 6.19.11 MES hang fix (TLB fence rework) backported to stable, which is
+  #             what let us drop the downstream patch we used to carry
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
   # Seamless ethernet↔WiFi failover (like macOS):
@@ -267,6 +277,10 @@
   # across MT7921/MT7925 — the standard workaround is reloading the module.
   # Ref: https://community.frame.work/t/round-2-framework-16-fails-to-resume-from-hibernate/75532
   # Remove once MediaTek fixes the firmware reinit path upstream.
+  # Upstream check 2026-07-27: still not fixed. mt7925/pci.c in mainline is
+  # unchanged from 7.1.4 on this path apart from an IRQ-mask refactor in
+  # _mt7925_pci_resume() — .restore still routes to the same MCU handshake
+  # that times out, so the module reload below is still the only recovery.
   # Runs after ANY resume (s2idle or hibernate). After hibernate, WiFi is
   # broken and needs a full module reload. After s2idle, WiFi is fine so we
   # skip the reload by checking interface state first.

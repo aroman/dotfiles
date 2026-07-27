@@ -25,10 +25,20 @@
     # Patch: https://lore.kernel.org/amd-gfx/20251130014631.29755-1-superm1@kernel.org/
     # AMD says the fix comes via SoC firmware in a BIOS update, NOT the kernel:
     # the in-kernel workaround (commit 31ab31433c "skip power ungate during
-    # suspend for VPE") was reverted upstream and the revert is in 7.1. As of
-    # BIOS 03.06 (current; AMD PI StrixKrackanPI-FP8 1.1.0.2d, unchanged since
-    # 3.05) it's still not fixed. Drop this + re-enable VPE once a BIOS bumps
-    # that AMD PI firmware version and survives several suspend cycles.
+    # suspend for VPE") was reverted upstream and the revert is in 7.1.
+    #
+    # Release condition: drop this + re-enable VPE once a BIOS bumps the AMD PI
+    # version past StrixKrackanPI-FP8 1.1.0.2d and survives several suspend
+    # cycles. Checked 2026-07-27 — NOT met. BIOS 4.01 (2026-07-06) is out and
+    # fwupd offers it, but ships the same 1.1.0.2d as 3.05 and 3.06; its
+    # changelog is a dGPU BOCO power-limit fix, an NVIDIA G-Sync key and BIOS
+    # menu rendering, and it carries a known issue of "intermittent CPU
+    # frequency lock at 600 MHz following S3/Modern Standby resume" — so it is
+    # not worth taking on a machine that suspends constantly.
+    # AMD PI version is on each release page, not the index:
+    #   https://resources.frame.work/downloads/laptop-16/amd-ryzen-ai-300-series/4.01/
+    # Mainline amdgpu_vpe.c has no v6.1 fix either (verified same day; the only
+    # change since 7.1.4 is new VPE 2.0 hardware support).
     "amdgpu.ip_block_mask=0xFFFFF7FF"
 
     # Log ACPI LPS0 constraint failures during s2idle to dmesg. Needed to
@@ -79,6 +89,13 @@
     # Discussion:
     #   - nixos-hardware PR #980 (Raphael sg_display dropped on kernel 6.6+)
     #   - Framework community thread: AMD GPU MES Timeouts on FW13 AI 300
+    #
+    # Upstream check 2026-07-27: nixos-hardware master still ships
+    # `amdgpu.sg_display=0` (plus dcdebugmask=0x410 and abmlevel=0) in
+    # framework/16-inch/amd-ai-300-series/default.nix, so this override is
+    # still needed. Worth upstreaming as a PR at some point — the same
+    # reasoning applies to abmlevel=0, which we currently inherit unexamined
+    # and which costs backlight power savings.
     "amdgpu.sg_display=1"
 
     # Block IPS2 while keeping Panel Self Refresh and Panel Replay. Overrides
@@ -161,6 +178,10 @@
     #
     # Revert: remove this line. Verify current state with
     #   cat /sys/module/thunderbolt/parameters/host_reset   # Y or N
+    #
+    # Upstream check 2026-07-27: drivers/thunderbolt/nhi.c in mainline still
+    # has `static bool host_reset = true;` — no default flip, no quirk for
+    # AMD/Strix, so this override is still doing work.
     #
     # Refs:
     #   - Patch (AMD): https://lists.openwall.net/linux-kernel/2023/11/22/161

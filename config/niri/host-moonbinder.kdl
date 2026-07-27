@@ -16,7 +16,17 @@
 // Removing this line means the !old_vrr_active && new_vrr_active branch is
 // never entered on resume; no WARN, no poisoned state. VRR provides no
 // visible benefit on this workload (no gaming/video). Restore once amdgpu
-// fixes the resume-replay path. amdgpu_dm.c:9757.
+// fixes the resume-replay path. amdgpu_dm.c:9827 in 7.1.4.
+//
+// Upstream check 2026-07-27 — still NOT fixed, and beware a near miss.
+// Mainline reworked this exact function: the vupdate WARN two lines above
+// ours is now gated on `vrr_gates_vupdate` ("Only DCE gates vupdate on VRR,
+// keep it enabled for DCN"), so on our DCN 3.5 it no longer fires. That is a
+// different WARN. Ours is the drm_crtc_vblank_get() one, which mainline
+// leaves ungated (master:10101). So a 7.2 changelog mentioning VRR WARNs in
+// amdgpu_dm_handle_vrr_transition() is not evidence our bug is fixed — read
+// the actual line before re-enabling, and confirm with a suspend/resume cycle
+// plus an external-display surprise-disconnect, which is what actually hung.
 // Wizardtower has Nvidia, doesn't have this bug — its outputs may enable VRR.
 
 // External: Home monitor (LG 27GN950 4K) — to the left, vertically centered
