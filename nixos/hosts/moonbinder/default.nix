@@ -193,6 +193,32 @@
     ACTION=="add", SUBSYSTEM=="pci", ATTR{vendor}=="0x10de", ATTR{class}=="0x030000", ATTR{power/control}="auto"
   '';
 
+  # BBC micro:bit (DAPLink CMSIS-DAP). Without this the raw USB node under
+  # /dev/bus/usb is root:root 0664, so Chrome — running as the desktop user —
+  # can only open it read-only and fails to claim the interface. WebUSB surfaces
+  # that EACCES as the misleading "It may be in use by another application",
+  # even though the two vendor-class interfaces MakeCode talks to (CMSIS-DAP v2
+  # bulk) have no kernel driver bound at all.
+  #
+  # uaccess makes logind put an ACL for the active seat's user on the node,
+  # which is what every other interactive device here already relies on. A
+  # static GROUP=/MODE= would hand access to every process on the machine.
+  #
+  # This canNOT go in services.udev.extraRules: NixOS writes those to
+  # 99-local.rules, but systemd's 73-seat-late.rules is what turns TAG+="uaccess"
+  # into an actual ACL (RUN{builtin}+="uaccess"). A tag applied at 99 is set
+  # after 73 has already run, so it's silently ignored — the rule loads fine and
+  # does nothing. Hence a package providing a rules file that sorts before 73.
+  services.udev.packages = [
+    (pkgs.writeTextFile {
+      name = "microbit-udev-rules";
+      destination = "/etc/udev/rules.d/70-microbit.rules";
+      text = ''
+        SUBSYSTEM=="usb", ATTR{idVendor}=="0d28", ATTR{idProduct}=="0204", TAG+="uaccess"
+      '';
+    })
+  ];
+
   security.pam.services.greetd.fprintAuth = false;
 
   # ── Suspend & hibernate ─────────────────────────────────────────
