@@ -406,6 +406,14 @@ window-rule {
     scroll-factor 0.25
 }
 
+// KiCad's wx/GTK canvases scroll far too fast; match the Chromium tier.
+// All editors share app-id "kicad" when opened from the project manager;
+// the rest are for launching eeschema/pcbnew/etc. standalone.
+window-rule {
+    match app-id=r#"^(kicad|eeschema|pcbnew|gerbview|bitmap2component|pcb_calculator)$"#
+    scroll-factor 0.25
+}
+
 window-rule {
     match app-id=r#"(?i)^spotify$"#
     match app-id=r#"^vesktop$"#
