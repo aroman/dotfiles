@@ -109,6 +109,53 @@ in
     HandlePowerKeyLongPress = "poweroff";
   };
 
+  # ── CPU (Ryzen 9 5900X, 12C/24T) ─────────────────────────────────
+  # Nix build parallelism. modules/common.nix sets a conservative floor of
+  # 2×4 = 8 threads; this box has 24, so that left two thirds of the CPU
+  # idle during builds. 4×6 = 24 saturates it.
+  #
+  # Safe to saturate here precisely *because* common.nix already runs
+  # nix-daemon and every build child at SCHED_IDLE with CPUWeight=20 —
+  # builds are preempted by any interactive task regardless of how many
+  # of them there are. The job cap was redundant with that, not additive
+  # to it. Favour jobs over cores-per-job (4×6 rather than 6×4 would also
+  # total 24) only loosely: many derivations don't scale past a few
+  # threads, so the extra concurrency is where the throughput is.
+  nix.settings = {
+    max-jobs = 4;
+    cores = 6;
+  };
+
+  # amd-pstate runs in active mode (amd-pstate-epp) with the powersave
+  # governor. The governor is right — cores should still clock down when
+  # idle — but the driver's default EPP bias of balance_performance is
+  # tuned for battery life. This tower is always on AC, so bias the CPPC
+  # hint fully toward performance. This changes ramp-up aggressiveness on
+  # bursty loads, not sustained all-core throughput (which already hits
+  # ~4.24 GHz all-core here).
+  #
+  # There's no NixOS option for EPP — powerManagement.cpuFreqGovernor is
+  # the only knob, and setting it to "performance" would pin max frequency
+  # instead of just biasing the hint, which is not what we want.
+  #
+  # A boot-time oneshot is sufficient: post-resume.target doesn't exist on
+  # this system and this host never suspends (see HandlePowerKey above),
+  # and nothing else on the box writes EPP. If it ever does start
+  # suspending, this needs a resume hook too.
+  systemd.services.cpu-epp-performance = {
+    description = "Bias amd-pstate EPP toward performance";
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      for f in /sys/devices/system/cpu/cpufreq/policy*/energy_performance_preference; do
+        echo performance > "$f"
+      done
+    '';
+  };
+
   # ── Sunshine (remote desktop streaming) ──────────────────────────
   # Streams the desktop to Moonlight clients. NvENC for hardware-accelerated
   # encoding on the RTX 2060 Super, KMS capture reads the framebuffer

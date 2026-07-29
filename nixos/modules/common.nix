@@ -564,11 +564,22 @@
       "niri.cachix.org-1:Wv0OmO7PsuocRKzfDoJ3mulSl7Z6oezYhGhR+3W2964="
       "vicinae.cachix.org-1:1kDrfienkGHPYbkpNj1mWTr7Fm1+zcenzgTizIcI3oc="
     ];
-    # Cap parallelism to leave interactive headroom. Default is
-    # max-jobs=nproc × cores=nproc = 16×16 = 256 potential compiler procs.
-    # 2×4 = 8 of 16 threads (~50%), 8 always free for niri/shell/browser.
-    max-jobs = 2;
-    cores = 4;
+    # Cap parallelism to leave interactive headroom. Nix's own default is
+    # max-jobs=nproc × cores=nproc, i.e. nproc² potential compiler procs.
+    #
+    # These are the conservative floor, not a considered per-host value —
+    # they're deliberately low enough to be safe on the smallest box here.
+    # Thread counts differ per machine, so hosts that want the whole CPU
+    # override them in hosts/<name>/default.nix; mkDefault is what lets
+    # them do that without lib.mkForce.
+    #
+    # Note this is belt-and-suspenders on top of the SCHED_IDLE + CPUWeight
+    # setup below, which is what actually guarantees builds never preempt
+    # interactive work. Lowering these buys headroom only in the sense of
+    # leaving threads *idle*; it doesn't add responsiveness the scheduler
+    # policy isn't already providing.
+    max-jobs = lib.mkDefault 2;
+    cores = lib.mkDefault 4;
   };
 
   # Run nix-daemon (and all build children) at idle CPU + IO priority. Builds
