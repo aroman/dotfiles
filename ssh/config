@@ -51,7 +51,15 @@ Host dad dad.tail5c0d6f.ts.net
 # local browser via opener.  The `exec` test only matches when the socket
 # exists locally (i.e., when the client is the Mac running `brew services
 # start superbrothers/opener/opener`); Linux→Linux SSH skips this cleanly.
-Match host moonbinder*,dawnbinder*,wizardtower* exec "test -S ~/.opener.sock"
+# TAILPORT_NO_OPENER opts a connection out: the servers set
+# StreamLocalBindUnlink=yes, so a second connection rebinds this socket and
+# unlinks it again on exit, leaving the original session's xdg-open bridge dead.
+# `tailport` forces its own connection (ControlPath=none) and would do exactly
+# that, so it sets the variable rather than stealing the socket.
+# `originalhost`, not `host`: `host` matches after HostName substitution, and the
+# stanzas above pin HostName to a raw Tailscale IP, so `moonbinder*` would be
+# compared against `100.x.y.z` and never match.
+Match originalhost moonbinder*,dawnbinder*,wizardtower* exec "test -S ~/.opener.sock && test -z \"$TAILPORT_NO_OPENER\""
   RemoteForward /home/aroman/.opener.sock %d/.opener.sock
 
 Host github.com
