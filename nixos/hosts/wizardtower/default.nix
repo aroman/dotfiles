@@ -18,10 +18,6 @@ let
   sunshine-cuda = pkgs-sunshine.sunshine.override { cudaSupport = true; };
 in
 {
-  imports = [
-    ../../badged.nix
-  ];
-
   networking.hostName = "wizardtower";
 
   # No real monitor — drives a Ugreen HDMI dummy plug for Sunshine streaming.

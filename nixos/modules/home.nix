@@ -498,7 +498,7 @@ in
   # sd_notify(READY=1) — but UpdateActivationEnvironment is async, so
   # systemd can mark niri.service active and activate graphical-session
   # .target before the D-Bus call actually lands.  Dependents (voxtype,
-  # swayidle, niri-dwt-toggle, vicinae, polkit-badged, etc.) get pulled
+  # swayidle, niri-dwt-toggle, vicinae, etc.) get pulled
   # in by graphical-session.target and launch into a session where the
   # variables aren't set, so wtype, wl-copy, and `niri msg` fail silently.
   #

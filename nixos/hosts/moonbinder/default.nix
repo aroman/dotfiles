@@ -2,7 +2,6 @@
 
 {
   imports = [
-    ../../badged.nix
     ../../fw16-speaker-dsp.nix
   ];
 

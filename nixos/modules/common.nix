@@ -415,7 +415,8 @@
 
   # Polkit (needed by 1Password, niri, etc.)
   security.polkit.enable = true;
-  # Disable niri-flake's bundled KDE polkit agent (badged replaces it)
+  # Disable niri-flake's bundled KDE polkit agent — noctalia has its own, and
+  # only one agent can hold the registration (see nixos/noctalia.nix).
   systemd.user.services.niri-flake-polkit.enable = false;
 
   # Owns the `uinput` group that the wrapper below setgids to. This MUST be
