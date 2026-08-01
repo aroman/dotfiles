@@ -394,7 +394,7 @@
   users.users.aroman = {
     isNormalUser = true;
     description = "aroman";
-    extraGroups = [ "wheel" "networkmanager" "video" "input" "i2c" "audio" "kvm" ];
+    extraGroups = [ "wheel" "networkmanager" "video" "input" "i2c" "audio" "kvm" "dialout" ];
     shell = pkgs.fish;
     # Keep the user systemd instance alive between logins so ssh-agent
     # (programs.ssh.startAgent) survives across SSH disconnects — making
