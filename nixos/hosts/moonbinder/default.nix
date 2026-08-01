@@ -307,11 +307,35 @@
   # unchanged from 7.1.4 on this path apart from an IRQ-mask refactor in
   # _mt7925_pci_resume() — .restore still routes to the same MCU handshake
   # that times out, so the module reload below is still the only recovery.
-  # Runs after ANY resume (s2idle or hibernate). After hibernate, WiFi is
-  # broken and needs a full module reload. After s2idle, WiFi is fine so we
-  # skip the reload by checking interface state first.
+  # Runs after ANY resume (s2idle or hibernate), so it has to decide whether a
+  # reload is actually warranted rather than always doing one.
   # Uses the same After pattern as NixOS's built-in post-resume.service:
   # After=systemd-*.service ensures we run AFTER resume, not before sleep.
+  #
+  # 2026-08-01: that decision had never once been made correctly — 0 skips in
+  # 105 firings since the journal starts (2026-04-12), for two independent
+  # reasons:
+  #   - It sampled `ip link` the instant the sleep unit finished, but that
+  #     field is operstate, which stays DOWN/DORMANT until association
+  #     completes a second or two later. The check lost the race every time,
+  #     even while the interface name was still correct.
+  #   - It hardcoded `wlp192s0`, which stopped existing when the WiFi backend
+  #     moved to iwd (16683a5). iwd ships 80-iwd.link with `NamePolicy=keep
+  #     kernel`, so the interface has been plain `wlan0` ever since — and
+  #     `ip link show wlp192s0` prints nothing, which greps as "not UP".
+  # Net cost: a module teardown on every wake, ~2s of kernel work landing while
+  # the compositor is still catching up on input, and an aborted in-flight iwd
+  # reconnect (it reaches autoconnect_quick before we yank the device).
+  #
+  # So: discover the interface from sysfs, and poll operstate before concluding
+  # anything is broken. That also turns this service into its own experiment.
+  # The 2026-07-27 note above is code-reading, not observation — .restore looks
+  # like it still routes into the MCU handshake, but on the 2026-07-31 hibernate
+  # resume the driver re-uploaded firmware unaided (HW/SW + WM Firmware Version
+  # with no preceding ASIC revision, no timeout), which is the restore path
+  # working. Because the guard never skipped, that has never been left to stand
+  # on its own. Once this logs skips across a few hibernate cycles with WiFi
+  # healthy, delete the whole block — d54424fbc53b will have superseded it.
   systemd.services.mt7925-hibernate-fixup = {
     description = "Reload MT7925 WiFi module if broken after resume";
     after = [
@@ -323,13 +347,31 @@
     wantedBy = [ "sleep.target" ];
     serviceConfig.Type = "oneshot";
     script = ''
-      # After s2idle, WiFi is fine (state UP) — skip reload.
-      # After hibernate, WiFi is stuck (state DOWN/DORMANT) — reload.
-      if ${pkgs.iproute2}/bin/ip link show wlp192s0 2>/dev/null | grep -q "state UP"; then
-        echo "WiFi is UP, skipping reload"
-        exit 0
+      # Discover the wireless interface rather than hardcoding a name, so the
+      # next backend swap doesn't silently disable this check again.
+      iface=""
+      for sysdev in /sys/class/net/*/wireless; do
+        [ -e "$sysdev" ] || continue
+        iface=$(basename "$(dirname "$sysdev")")
+        break
+      done
+
+      if [ -n "$iface" ]; then
+        # Give the driver's own hibernate restore path time to bring the link
+        # up. Healthy resumes associate in ~1-5s; a wedged firmware never will.
+        for _ in $(seq 20); do
+          state=$(cat "/sys/class/net/$iface/operstate" 2>/dev/null || echo "")
+          if [ "$state" = "up" ]; then
+            echo "WiFi ($iface) came up on its own, skipping reload"
+            exit 0
+          fi
+          sleep 0.5
+        done
+        echo "WiFi ($iface) still '$state' after 10s, reloading mt7925e module"
+      else
+        echo "no wireless interface found, reloading mt7925e module"
       fi
-      echo "WiFi is not UP, reloading mt7925e module"
+
       ${pkgs.kmod}/bin/modprobe -r mt7925e || true
       sleep 1
       ${pkgs.kmod}/bin/modprobe mt7925e
