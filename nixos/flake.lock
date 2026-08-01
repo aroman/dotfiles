@@ -148,6 +148,22 @@
         "type": "github"
       }
     },
+    "nixpkgs-noctalia": {
+      "locked": {
+        "lastModified": 1785454630,
+        "narHash": "sha256-LQy14TZp77TwbQf40gg1V3jo8FwJG0jGDkAH+zRHqg8=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "1559d3daa3ecc813a650b79375ea61b6741b8746",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "1559d3daa3ecc813a650b79375ea61b6741b8746",
+        "type": "github"
+      }
+    },
     "nixpkgs-stable": {
       "locked": {
         "lastModified": 1782847189,
@@ -269,6 +285,7 @@
         "niri-cursor-zoom": "niri-cursor-zoom",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs_3",
+        "nixpkgs-noctalia": "nixpkgs-noctalia",
         "nixpkgs-sunshine": "nixpkgs-sunshine",
         "noctalia": "noctalia",
         "vicinae": "vicinae",

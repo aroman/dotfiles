@@ -15,10 +15,24 @@
     # renamed noctalia-shell -> noctalia and the binary noctalia-shell ->
     # noctalia.  The noctalia-qs input is gone with it — nothing pulls
     # Quickshell any more.  Still a beta: pin an exact tag, don't track a branch.
+    #
+    # This input is used for its home-manager module ONLY, not its package.
+    # Building nix/package.nix here would be a from-source C++ build; nixpkgs
+    # ships the identical 5.0.0-beta.7 prebuilt on cache.nixos.org, so
+    # noctalia.nix overrides programs.noctalia.package with that instead.
     noctalia = {
       url = "github:noctalia-dev/noctalia/v5.0.0-beta.7";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Pinned solely to supply a cached `noctalia` — our main nixpkgs pin
+    # predates the package landing in by-name.  This exact revision is the one
+    # whose noctalia-5.0.0-beta.7 output was verified substitutable from
+    # cache.nixos.org; bumping it may mean a source build until Hydra catches
+    # up.  Fold this away (use plain `pkgs.noctalia`) once the main nixpkgs pin
+    # moves past 2026-07-30.
+    # No `inputs.nixpkgs.follows` — the whole point is a different revision.
+    nixpkgs-noctalia.url = "github:NixOS/nixpkgs/1559d3daa3ecc813a650b79375ea61b6741b8746";
 
     # Niri: cursor-zoom variant via Atan-D-RP4's feat/cursor-zoom branch
     # (PR #3246).  Branch is rebased on niri main, so blur (which landed in
