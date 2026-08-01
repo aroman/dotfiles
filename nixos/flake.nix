@@ -11,8 +11,12 @@
 
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
 
+    # v5 is a ground-up C++ rewrite of the QML/Quickshell v4 line; the repo was
+    # renamed noctalia-shell -> noctalia and the binary noctalia-shell ->
+    # noctalia.  The noctalia-qs input is gone with it — nothing pulls
+    # Quickshell any more.  Still a beta: pin an exact tag, don't track a branch.
     noctalia = {
-      url = "github:noctalia-dev/noctalia-shell/v4.7.7";
+      url = "github:noctalia-dev/noctalia/v5.0.0-beta.7";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

@@ -1,5 +1,47 @@
 #!/usr/bin/env bash
+# Restart noctalia (v5).
+#
+# If you only changed config, you probably want `noctalia msg config-reload`
+# instead — v5 hot-reloads the config stack without dropping the session.
+# This script is for picking up a new *build*.
+set -euo pipefail
 
-noctalia-shell kill
-sleep 1s
-niri msg action spawn -- noctalia-shell
+# Find the shell by resolving /proc/*/exe.  Not by name: the Nix wrapper makes
+# /proc/*/comm read ".noctalia-wrapp" (truncated at the kernel's 15-char
+# limit), so `pgrep -x noctalia` matches nothing — and `pgrep -f noctalia`
+# would match this script.
+noctalia_pids() {
+  local d exe
+  for d in /proc/[0-9]*; do
+    [[ -O "$d" ]] || continue
+    exe=$(readlink "$d/exe" 2>/dev/null) || continue
+    case "$exe" in
+      */bin/noctalia|*/bin/.noctalia-wrapped) echo "${d#/proc/}" ;;
+    esac
+  done
+}
+
+# Stop the systemd scope rather than the process.  niri spawns noctalia into an
+# app-niri-noctalia-<pid>.scope, and that cgroup also holds whatever the shell
+# itself spawned (wlsunset, nmcli, ...).  Killing just the shell orphans those,
+# and the respawn then starts duplicates — under v4 this leaked a live nmcli
+# into a stale scope that was still "active running" days later.
+for pid in $(noctalia_pids); do
+  scope=$(awk -F/ '{print $NF}' "/proc/$pid/cgroup" 2>/dev/null) || continue
+  case "$scope" in
+    *.scope) systemctl --user stop "$scope" || true ;;
+    *)       kill "$pid" 2>/dev/null || true ;;
+  esac
+done
+
+for _ in $(seq 20); do
+  [[ -z "$(noctalia_pids)" ]] && break
+  sleep 0.25
+done
+
+if [[ -n "$(noctalia_pids)" ]]; then
+  echo "error: noctalia still running (pids: $(noctalia_pids | tr '\n' ' '))" >&2
+  exit 1
+fi
+
+niri msg action spawn -- noctalia

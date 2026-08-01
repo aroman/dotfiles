@@ -1,18 +1,30 @@
 #!/usr/bin/env bash
-# Copy noctalia runtime settings back to dotfiles.
-# Use this after making changes via the noctalia GUI.
+# Show what the noctalia GUI has changed on top of the declarative config.
+#
+# Under v4 this copied the whole runtime settings.json back into the repo,
+# because noctalia rewrote its own config in place and the repo copy was
+# forever stale.  v5 doesn't work that way: nixos/noctalia.nix generates
+# ~/.config/noctalia/config.toml (read-only), and the GUI writes *only* to
+# ~/.local/state/noctalia/settings.toml, which layers on top of it.
+#
+# So there's nothing to copy back wholesale — the state file *is* the diff.
+# Anything in it is a setting changed in the GUI that isn't yet in Nix.
+# Promote what's worth keeping into nixos/noctalia.nix by hand, then delete the
+# state file to prove the declarative config stands on its own.
 set -euo pipefail
 
-DOTFILES="${HOME}/Projects/dotfiles"
-RUNTIME="${HOME}/.local/share/noctalia-config"
+STATE="${NOCTALIA_STATE_HOME:-${XDG_STATE_HOME:-$HOME/.local/state}}/noctalia/settings.toml"
 
-if [ ! -d "$RUNTIME" ]; then
-  echo "error: runtime config dir not found: $RUNTIME" >&2
-  exit 1
+if [ ! -s "$STATE" ]; then
+  echo "No GUI overrides — everything is coming from nixos/noctalia.nix."
+  exit 0
 fi
 
-cp "$RUNTIME/settings.json" "$DOTFILES/config/noctalia_settings.json"
-cp "$RUNTIME/plugins.json" "$DOTFILES/config/noctalia/plugins.json"
-
-echo "Copied runtime noctalia config back to dotfiles."
-echo "Review with: cd $DOTFILES && git diff config/noctalia"
+echo "GUI overrides currently shadowing nixos/noctalia.nix:"
+echo "  $STATE"
+echo
+cat "$STATE"
+echo
+echo "── adopt: copy into nixos/noctalia.nix (programs.noctalia.settings), rebuild,"
+echo "          then: rm $STATE"
+echo "── discard: rm $STATE && noctalia msg config-reload"

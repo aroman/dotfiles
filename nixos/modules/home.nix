@@ -11,10 +11,7 @@ in
 
   home.username = "aroman";
   home.homeDirectory = "/home/aroman";
-  # Set NOCTALIA_CONFIG_DIR for the systemd user session so noctalia
-  # (spawned by niri) reads from the writable runtime copy.
   systemd.user.sessionVariables = {
-    NOCTALIA_CONFIG_DIR = "${config.home.homeDirectory}/.local/share/noctalia-config";
     # Point nautilus at the aggregated user profile so it loads libnautilus-python.so
     # (and the other extensions in home.packages, which would otherwise be invisible
     # because nautilus's build-time NAUTILUS_EXTENSIONDIR points only into its own
@@ -38,10 +35,9 @@ in
     "zed".source = link "config/zed";
     "fish".source = link "config/fish";
     "bat".source = link "config/bat";
-    # Noctalia config is copied (not symlinked) to a writable runtime
-    # dir — noctalia overwrites settings.json at runtime, which would
-    # dirty the dotfiles repo (noctalia-shell#2214).  See the
-    # home.activation.noctalia-config block below.
+    # Noctalia has no entry here: nixos/noctalia.nix generates
+    # ~/.config/noctalia/ declaratively, and v5 keeps its runtime writes in
+    # ~/.local/state/noctalia/ so nothing can dirty this repo.
     "fuzzel".source = link "config/fuzzel";
     # Symlink ghostty pieces individually so each OS only loads its own
     # override file (ghostty's `config-file = ?<name>` only checks file
@@ -436,6 +432,13 @@ in
   # suspend — see noctalia-shell#1066). swayidle takes a logind "sleep"
   # delay inhibitor, guaranteeing the lock command completes before the
   # system actually suspends.
+  #
+  # POSSIBLY REDUNDANT UNDER v5: noctalia 5.0.0-beta.7 added its own
+  # lock-before-sleep via a logind delay inhibit, the same mechanism this
+  # block exists to provide, and v5 also has a native [idle] config with
+  # its own timeouts.  Left in place deliberately — double-locking is
+  # harmless, failing to lock before suspend is not.  Retire this only
+  # after watching a few real suspends with it removed.
   # Ref: https://github.com/niri-wm/niri/wiki/Example-systemd-Setup
   # Ref: https://man.archlinux.org/man/swayidle.1
   services.swayidle = {
@@ -448,14 +451,14 @@ in
       { timeout = 600; command = "${pkgs.niri-unstable}/bin/niri msg action power-off-monitors"; }
     ] ++ [
       # Lock the session after 15 minutes idle.
-      { timeout = 900; command = "noctalia-shell ipc call lockScreen lock"; }
+      { timeout = 900; command = "noctalia msg session lock"; }
     ];
     events = {
       # Lock the session before systemd suspends (lid close, idle, manual).
       # swayidle's delay inhibitor holds off sleep until this returns.
-      before-sleep = "noctalia-shell ipc call lockScreen lock";
+      before-sleep = "noctalia msg session lock";
       # Also lock when any external caller does `loginctl lock-session`.
-      lock = "noctalia-shell ipc call lockScreen lock";
+      lock = "noctalia msg session lock";
     };
   };
 
@@ -560,40 +563,10 @@ in
   # Written as a raw drop-in via xdg.configFile (not
   # systemd.user.services.niri) because the latter injects a narrow
   # Environment=PATH= that would mask the user manager's PATH and break
-  # niri's spawn-at-startup for user-profile tools like noctalia-shell.
+  # niri's spawn-at-startup for user-profile tools like noctalia.
   xdg.configFile."systemd/user/niri.service.d/50-execstop-graphical-session.conf".text = ''
     [Service]
     ExecStop=${pkgs.systemd}/bin/systemctl --user stop graphical-session.target
-  '';
-
-  # ── Noctalia config sync ──────────────────────────────────────────
-  # Copy declarative noctalia config to a writable runtime directory.
-  # Noctalia mutates its own settings.json at runtime (noctalia-shell
-  # #2214), so we can't symlink into the dotfiles repo.  On each
-  # home-manager activation, the declarative files overwrite the
-  # runtime copy.  Use `noctalia-dump` to pull GUI changes back.
-  home.activation.noctalia-config = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    NOCTALIA_RUNTIME="$HOME/.local/share/noctalia-config"
-    NOCTALIA_SRC="${dotfiles}/config/noctalia"
-    SETTINGS_SRC="${dotfiles}/config/noctalia_settings.json"
-
-    mkdir -p "$NOCTALIA_RUNTIME/plugins"
-
-    # Copy settings and plugin registry
-    cp "$SETTINGS_SRC" "$NOCTALIA_RUNTIME/settings.json"
-    cp "$NOCTALIA_SRC/plugins.json" "$NOCTALIA_RUNTIME/plugins.json"
-
-    # Sync plugin directories
-    for plugin in "$NOCTALIA_SRC"/plugins/*/; do
-      name=$(basename "$plugin")
-      rm -rf "$NOCTALIA_RUNTIME/plugins/$name"
-      cp -r "$plugin" "$NOCTALIA_RUNTIME/plugins/$name"
-    done
-
-    # Copy colorschemes from ~/.config/noctalia (managed by noctalia.nix)
-    if [ -d "$HOME/.config/noctalia/colorschemes" ]; then
-      cp -r "$HOME/.config/noctalia/colorschemes" "$NOCTALIA_RUNTIME/"
-    fi
   '';
 
   # ── Portal permissions ────────────────────────────────────────────

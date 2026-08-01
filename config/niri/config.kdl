@@ -285,7 +285,7 @@ layout {
 // See the binds section below for more spawn examples.
 
 // vicinae is managed by its systemd service (home-manager module)
-spawn-at-startup "noctalia-shell"
+spawn-at-startup "noctalia"
 spawn-at-startup "easyeffects" "--gapplication-service"
 // To run a shell command (with variables, pipes, etc.), use spawn-sh-at-startup:
 // spawn-sh-at-startup "qs -c ~/source/qs/MyAwesomeShell"
@@ -494,8 +494,8 @@ binds {
     Mod+Apostrophe hotkey-overlay-title="Dictation" { spawn "true"; }
     Mod+D hotkey-overlay-title="Open Vicinae" { spawn "vicinae" "toggle"; }
     Ctrl+Mod+Space hotkey-overlay-title="Emoji Picker" { spawn "vicinae" "deeplink" "vicinae://launch/core/search-emojis"; }
-    Ctrl+Mod+Q hotkey-overlay-title="Lock the Screen" { spawn "noctalia-shell" "ipc" "call" "lockScreen" "lock"; }
-    Mod+Shift+Comma hotkey-overlay-title="Noctalia Settings" { spawn "noctalia-shell" "ipc" "call" "settings" "toggle"; }
+    Ctrl+Mod+Q hotkey-overlay-title="Lock the Screen" { spawn "noctalia" "msg" "session" "lock"; }
+    Mod+Shift+Comma hotkey-overlay-title="Noctalia Settings" { spawn "noctalia" "msg" "settings-toggle"; }
 
     // Use spawn-sh to run a shell command. Do this if you need pipes, multiple commands, etc.
     // Note: the entire command goes as a single argument. It's passed verbatim to `sh -c`.
