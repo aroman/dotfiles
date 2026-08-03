@@ -50,11 +50,11 @@ in
     "ghostty/config".source = link "config/ghostty/config";
     "ghostty/themes".source = link "config/ghostty/themes";
     "ghostty/linux".source = link "config/ghostty/linux";
-    # Only the config file — herdr keeps its logs, sockets and session
-    # state in this dir too, which must stay out of the dotfiles repo.
-    # Keybindings are read from the *client's* config, so this is needed
-    # on every machine that attaches, not just the one running a server.
-    "herdr/config.toml".source = link "config/herdr/config.toml";
+    # herdr is deliberately absent — it rewrites its own config.toml on
+    # every settings change, replacing the symlink with a plain file (which
+    # silently dropped keys.prefix here on 2026-07-31). HERDR_CONFIG_PATH in
+    # config/fish/config.fish points it at the tracked file directly, so
+    # there is no symlink to clobber and edits show up as a git diff.
     "lazygit".source = link "config/lazygit";
     "starship.toml".source = link "config/starship.toml";
     "xdg-terminals.list".text = "com.mitchellh.ghostty.desktop\n";

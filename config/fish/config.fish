@@ -1,6 +1,10 @@
 # vim: set ts=4
 
 set -gx LG_CONFIG_FILE ~/.config/lazygit/config.yml
+# herdr rewrites its own config on every settings change, which clobbers a
+# symlink into the dotfiles repo. Point it straight at the tracked file
+# instead — TUI edits land as a git diff rather than silently diverging.
+set -gx HERDR_CONFIG_PATH "$HOME/Projects/dotfiles/config/herdr/config.toml"
 
 function cat --wraps bat --description "bat with image support"
     # If single file arg and it's an image, display it
