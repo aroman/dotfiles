@@ -50,14 +50,6 @@
     # if that happens, re-run after a fresh tag is cut, or temporarily pin
     # a tag via `?ref=vX.Y.Z`.
     vicinae.url = "github:vicinaehq/vicinae";
-
-    # Sunshine 2026.516.143833 — pinned to NixOS/nixpkgs#521906 (Qubasa's
-    # bump branch). Carries security fix GHSA-ph75-mgxh-mv57 + KMS capture
-    # fixes (potentially relevant to the "Couldn't find monitor [0]" wedge).
-    # Drop this input once the PR merges and nixpkgs-unstable catches up.
-    # No `inputs.nixpkgs.follows` — the whole point is a different revision.
-    nixpkgs-sunshine.url = "github:Qubasa/nixpkgs/9672041e168ea7e431074220bb71920ddbe4106d";
-
   };
 
   outputs = inputs@{ self, nixpkgs, home-manager, nixos-hardware, niri, ... }:
@@ -87,28 +79,6 @@
                   '';
                 });
               })
-              # Uncomment this overlay ONLY when re-enabling the parked
-              # cursor-zoom niri-blur input above — it applies the blur
-              # PR patch on top of the cursor-zoom branch.  The patch
-              # file is not checked in; fetch it per the instructions in
-              # the niri-blur input comment and save to
-              # nixos/niri-blur-zoom.patch before baking.
-              # (final: prev: {
-              #   niri-unstable = prev.niri-unstable.overrideAttrs (old:
-              #     let
-              #       patchedSrc = final.applyPatches {
-              #         name = "niri-blur-zoom-src";
-              #         src = old.src;
-              #         patches = [ ./niri-blur-zoom.patch ];
-              #       };
-              #     in {
-              #       src = patchedSrc;
-              #       cargoDeps = final.rustPlatform.importCargoLock {
-              #         lockFile = "${patchedSrc}/Cargo.lock";
-              #         allowBuiltinFetchGit = true;
-              #       };
-              #     });
-              # })
             ];
           }
           ./noctalia.nix
