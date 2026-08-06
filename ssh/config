@@ -62,6 +62,37 @@ Host dad dad.tail5c0d6f.ts.net
 Match originalhost moonbinder*,dawnbinder*,wizardtower* exec "test -S ~/.opener.sock && test -z \"$TAILPORT_NO_OPENER\""
   RemoteForward /home/aroman/.opener.sock %d/.opener.sock
 
+# Its replacement: opener-bridged (local/bin) on 127.0.0.1:47831.  Runs
+# alongside the block above until that one is retired, since they share no
+# endpoint.  Three things the socket version got wrong:
+#
+# `nc -z` is a real connect, where `test -S` only proved a file existed.  A
+# dead daemon used to leave a socket that still satisfied the gate, so ssh
+# forwarded to nothing and xdg-open exited 0 having done nothing at all.
+#
+# TCP rather than a unix socket.  Two sessions forwarding the same socket path
+# both bind it, but StreamLocalBindUnlink makes whichever exits *last* unlink
+# the file — so a dying loser would take the live winner's bridge with it.  A
+# second TCP bind just fails, leaving the first untouched and no file behind.
+#
+# Same port on both ends, so a Linux client's probe tests its own forwarded
+# 47831 and carries the bridge onward: moonbinder→wizardtower chains for free.
+# Plain URLs, that is — a localhost:PORT opened on the far end of a chain still
+# needs a direct Mac→that-host master to forward the port, and says so.
+#
+# `-w 2` bounds the probe: a wedged daemon would otherwise leave the exec
+# waiting out the kernel's SYN retransmits (~75s) on every new ssh, making the
+# gate itself the outage.
+#
+# dawnbinder is absent by design — it runs the daemon, so forwarding into it
+# could only collide with the live listener.
+#
+# TAILPORT_NO_OPENER still opts a connection out, for a new reason: tailport
+# sets ExitOnForwardFailure, and inheriting this RemoteForward (whose remote
+# bind collides with the shared master's) would kill its whole connection.
+Match originalhost moonbinder*,wizardtower* exec "test -z \"$TAILPORT_NO_OPENER\" && nc -z -w 2 127.0.0.1 47831 >/dev/null 2>&1"
+  RemoteForward 127.0.0.1:47831 127.0.0.1:47831
+
 Host github.com
   # Route through port 443 so SSH works on networks that block port 22
   Hostname ssh.github.com

@@ -1,0 +1,302 @@
+#!/usr/bin/env python3
+"""Open URLs from SSH-connected remotes in this Mac's browser.
+
+Listens on 127.0.0.1:47831.  Each remote carries the same endpoint back to
+itself with `RemoteForward 127.0.0.1:47831 127.0.0.1:47831` (ssh/config), and
+the NixOS xdg-open shim (nixos/modules/home.nix) speaks this protocol at it:
+
+    -> open <origin> <url>\n      origin = short hostname where xdg-open ran
+    <- ok <final-url>\n  |  err <message>\n
+
+A connection that sends nothing is a liveness probe (`nc -z`, used by the
+ssh/config Match gate) and is answered with silence.
+
+Two jobs beyond handing the URL to open(1):
+
+  * Normalise scheme.  Callers emit bare `localhost:4034`; macOS parses that
+    as the URL scheme `localhost:` and fails with kLSApplicationNotFoundErr.
+
+  * Rewrite loopback URLs.  `localhost:4034` names a port on the *remote*.
+    We ask the existing ControlMaster for `-L 127.0.0.1:4034:localhost:4034`
+    and hand the browser the rewritten address.  ssh resolves `localhost` on
+    the far side, which is what reaches listeners bound to [::1] only --
+    most of them are, so a Tailscale hostname would not do.
+
+Replying (rather than firing and forgetting) is the point of the request /
+response shape: it is what lets the shim exit nonzero when nothing opened.
+"""
+
+import os
+import re
+import socket
+import socketserver
+import subprocess
+import sys
+import time
+from urllib.parse import urlsplit, urlunsplit
+from zlib import crc32
+
+ADDR = ("127.0.0.1", 47831)
+
+# urlsplit().hostname lowercases and strips brackets from IPv6 literals.
+LOOPBACK = {"localhost", "::1", "0.0.0.0", "::"}
+
+
+def is_loopback(host):
+    """Does `host` mean "the machine this URL came from"?"""
+    # All of 127/8, not just 127.0.0.1 -- services do use 127.0.0.5 and the
+    # like, and those would otherwise be opened against this Mac.
+    return bool(host) and (host in LOOPBACK or host.startswith("127."))
+
+DEFAULT_PORT = {"http": 80, "https": 443}
+
+# origin reaches ssh as the host argument, so a leading `-` would be argument
+# injection (-oProxyCommand=...).  Anchored, and no `-` in first position.
+ORIGIN_RE = re.compile(r"\A[A-Za-z0-9][A-Za-z0-9._-]*\Z")
+
+SCHEME_RE = re.compile(r"\A[A-Za-z][A-Za-z0-9+.-]*:")
+
+# `host:port` is indistinguishable from `scheme:opaque` by shape alone --
+# `tel:5551234` and `localhost:4034` parse identically.  So only treat it as
+# host:port when the host half actually looks like a host: bracketed IPv6,
+# dotted name or IPv4, or the literal `localhost`.  Everything else keeps its
+# scheme and passes through to open(1), preserving mailto:/tel:/zoom: today.
+HOSTPORT_RE = re.compile(
+    r"\A(\[[0-9A-Fa-f:]+\]"
+    r"|localhost"
+    r"|[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+"
+    r"):\d+([/?#]|\Z)",
+    re.IGNORECASE,  # `Localhost:4034` would otherwise fall through to open(1)
+)
+
+# A bare label with a port is ambiguous, but a path after it is not: no scheme
+# in practice has a digits-then-slash opaque part.  Catches `wizardtower:80/x`.
+HOSTPORT_PATH_RE = re.compile(r"\A[A-Za-z0-9][A-Za-z0-9-]*:\d+[/?#]")
+
+# gethostname() here returns `MacBookPro.localdomain`; the name this Mac is
+# known by over ssh is LocalHostName.  Collect both -- an origin naming any of
+# them means `localhost` already refers to this machine.
+def _self_names():
+    names = {socket.gethostname().split(".")[0].lower()}
+    for key in ("LocalHostName", "ComputerName"):
+        try:
+            out = subprocess.run(["/usr/sbin/scutil", "--get", key],
+                                 capture_output=True, text=True, timeout=5)
+            if out.returncode == 0 and out.stdout.strip():
+                names.add(out.stdout.strip().split(".")[0].lower())
+        except OSError:
+            pass
+    return names
+
+# (origin, remote port) -> local port.  Purely an optimisation: losing it on
+# restart costs one redundant `-O forward`, which the mux dedupes anyway.
+FORWARDS = {}
+
+SELF_NAMES = _self_names()
+
+
+def log(msg):
+    print("%s %s" % (time.strftime("%Y-%m-%d %H:%M:%S"), msg), flush=True)
+
+
+def normalise(url):
+    """Give `url` a scheme, or raise ValueError if it is not one.
+
+    host:port is tested before the general scheme rule, since `localhost:4034`
+    matches both and the host reading is the one we want.
+    """
+    if HOSTPORT_RE.match(url) or HOSTPORT_PATH_RE.match(url):
+        return "http://" + url
+    if SCHEME_RE.match(url):
+        return url
+    if ":" not in url:
+        host = url.split("/", 1)[0]
+        if host == "localhost" or "." in host:
+            return "http://" + url
+    raise ValueError("not a URL: %s" % url)
+
+
+def free_port():
+    s = socket.socket()
+    try:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+    finally:
+        s.close()
+
+
+def derived_port(origin, rport):
+    """A stable fallback port for when the remote's own port is taken here.
+
+    crc32, not hash(): str hashing is salted per process, so hash() would pick
+    a different port on every daemon restart -- precisely the instability this
+    is meant to remove.
+    """
+    return 20000 + (crc32(origin.encode()) * 137 + rport) % 20000
+
+
+def ssh_forward(origin, lport, rport):
+    """Ask origin's ControlMaster for -L 127.0.0.1:lport:localhost:rport.
+
+    Requesting a forward that already exists exits 0, so this is idempotent
+    and needs no bookkeeping.  TAILPORT_NO_OPENER keeps our own ssh from
+    matching the RemoteForward block while it parses the config.
+    """
+    return subprocess.run(
+        ["/usr/bin/ssh", "-O", "forward",
+         "-L", "127.0.0.1:%d:localhost:%d" % (lport, rport), origin],
+        env=dict(os.environ, TAILPORT_NO_OPENER="1"),
+        capture_output=True, text=True, timeout=10,
+    )
+
+
+def rewrite(parts, lport):
+    """Point `parts` at a local port, keeping any credentials."""
+    userinfo = ""
+    if parts.username:
+        userinfo = parts.username
+        if parts.password:
+            userinfo += ":" + parts.password
+        userinfo += "@"
+    return urlunsplit(parts._replace(netloc="%s127.0.0.1:%d" % (userinfo, lport)))
+
+
+def candidates(origin, rport, cached):
+    """Local ports to try, best first.  Lazy: free_port() only runs if reached."""
+    if cached is not None:
+        yield cached
+    # The remote's own port keeps the URL recognisable, and is free here in all
+    # but the colliding case -- another host's forward, a tailport listener, or
+    # an unrelated local server, all of which ssh reports as exit 255.
+    yield rport
+    # Derived, so a collision still lands somewhere stable across restarts.
+    yield derived_port(origin, rport)
+    yield free_port()
+
+
+def localise(url, origin):
+    """Rewrite a loopback URL on `origin` to a forwarded port on this Mac."""
+    parts = urlsplit(url)
+    rport = parts.port or DEFAULT_PORT.get(parts.scheme)
+    if rport is None:
+        raise ValueError("no port in %s" % url)
+
+    # Only `ssh -O forward` exiting 0 proves the listener on a port belongs to
+    # *origin's* master.  Probing the port instead would also succeed against
+    # another host's forward, or a local process that grabbed it after a master
+    # lapsed -- and we would then open the wrong machine's server and call it
+    # ok, which is the whole failure class this daemon exists to remove.  So
+    # the cache is a hint about which port to try first, never an answer.  The
+    # call is idempotent and costs one mux round-trip, and re-asserting it also
+    # re-binds the port on the new master after a reconnect.
+    last = None
+    tried = set()
+    for lport in candidates(origin, rport, FORWARDS.get((origin, rport))):
+        if lport in tried:
+            continue
+        tried.add(lport)
+        last = ssh_forward(origin, lport, rport)
+        if last.returncode == 0:
+            FORWARDS[(origin, rport)] = lport
+            return rewrite(parts, lport), lport
+
+    err = [l for l in (last.stderr or "").strip().splitlines() if l]
+    detail = err[-1] if err else "ssh exit %d" % last.returncode
+    if "Control socket" in detail or "ControlPath" in detail:
+        # Reached via a chain (moonbinder->wizardtower), or the master lapsed.
+        raise ValueError("no direct ssh connection to %s" % origin)
+    raise ValueError("forward failed: %s" % detail)
+
+
+class Handler(socketserver.StreamRequestHandler):
+    timeout = 10
+
+    def handle(self):
+        # Outside the reply path: a client that connects and stalls trips
+        # `timeout` above, and an uncaught socket.timeout would have
+        # socketserver dump a traceback per occurrence.
+        try:
+            raw = self.rfile.readline(8193)
+        except OSError:
+            return
+        if not raw.strip():
+            return  # liveness probe
+
+        if len(raw) > 8192:
+            # readline caps rather than raising, so without this a long request
+            # would be silently truncated and the truncated URL then opened.
+            self.reply("err request too long")
+            return
+
+        line = raw.decode("utf-8", "replace").strip()
+
+        try:
+            reply = "ok " + self.dispatch(line)
+        except ValueError as e:
+            reply = "err %s" % e
+        except Exception as e:  # never let one bad request kill the daemon
+            reply = "err %s: %s" % (type(e).__name__, e)
+
+        log("%s -> %s" % (line, reply))
+        self.reply(reply)
+
+    def reply(self, text):
+        try:
+            self.wfile.write((text + "\n").encode())
+        except OSError:
+            pass
+
+    def dispatch(self, line):
+        fields = line.split(" ", 2)
+        if len(fields) != 3 or fields[0] != "open":
+            raise ValueError("expected: open <origin> <url>")
+        _, origin, url = fields
+
+        if not ORIGIN_RE.match(origin):
+            raise ValueError("bad origin: %s" % origin)
+
+        url = normalise(url)
+
+        # An origin naming this Mac means localhost already is this machine.
+        if origin.lower() not in SELF_NAMES and is_loopback(urlsplit(url).hostname):
+            url, _ = localise(url, origin)
+
+        try:
+            r = subprocess.run(["/usr/bin/open", url],
+                               capture_output=True, text=True, timeout=15)
+        except subprocess.TimeoutExpired:
+            # Wedged LaunchServices.  Say so now rather than let the caller's
+            # own timeout expire and have open(1) fire minutes later.
+            raise ValueError("open timed out")
+        if r.returncode != 0:
+            detail = (r.stderr or "").strip().splitlines()
+            raise ValueError("open failed: %s" %
+                             (detail[-1] if detail else "exit %d" % r.returncode))
+        return url
+
+
+class Server(socketserver.ThreadingTCPServer):
+    # Threaded because a handler blocks on `ssh -O forward` (up to 10s) and on
+    # open(1), while ssh/config consults this port via `nc -z` on *every*
+    # outbound connection.  Serialised handlers would queue those probes behind
+    # a slow request and, past the backlog, refuse them outright -- which the
+    # Match gate reads as "daemon down" and silently drops the forward.  That
+    # is the bug class this whole thing exists to remove, so don't reintroduce
+    # it.  Concurrent forwards for one (origin, port) are harmless: a duplicate
+    # `-O forward` exits 0.
+    allow_reuse_address = True
+    daemon_threads = True
+    request_queue_size = 64
+
+
+def main():
+    try:
+        server = Server(ADDR, Handler)
+    except OSError as e:
+        sys.exit("opener-bridged: cannot bind %s:%d: %s" % (ADDR[0], ADDR[1], e))
+    log("listening on %s:%d (self=%s)" % (ADDR[0], ADDR[1], ",".join(sorted(SELF_NAMES))))
+    server.serve_forever()
+
+
+if __name__ == "__main__":
+    main()
