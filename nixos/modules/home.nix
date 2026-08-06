@@ -252,13 +252,21 @@ in
     # baked in at build time rather than read from $HOSTNAME, which bash sets
     # but fish — the login shell here — does not.
     #
+    # The guard is "is there a screen attached to *this shell*", not
+    # $SSH_CONNECTION.  herdr runs as a headless systemd user service, so its
+    # shells are children of systemd and inherit no ssh environment at all —
+    # they would fail the ssh test and open a browser on the tower's monitor
+    # instead of on the Mac.  A compositor exports WAYLAND_DISPLAY to what it
+    # spawns, so its absence means nobody is looking at a local screen here,
+    # which is true of ssh and herdr alike.
+    #
     # Deliberately no falling through to the real xdg-open when the bridge is
-    # down.  That opens a browser on this machine's physical display, which an
-    # ssh user cannot see.  Failing loudly is the whole point: the previous
-    # version piped into a socket file that outlived its daemon and exited 0,
-    # so callers printed "✓ Opened" forever while nothing happened.
+    # down.  With no display and no bridge there is nowhere legitimate to open
+    # anything, and failing loudly is the whole point: the previous version
+    # piped into a socket file that outlived its daemon and exited 0, so
+    # callers printed "✓ Opened" forever while nothing happened.
     (writeShellScriptBin "xdg-open" ''
-      if [ -n "$SSH_CONNECTION" ]; then
+      if [ -z "$WAYLAND_DISPLAY" ] && [ -z "$DISPLAY" ]; then
         resp=$(printf 'open %s %s\n' "${osConfig.networking.hostName}" "$1" \
           | ${netcat-openbsd}/bin/nc -N -w 10 127.0.0.1 47831 2>/dev/null)
         case "$resp" in
