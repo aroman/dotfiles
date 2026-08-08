@@ -487,21 +487,29 @@
   hardware.i2c.enable = true;
 
   # OOM protection — kill the biggest offender before the system freezes.
-  # With zram (50%, swappiness=180), the kernel OOM killer doesn't fire until
-  # ~35 GB virtual, by which point the CPU is saturated on zram compression
-  # and the system is unresponsive. earlyoom intervenes much earlier.
+  # Memory pressure can saturate zram compression and spill into slow disk swap
+  # long before reclaim fails and the kernel invokes its OOM killer.
+  #
+  # CAVEAT: earlyoom's conditions are ANDed — it acts only when available
+  # memory *and* free swap are both under threshold. "Swap" here is the whole
+  # pool from /proc/meminfo (zram + disk swapfile). On a host with a large pool,
+  # these percentages arm very late: on wizardtower (39 GiB pool), 10% swap
+  # free means ~35 GiB already consumed, deep into the disk swapfile.
+  # systemd-oomd below is the primary PSI-driven defense; earlyoom is a late
+  # backstop once both available memory and total swap are nearly exhausted.
+  # Revisit these thresholds if oomd ever proves insufficient.
   services.earlyoom = {
     enable = true;
-    freeMemThreshold = 5;   # SIGTERM when <5% RAM free (~1.4 GB)
-    freeSwapThreshold = 10; # ... and <10% swap free (~1.4 GB)
-    freeMemKillThreshold = 2;   # SIGKILL when <2% RAM free (~560 MB)
-    freeSwapKillThreshold = 5;  # ... and <5% swap free (~700 MB)
+    freeMemThreshold = 5;      # SIGTERM when available memory is <5%
+    freeSwapThreshold = 10;    # ... and total swap is <10% free
+    freeMemKillThreshold = 2;  # SIGKILL when available memory is <2%
+    freeSwapKillThreshold = 5; # ... and total swap is <5% free
   };
 
   # PSI-driven userspace OOM: watch cgroup memory pressure (time-stalled, not
   # free%) and kill whole cgroups before the kernel OOM has to fire. Pairs
   # with earlyoom (PSI handles the "thrashing but RAM not yet empty" case;
-  # earlyoom handles the "RAM gone, no PSI signal" case).
+  # earlyoom handles the late "available memory and swap nearly gone" case).
   systemd.oomd = {
     enable = true;
     enableUserSlices = true;

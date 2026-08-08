@@ -36,9 +36,11 @@
     # well, so zram absorbs exactly this workload.
     #
     # memoryPercent sets the *logical (uncompressed)* device size, not a
-    # compression promise. Physical RAM cost = stored ÷ ratio; at the ~4.5:1
-    # zstd ratio observed on moonbinder, a full ~23 GiB device costs ~5 GiB
-    # physical.
+    # compression promise. `zramctl` DATA is logical stored data, COMPR is the
+    # compressed payload, and TOTAL is actual RAM including allocator
+    # fragmentation and metadata. Measured here on 2026-08-08: DATA/COMPR was
+    # ~3.9:1, but 11.7 GiB DATA consumed 3.8 GiB TOTAL (~3.1:1 effective).
+    # At the same effective ratio, a full ~23 GiB device would cost ~7.5 GiB.
     #
     # Not 100%: a full device's worst-case (incompressible, ~1:1) cost would
     # consume all RAM and OOM before ever spilling to disk. 75% keeps a
@@ -77,6 +79,11 @@
     # Default is 3 (read 2^3=8 pages at a time from swap). Swap readahead
     # helps with sequential disk access but zram has no seek penalty, so
     # readahead just wastes memory bandwidth. 0 disables it.
+    #
+    # Note this is global, not per-device: it also disables readahead on the
+    # /swapfile below. This lowers initial-fault latency but causes extra faults
+    # and I/O when neighboring swapped pages are needed. Accepted — the swapfile
+    # is a last-resort valve, and NVMe random 4K reads are cheap.
     "vm.page-cluster" = 0;
   };
 
