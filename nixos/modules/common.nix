@@ -561,6 +561,17 @@
   programs.nh = {
     enable = true;
     flake = "/home/aroman/Projects/dotfiles/nixos";
+    # Weekly GC via `nh clean all` instead of nix.gc: root's
+    # nix-collect-garbage only prunes profiles under /nix/var/nix/profiles,
+    # so per-user profile generations (~/.local/state/nix/profiles) pile up
+    # forever and pin their full closures — that once grew the store to
+    # ~200G. `nh clean all` prunes every user's profiles and stale gcroots
+    # too, then collects.
+    clean = {
+      enable = true;
+      dates = "weekly";
+      extraArgs = "--keep-since 14d --keep 3";
+    };
   };
 
   nix.settings = {
@@ -651,21 +662,18 @@
     MemoryMax = "1G";
   };
 
-  # Automatic garbage collection
-  nix.gc = {
-    automatic = true;
-    dates = "weekly";
-    options = "--delete-older-than 14d";
-  };
-
   # Hardlink-dedup identical files across store paths.  This had never run
   # here; the first manual pass on 2026-08-05 took /nix/store from 167 GB to
   # 100 GB (66 GB off the filesystem).  Subsequent runs only touch paths added
   # since the last pass, so the daily timer is cheap.
   #
-  # Separate from nix.gc above: gc deletes unreachable paths, optimise
-  # deduplicates the ones that remain.  Neither substitutes for the other.
+  # Complements `programs.nh.clean` above rather than overlapping it: clean
+  # deletes what nothing references any more, optimise deduplicates what
+  # survives.  Neither substitutes for the other, and the two failures they
+  # fix were both real here — per-user profiles pinning closures (fixed by
+  # nh clean) and 67 GB of never-deduplicated files (fixed by this).
   nix.optimise.automatic = true;
+
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
