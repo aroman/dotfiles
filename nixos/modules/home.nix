@@ -249,18 +249,25 @@ in
     bat
     eza
     fzf
-    # Custom patch: GNotification's `default` action arrives unlabeled, and
-    # Noctalia renders it as a button captioned "Action". Convert it to an
-    # explicit button so the caption reads "Go to" instead.
-    (ghostty.overrideAttrs (old: {
-      patches = (old.patches or []) ++ [ ../patches/ghostty-notification-action-label.patch ];
-      # Drop the bundled nautilus-python extension. It registers the same
-      # "Open in Ghostty" item via both get_file_items and get_background_items,
-      # which nautilus 50 surfaces as two identical menu entries.
-      postInstall = (old.postInstall or "") + ''
-        rm -f $out/share/nautilus-python/extensions/ghostty.py
+    # Drop the bundled nautilus-python extension. It registers the same
+    # "Open in Ghostty" item via both get_file_items and get_background_items,
+    # which nautilus 50 surfaces as two identical menu entries.
+    #
+    # symlinkJoin, not overrideAttrs: any overrideAttrs forces a from-source
+    # Zig build of ghostty, and pruning one share/ subtree isn't worth that.
+    # This way ghostty itself comes straight off cache.nixos.org.
+    #
+    # The .desktop file keeps its absolute Exec= into the real ghostty store
+    # path (see the CLAUDE.md note on this) — harmless here, because we're
+    # not wrapping the binary, only removing a share/ subtree.
+    (symlinkJoin {
+      name = "ghostty-no-nautilus-ext";
+      paths = [ ghostty ];
+      postBuild = ''
+        rm -rf $out/share/nautilus-python
       '';
-    }))
+      inherit (ghostty) meta;
+    })
     kitty.kitten   # just the kitten CLI (icat for image previews), not the terminal app
     tree
     tmux
