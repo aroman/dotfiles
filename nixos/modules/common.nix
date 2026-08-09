@@ -560,6 +560,17 @@
   programs.nh = {
     enable = true;
     flake = "/home/aroman/Projects/dotfiles/nixos";
+    # Weekly GC via `nh clean all` instead of nix.gc: root's
+    # nix-collect-garbage only prunes profiles under /nix/var/nix/profiles,
+    # so per-user profile generations (~/.local/state/nix/profiles) pile up
+    # forever and pin their full closures — that once grew the store to
+    # ~200G. `nh clean all` prunes every user's profiles and stale gcroots
+    # too, then collects.
+    clean = {
+      enable = true;
+      dates = "weekly";
+      extraArgs = "--keep-since 14d --keep 3";
+    };
   };
 
   nix.settings = {
@@ -648,13 +659,6 @@
     IOWeight = 10;
     MemoryHigh = "512M";
     MemoryMax = "1G";
-  };
-
-  # Automatic garbage collection
-  nix.gc = {
-    automatic = true;
-    dates = "weekly";
-    options = "--delete-older-than 14d";
   };
 
   # This value determines the NixOS release from which the default
