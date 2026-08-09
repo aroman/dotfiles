@@ -201,6 +201,20 @@
         # plugin.toml; its click actions live in that manifest, not here.
         widget.voxtype.type = "aroman/voxtype:status";
 
+        # The bar's `center` names this widget, but naming a widget in a bar
+        # section is not enough — without a `type` here the factory can't build
+        # it, and logs `unknown widget "active-window"` while rendering nothing.
+        # That is exactly what happened from the v5 migration on 2026-08-01
+        # until 2026-08-09: 58 warnings and an empty centre section.
+        widget.active-window = {
+          type = "active_window";
+          anchor = true;
+          min_length = 80;
+          max_length = 700;
+          title_scroll = "on_hover";
+          display = "text_only";
+        };
+
         # v4 CustomButton.  Note the label is static: v4 re-ran
         # `refresh-toggle status` every 30s to show the current rate, and v5's
         # custom_button has no command-polling equivalent (the text widget is
