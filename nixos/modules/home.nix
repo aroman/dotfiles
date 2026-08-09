@@ -46,11 +46,11 @@ in
     "ghostty/config".source = link "config/ghostty/config";
     "ghostty/themes".source = link "config/ghostty/themes";
     "ghostty/linux".source = link "config/ghostty/linux";
-    # Only the config file — herdr keeps its logs, sockets and session
-    # state in this dir too, which must stay out of the dotfiles repo.
-    # Keybindings are read from the *client's* config, so this is needed
-    # on every machine that attaches, not just the one running a server.
-    "herdr/config.toml".source = link "config/herdr/config.toml";
+    # herdr is deliberately absent — it rewrites its own config.toml on
+    # every settings change, replacing the symlink with a plain file (which
+    # silently dropped keys.prefix here on 2026-07-31). HERDR_CONFIG_PATH in
+    # config/fish/config.fish points it at the tracked file directly, so
+    # there is no symlink to clobber and edits show up as a git diff.
     "lazygit".source = link "config/lazygit";
     "starship.toml".source = link "config/starship.toml";
     "xdg-terminals.list".text = "com.mitchellh.ghostty.desktop\n";
@@ -233,16 +233,44 @@ in
     # Core CLI
     rcm          # dotfile manager — `rcup` symlinks local/bin/* → ~/.local/bin/* etc.
     handlr-regex # URL dispatcher — routes links to the right app by domain
-    # opener: when SSH'd in, `xdg-open URL` writes the URL to ~/.opener.sock
-    # (forwarded from the Mac via ssh/config), which runs `open URL` on the
-    # Mac — Velja then routes the URL just like handlr-regex does locally.
-    # At the console the shim falls through to real xdg-open → handlr → Chrome.
-    # The wire protocol is just "URL\n" over the UNIX socket; mirrors the
-    # upstream fake xdg-open at superbrothers/opener:bin/xdg-open.
+    # opener-bridged: when SSH'd in, `xdg-open URL` hands the URL to the Mac,
+    # which opens it in the local browser — Velja then routes it just like
+    # handlr-regex does here.  At the console the shim falls through to real
+    # xdg-open → handlr → Chrome.
+    #
+    # 127.0.0.1:47831 is the mouth of a tunnel back to the Mac's opener-bridged
+    # daemon (ssh/config RemoteForwards it there).  One line each way:
+    #
+    #   -> open <origin> <url>        <- ok <final-url>  |  err <message>
+    #
+    # The origin is load-bearing: `localhost:PORT` names a port on *this* box,
+    # so the Mac has to forward that port before it can open anything.  It is
+    # baked in at build time rather than read from $HOSTNAME, which bash sets
+    # but fish — the login shell here — does not.
+    #
+    # The guard is "is there a screen attached to *this shell*", not
+    # $SSH_CONNECTION.  herdr runs as a headless systemd user service, so its
+    # shells are children of systemd and inherit no ssh environment at all —
+    # they would fail the ssh test and open a browser on the tower's monitor
+    # instead of on the Mac.  A compositor exports WAYLAND_DISPLAY to what it
+    # spawns, so its absence means nobody is looking at a local screen here,
+    # which is true of ssh and herdr alike.
+    #
+    # Deliberately no falling through to the real xdg-open when the bridge is
+    # down.  With no display and no bridge there is nowhere legitimate to open
+    # anything, and failing loudly is the whole point: the previous version
+    # piped into a socket file that outlived its daemon and exited 0, so
+    # callers printed "✓ Opened" forever while nothing happened.
     (writeShellScriptBin "xdg-open" ''
-      if [ -n "$SSH_CONNECTION" ] && [ -S "$HOME/.opener.sock" ]; then
-        echo "$1" | ${netcat-openbsd}/bin/nc -U "$HOME/.opener.sock"
-        exit $?
+      if [ -z "$WAYLAND_DISPLAY" ] && [ -z "$DISPLAY" ]; then
+        resp=$(printf 'open %s %s\n' "${osConfig.networking.hostName}" "$1" \
+          | ${netcat-openbsd}/bin/nc -N -w 10 127.0.0.1 47831 2>/dev/null)
+        case "$resp" in
+          "ok "*)  exit 0 ;;
+          "err "*) echo "xdg-open: ''${resp#err }" >&2; exit 1 ;;
+          *)       echo "xdg-open: opener bridge unreachable (127.0.0.1:47831)" >&2
+                   exit 1 ;;
+        esac
       fi
       exec ${xdg-utils}/bin/xdg-open "$@"
     '')

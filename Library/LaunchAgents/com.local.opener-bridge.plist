@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.local.opener-bridge</string>
+    <key>ProgramArguments</key>
+    <array>
+        <!-- Absolute: launchd's PATH has no ~/.local/bin.  The script's own
+             `#!/usr/bin/env python3` resolves to /usr/bin/python3 here. -->
+        <string>/Users/aroman/.local/bin/opener-bridged</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/Users/aroman/Library/Logs/opener-bridge.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/aroman/Library/Logs/opener-bridge.log</string>
+</dict>
+</plist>

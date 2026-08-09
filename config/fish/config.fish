@@ -1,6 +1,13 @@
 # vim: set ts=4
 
 set -gx LG_CONFIG_FILE ~/.config/lazygit/config.yml
+# herdr rewrites its own config on every settings change, which clobbers a
+# symlink into the dotfiles repo. Point it straight at the tracked file
+# instead — TUI edits land as a git diff rather than silently diverging.
+# $DOTFILES_DIR (conf.d/00-platform.fish, sourced first) differs per host:
+# ~/.dotfiles on macOS, ~/Projects/dotfiles on Linux. Hardcoding either one
+# silently falls back to herdr's defaults on the other.
+set -gx HERDR_CONFIG_PATH "$DOTFILES_DIR/config/herdr/config.toml"
 
 function cat --wraps bat --description "bat with image support"
     # If single file arg and it's an image, display it

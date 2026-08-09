@@ -1,22 +1,5 @@
-{ config, pkgs, lib, inputs, ... }:
+{ config, pkgs, lib, ... }:
 
-let
-  # Pull Sunshine from the pinned nixpkgs-sunshine input (PR #521906) until
-  # the bump lands in our main nixpkgs input. See flake.nix for context.
-  # Instantiate explicitly so we inherit allowUnfree (CUDA EULA) from the
-  # main nixpkgs config — `legacyPackages` uses the input's *default* config
-  # which refuses CUDA.
-  pkgs-sunshine = import inputs.nixpkgs-sunshine {
-    inherit (pkgs.stdenv.hostPlatform) system;
-    # Inherit allowUnfree (CUDA EULA) etc. from the main nixpkgs config, but
-    # drop `rewriteURL`: main nixpkgs now defaults it to `null`, while this
-    # older fork still types it as a (non-nullable) function — passing the
-    # null straight through fails the fork's type check. removeAttrs lets the
-    # fork apply its own default (lib.id).
-    config = builtins.removeAttrs pkgs.config [ "rewriteURL" ];
-  };
-  sunshine-cuda = pkgs-sunshine.sunshine.override { cudaSupport = true; };
-in
 {
   networking.hostName = "wizardtower";
 
@@ -130,27 +113,13 @@ in
   # bursty loads, not sustained all-core throughput (which already hits
   # ~4.24 GHz all-core here).
   #
-  # There's no NixOS option for EPP — powerManagement.cpuFreqGovernor is
-  # the only knob, and setting it to "performance" would pin max frequency
-  # instead of just biasing the hint, which is not what we want.
-  #
-  # A boot-time oneshot is sufficient: post-resume.target doesn't exist on
-  # this system and this host never suspends (see HandlePowerKey above),
-  # and nothing else on the box writes EPP. If it ever does start
-  # suspending, this needs a resume hook too.
-  systemd.services.cpu-epp-performance = {
-    description = "Bias amd-pstate EPP toward performance";
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-    };
-    script = ''
-      for f in /sys/devices/system/cpu/cpufreq/policy*/energy_performance_preference; do
-        echo performance > "$f"
-      done
-    '';
-  };
+  # powerManagement.cpuFreqGovernor is not the knob for this — setting it to
+  # "performance" would pin max frequency rather than just bias the hint.
+  # boot.kernel.sysfs writes the attribute directly, backed by systemd path
+  # units that fire as soon as each policy dir appears, so this also survives
+  # CPU hotplug and resume without a separate hook.
+  boot.kernel.sysfs.devices.system.cpu.cpufreq."policy[0-9]*"
+    .energy_performance_preference = "performance";
 
   # ── Sunshine (remote desktop streaming) ──────────────────────────
   # Streams the desktop to Moonlight clients. NvENC for hardware-accelerated
@@ -158,7 +127,9 @@ in
   # directly (works with any Wayland compositor including niri).
   services.sunshine = {
     enable = true;
-    package = sunshine-cuda;
+    # cudaSupport pulls in the NvENC encode path; the CUDA EULA is accepted
+    # via nixpkgs.config.allowUnfree in modules/common.nix.
+    package = pkgs.sunshine.override { cudaSupport = true; };
     autoStart = true;
     capSysAdmin = true; # required for KMS capture on Wayland
     openFirewall = false; # tailnet-only; see firewall.interfaces.tailscale0 above
@@ -190,7 +161,8 @@ in
   # nixpkgs' sunshine module installs its own udev rule setting
   # /dev/uinput to group=uinput (more specific SUBSYSTEM rule wins over a
   # bare KERNEL match), so the user must be in `uinput`, not `input`.
-  users.users.aroman.extraGroups = [ "input" "uinput" ];
+  # (`input` itself is already granted in modules/common.nix.)
+  users.users.aroman.extraGroups = [ "uinput" ];
 
   # 1Password
   programs._1password.enable = true;
