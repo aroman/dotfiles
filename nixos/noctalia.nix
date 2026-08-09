@@ -17,23 +17,18 @@
 # just contained in one file.  To see what's drifted, run `noctalia-dump`; to
 # reset, delete ~/.local/state/noctalia/settings.toml.
 { config, inputs, pkgs, ... }:
-let
-  # Prebuilt from cache.nixos.org.  The noctalia flake input's own package
-  # output is a from-source C++ build against our nixpkgs, which nothing has
-  # cached; nixpkgs' by-name package is the same 5.0.0-beta.7 and is on the
-  # binary cache.  See the nixpkgs-noctalia comment in flake.nix.
-  pkgs-noctalia = import inputs.nixpkgs-noctalia {
-    inherit (pkgs.stdenv.hostPlatform) system;
-    config.allowUnfree = true;
-  };
-in
 {
   home-manager.users.aroman = {
     imports = [ inputs.noctalia.homeModules.default ];
 
     programs.noctalia = {
       enable = true;
-      package = pkgs-noctalia.noctalia;
+
+      # Prebuilt from cache.nixos.org.  The noctalia flake input's own package
+      # output is a from-source C++ build against our nixpkgs, which nothing
+      # has cached; nixpkgs' by-name package is the same version and is on the
+      # binary cache.  Keep it pinned to the same tag as the flake input.
+      package = pkgs.noctalia;
 
       # v4 called these colorschemes and kept them under colorschemes/<name>/<name>.json;
       # v5 calls them palettes at palettes/<name>.json.  The JSON payload is
