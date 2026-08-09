@@ -650,6 +650,15 @@
     options = "--delete-older-than 14d";
   };
 
+  # Hardlink-dedup identical files across store paths.  This had never run
+  # here; the first manual pass on 2026-08-05 took /nix/store from 167 GB to
+  # 100 GB (66 GB off the filesystem).  Subsequent runs only touch paths added
+  # since the last pass, so the daily timer is cheap.
+  #
+  # Separate from nix.gc above: gc deletes unreachable paths, optimise
+  # deduplicates the ones that remain.  Neither substitutes for the other.
+  nix.optimise.automatic = true;
+
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
   # on your system were taken. It's perfectly fine and recommended to leave
