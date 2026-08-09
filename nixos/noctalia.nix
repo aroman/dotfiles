@@ -139,7 +139,10 @@
           # Replaces nixos/badged.nix: v5 has a native polkit agent that drives
           # the fprintd PAM conversation.  Verified working 2026-08-01.
           polkit_agent = true;
-          settings_show_advanced = false;
+          # Kept in sync with the GUI toggle deliberately: v5's state layer
+          # (~/.local/state/noctalia/settings.toml) shadows this file, and
+          # having it disagree left that state file carrying a lone override.
+          settings_show_advanced = true;
           animation.speed = 1.15;
           panel.open_near_click_control_center = true;
         };
@@ -159,14 +162,17 @@
           layer = "overlay";
           shadow = false;
 
-          # All four v4 plugins are gone and none needed porting to Luau:
+          # Where the four v4 QML plugins ended up:
           #   hostname          -> built-in "text" widget, below
           #   privacy-indicator -> built-in "privacy" widget (not placed; it
           #                        wasn't in the v4 bar either)
-          #   voxtype           -> dropped; voxtype has its own native indicator
-          #   cloudflare-tunnel -> dropped; not run from this machine, and
-          #                        there's a terminal alias for it anyway
-          start = [ "hostname" "spacer" "media" ];
+          #   voxtype           -> rewritten as a Luau plugin, placed here
+          #   cloudflare-tunnel -> rewritten as a Luau plugin but NOT enabled:
+          #                        the tunnel isn't run from this machine and
+          #                        there's a terminal alias for it.  The port
+          #                        is tracked so turning it on is a one-line
+          #                        change to plugins.enabled below.
+          start = [ "hostname" "voxtype" "spacer" "media" ];
           center = [ "active-window" ];
           end = [
             "tray"
@@ -190,6 +196,11 @@
           text = config.networking.hostName;
         };
 
+        # Luau rewrite of the v4 QML plugin.  The widget id is
+        # "<plugin id>:<widget id>" from local/share/noctalia/plugins/voxtype/
+        # plugin.toml; its click actions live in that manifest, not here.
+        widget.voxtype.type = "aroman/voxtype:status";
+
         # v4 CustomButton.  Note the label is static: v4 re-ran
         # `refresh-toggle status` every 30s to show the current rate, and v5's
         # custom_button has no command-polling equivalent (the text widget is
@@ -203,6 +214,17 @@
 
         dock.launcher_position = "start";
         desktop_widgets.enabled = false;
+
+        # The plugin *files* are delivered by rcm, not by this module:
+        # local/share/noctalia/plugins/ is inside the rcm tree (~/.rcrc excludes
+        # nixos and config, not local), so rcup symlinks them to
+        # ~/.local/share/noctalia/plugins/ the same way it handles local/bin.
+        # Adding a home.file block here would have both rcm and home-manager
+        # claiming the same paths.  This list only decides which get loaded.
+        plugins = {
+          enabled = [ "aroman/voxtype" ];
+          auto_update = false;
+        };
 
         wallpaper = {
           transition = [ "zoom" ];

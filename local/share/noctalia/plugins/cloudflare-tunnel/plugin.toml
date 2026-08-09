@@ -1,0 +1,30 @@
+id = "aroman/cloudflare-tunnel"
+name = "Cloudflare Tunnel"
+version = "2.0.1"
+plugin_api = 14
+author = "aroman"
+license = "MIT"
+icon = "broadcast"
+description = "Shows and controls the local Cloudflare tunnel."
+dependencies = ["cloudflare-tunnel"]
+tags = ["bar", "network", "panel", "service"]
+
+[[widget]]
+id = "status"
+entry = "widget.luau"
+
+  [widget.actions]
+  left = "panel-toggle aroman/cloudflare-tunnel:panel"
+
+[[panel]]
+id = "panel"
+entry = "panel.luau"
+width = 300
+height = 170
+placement = "attached"
+position = "auto"
+open_near_click = true
+
+[[service]]
+id = "monitor"
+entry = "service.luau"
