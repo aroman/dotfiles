@@ -409,6 +409,39 @@
     enable = true;
     nix-direnv.enable = true;
     settings.global.hide_env_diff = true;
+
+    # nix-direnv's `use flake` runs `nix flake archive` after evaluating the
+    # shell. That defeats Nix 2.35's lazy flake-source copying and writes the
+    # entire source tree to /nix/store for every dirty worktree. Keep
+    # nix-direnv's other helpers, but restore a lazy `use flake` implementation.
+    direnvrcExtra = ''
+      use_flake() {
+        local flake_ref="''${1:-.}"
+        local flake_uri="''${flake_ref%%#*}"
+        local flake_dir="''${flake_uri#path:}"
+        local layout_dir profile dev_env
+
+        if [[ "$(nix --extra-experimental-features nix-command eval --raw --expr 'if builtins.compareVersions builtins.nixVersion "2.35" >= 0 then "yes" else "no"')" != yes ]]; then
+          log_error "lazy flake activation requires Nix 2.35 or newer"
+          return 1
+        fi
+
+        if [[ -d "$flake_dir" ]]; then
+          watch_file "$flake_dir/flake.nix" "$flake_dir/flake.lock"
+        fi
+
+        layout_dir="$(direnv_layout_dir)"
+        profile="$layout_dir/flake-profile"
+        mkdir -p "$layout_dir"
+
+        if ! dev_env="$(nix --extra-experimental-features 'nix-command flakes' print-dev-env --profile "$profile" "$@")"; then
+          return 1
+        fi
+
+        eval "$dev_env"
+        nix --extra-experimental-features 'nix-command flakes' profile wipe-history --profile "$profile"
+      }
+    '';
   };
 
   programs.dconf.enable = true;
@@ -573,6 +606,10 @@
       extraArgs = "--keep-since 14d --keep 3";
     };
   };
+
+  # Nix 2.35 lazily copies flake sources. This is what makes the Direnv
+  # override above safe for large, frequently-dirtied Git worktrees.
+  nix.package = pkgs.nixVersions.nix_2_35;
 
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
