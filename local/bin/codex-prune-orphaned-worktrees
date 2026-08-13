@@ -8,9 +8,35 @@ import process from "node:process";
 import { DatabaseSync } from "node:sqlite";
 
 let shouldApply = false;
+let inventory = false;
+let inventorySort = null;
 let missingOnly = false;
 let verbose = false;
 const worktreeRootArgs = [];
+const directoryStateOrder = new Map([
+  ["missing", 0],
+  ["not-dir", 1],
+  ["error", 2],
+  ["exists", 3],
+]);
+const inventorySortComparators = new Map([
+  ["size", (a, b) => b.bytes - a.bytes],
+  ["threads", (a, b) => b.threads - a.threads],
+  ["conversations", (a, b) => b.conversations - a.conversations],
+  [
+    "spawned",
+    (a, b) =>
+      b.threads - b.conversations - (a.threads - a.conversations),
+  ],
+  ["recent", (a, b) => b.updatedAt - a.updatedAt],
+  ["oldest", (a, b) => a.updatedAt - b.updatedAt],
+  ["path", (a, b) => a.cwd.localeCompare(b.cwd)],
+  [
+    "state",
+    (a, b) => directoryStateOrder.get(a.state) - directoryStateOrder.get(b.state),
+  ],
+]);
+const inventorySortFields = [...inventorySortComparators.keys()].join(", ");
 
 /** Print command-line usage. */
 function printUsage() {
@@ -18,7 +44,12 @@ function printUsage() {
 
 Options:
   --worktree-root PATH  Container whose immediate children are worktrees.
-                        Repeat for multiple containers. Required.
+                        Repeat for multiple containers. Required unless using
+                        --inventory.
+  --inventory           List every recorded working directory with transcript
+                        counts and sizes. Always read-only.
+  --sort FIELD          Inventory order. One of:
+                        ${inventorySortFields}. Default: size.
   --missing-only        Preserve existing but invalid worktree directories.
   --verbose             Print every orphaned working directory.
   --apply               Delete; without this flag, only report candidates.
@@ -29,7 +60,16 @@ const rawArgs = process.argv.slice(2);
 for (let index = 0; index < rawArgs.length; index += 1) {
   const arg = rawArgs[index];
   if (arg === "--apply") shouldApply = true;
-  else if (arg === "--missing-only") missingOnly = true;
+  else if (arg === "--inventory") inventory = true;
+  else if (arg === "--sort") {
+    const field = rawArgs[index + 1];
+    if (!field || field.startsWith("--")) {
+      console.error("--sort requires a field");
+      process.exit(2);
+    }
+    inventorySort = field;
+    index += 1;
+  } else if (arg === "--missing-only") missingOnly = true;
   else if (arg === "--verbose") verbose = true;
   else if (arg === "--worktree-root") {
     const root = rawArgs[index + 1];
@@ -49,7 +89,30 @@ for (let index = 0; index < rawArgs.length; index += 1) {
   }
 }
 
-if (worktreeRootArgs.length === 0) {
+if (!inventory && inventorySort !== null) {
+  console.error("--sort requires --inventory");
+  process.exit(2);
+}
+
+if (inventorySort !== null && !inventorySortComparators.has(inventorySort)) {
+  console.error(`Unknown inventory sort field: ${inventorySort}`);
+  process.exit(2);
+}
+
+if (inventory) {
+  const incompatibleOptions = [];
+  if (shouldApply) incompatibleOptions.push("--apply");
+  if (missingOnly) incompatibleOptions.push("--missing-only");
+  if (verbose) incompatibleOptions.push("--verbose");
+  if (worktreeRootArgs.length > 0) incompatibleOptions.push("--worktree-root");
+  if (incompatibleOptions.length > 0) {
+    console.error(
+      `--inventory cannot be combined with ${incompatibleOptions.join(", ")}`,
+    );
+    process.exit(2);
+  }
+  inventorySort ??= "size";
+} else if (worktreeRootArgs.length === 0) {
   console.error("At least one --worktree-root is required");
   printUsage();
   process.exit(2);
@@ -217,7 +280,8 @@ const stateDatabase = findStateDatabase();
 const database = new DatabaseSync(stateDatabase, { readOnly: true });
 const threads = database
   .prepare(
-    `SELECT id, cwd, rollout_path, is_pinned, archived, thread_source,
+    `SELECT id, cwd, rollout_path, updated_at, is_pinned, archived, source,
+            thread_source,
             git_sha, git_branch, git_origin_url
        FROM threads`,
   )
@@ -227,12 +291,158 @@ const edges = database
   .all();
 database.close();
 
-const threadById = new Map(threads.map((thread) => [thread.id, thread]));
 const parentByChild = new Map();
-const childrenByParent = new Map();
 
 for (const edge of edges) {
   parentByChild.set(edge.child_thread_id, edge.parent_thread_id);
+}
+
+/** Return whether a persisted session source identifies a non-root agent. */
+function isNonRootSessionSource(source) {
+  try {
+    const parsed = JSON.parse(source);
+    return (
+      parsed !== null &&
+      typeof parsed === "object" &&
+      (Object.hasOwn(parsed, "subagent") || Object.hasOwn(parsed, "internal"))
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** Classify non-root threads without relying on complete spawn-edge history. */
+function isSpawnedThread(thread, childToParent) {
+  return (
+    childToParent.has(thread.id) ||
+    thread.thread_source === "subagent" ||
+    thread.thread_source === "memory_consolidation" ||
+    isNonRootSessionSource(thread.source)
+  );
+}
+
+/** Format a byte count for compact terminal output. */
+function formatBytes(bytes) {
+  const units = ["B", "KiB", "MiB", "GiB", "TiB"];
+  let value = bytes;
+  let unitIndex = 0;
+
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+
+  const fractionDigits = unitIndex === 0 ? 0 : value >= 10 ? 1 : 2;
+  return `${value.toFixed(fractionDigits)} ${units[unitIndex]}`;
+}
+
+/** Format a Unix timestamp as an ISO calendar date. */
+function formatDate(timestampSeconds) {
+  if (!timestampSeconds) return "-";
+  return new Date(timestampSeconds * 1000).toISOString().slice(0, 10);
+}
+
+/** Describe whether a recorded CWD is still an accessible directory. */
+function directoryState(cwd) {
+  try {
+    return fs.statSync(cwd).isDirectory() ? "exists" : "not-dir";
+  } catch (error) {
+    if (error.code === "ENOENT" || error.code === "ENOTDIR") return "missing";
+    return "error";
+  }
+}
+
+/** Print a read-only inventory grouped by each thread's recorded CWD. */
+function printDirectoryInventory(
+  allThreads,
+  childToParent,
+  databasePath,
+  sortBy,
+) {
+  const entriesByCwd = new Map();
+  let unavailableRollouts = 0;
+
+  for (const thread of allThreads) {
+    const entry = entriesByCwd.get(thread.cwd) ?? {
+      cwd: thread.cwd,
+      state: directoryState(thread.cwd),
+      threads: 0,
+      conversations: 0,
+      pinned: 0,
+      archived: 0,
+      bytes: 0,
+      updatedAt: 0,
+    };
+
+    entry.threads += 1;
+    if (!isSpawnedThread(thread, childToParent)) entry.conversations += 1;
+    if (thread.is_pinned) entry.pinned += 1;
+    if (thread.archived) entry.archived += 1;
+    entry.updatedAt = Math.max(entry.updatedAt, thread.updated_at);
+
+    try {
+      entry.bytes += fs.statSync(thread.rollout_path).size;
+    } catch {
+      unavailableRollouts += 1;
+    }
+
+    entriesByCwd.set(thread.cwd, entry);
+  }
+
+  const compareEntries = inventorySortComparators.get(sortBy);
+  const entries = [...entriesByCwd.values()].sort(
+    (a, b) =>
+      compareEntries(a, b) ||
+      b.bytes - a.bytes ||
+      b.threads - a.threads ||
+      a.cwd.localeCompare(b.cwd),
+  );
+  const totalBytes = entries.reduce((sum, entry) => sum + entry.bytes, 0);
+
+  console.log(`Codex state database: ${databasePath}`);
+  console.log("Mode: DIRECTORY INVENTORY (read only)");
+  console.log(`Persisted threads: ${allThreads.length}`);
+  console.log(`Recorded working directories: ${entries.length}`);
+  console.log(`Approximate rollout size: ${formatBytes(totalBytes)}`);
+  console.log(`Unavailable rollout files: ${unavailableRollouts}`);
+  console.log(`Sort: ${sortBy}`);
+  console.log(
+    `\n${"State".padEnd(8)} ${"Conversations".padStart(13)} ` +
+      `${"Spawned".padStart(7)} ${"Threads".padStart(7)} ` +
+      `${"Pinned".padStart(6)} ${"Archived".padStart(8)} ` +
+      `${"Size".padStart(9)}  ${"Last used".padEnd(10)}  Working directory`,
+  );
+
+  for (const entry of entries) {
+    const spawnedThreads = entry.threads - entry.conversations;
+    console.log(
+      `${entry.state.padEnd(8)} ` +
+        `${entry.conversations.toString().padStart(13)} ` +
+        `${spawnedThreads.toString().padStart(7)} ` +
+        `${entry.threads.toString().padStart(7)} ` +
+        `${entry.pinned.toString().padStart(6)} ` +
+        `${entry.archived.toString().padStart(8)} ` +
+        `${formatBytes(entry.bytes).padStart(9)}  ` +
+        `${formatDate(entry.updatedAt).padEnd(10)}  ${entry.cwd}`,
+    );
+  }
+
+  console.log("\nNo files were changed.");
+}
+
+if (inventory) {
+  printDirectoryInventory(
+    threads,
+    parentByChild,
+    stateDatabase,
+    inventorySort,
+  );
+  process.exit(0);
+}
+
+const threadById = new Map(threads.map((thread) => [thread.id, thread]));
+const childrenByParent = new Map();
+for (const edge of edges) {
   const children = childrenByParent.get(edge.parent_thread_id) ?? [];
   children.push(edge.child_thread_id);
   childrenByParent.set(edge.parent_thread_id, children);
@@ -315,7 +525,7 @@ console.log(`Orphaned, unpinned threads: ${candidateIds.size}`);
 console.log(`Safe deletion roots: ${deletionRootIds.length}`);
 console.log(`Threads covered recursively: ${coveredIds.size}`);
 console.log(`Unsafe mixed subtrees skipped: ${skippedUnsafeIds.length}`);
-console.log(`Approximate reclaimable size: ${(orphanedBytes / 2 ** 30).toFixed(2)} GiB`);
+console.log(`Approximate reclaimable size: ${formatBytes(orphanedBytes)}`);
 
 const cwdEntries = [...orphanedByCwd.values()].sort(
   (a, b) => b.threads - a.threads || a.cwd.localeCompare(b.cwd),
