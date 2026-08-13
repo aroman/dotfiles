@@ -43,3 +43,5 @@ undo-timeout = 30s
 #   Linux → home-manager symlinks it (and `macos` is omitted there)
 config-file = ?macos
 config-file = ?linux
+
+keybind = performable:super+c=copy_to_clipboard
