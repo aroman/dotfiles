@@ -1,0 +1,371 @@
+#!/usr/bin/env node
+
+import { execFileSync, spawnSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import process from "node:process";
+import { DatabaseSync } from "node:sqlite";
+
+let shouldApply = false;
+let missingOnly = false;
+let verbose = false;
+const worktreeRootArgs = [];
+
+/** Print command-line usage. */
+function printUsage() {
+  console.log(`Usage: codex-prune-orphaned-worktrees [options]
+
+Options:
+  --worktree-root PATH  Container whose immediate children are worktrees.
+                        Repeat for multiple containers. Required.
+  --missing-only        Preserve existing but invalid worktree directories.
+  --verbose             Print every orphaned working directory.
+  --apply               Delete; without this flag, only report candidates.
+  --help                 Show this help.`);
+}
+
+const rawArgs = process.argv.slice(2);
+for (let index = 0; index < rawArgs.length; index += 1) {
+  const arg = rawArgs[index];
+  if (arg === "--apply") shouldApply = true;
+  else if (arg === "--missing-only") missingOnly = true;
+  else if (arg === "--verbose") verbose = true;
+  else if (arg === "--worktree-root") {
+    const root = rawArgs[index + 1];
+    if (!root || root.startsWith("--")) {
+      console.error("--worktree-root requires a path");
+      process.exit(2);
+    }
+    worktreeRootArgs.push(root);
+    index += 1;
+  } else if (arg === "--help") {
+    printUsage();
+    process.exit(0);
+  } else {
+    console.error(`Unknown argument: ${arg}`);
+    printUsage();
+    process.exit(2);
+  }
+}
+
+if (worktreeRootArgs.length === 0) {
+  console.error("At least one --worktree-root is required");
+  printUsage();
+  process.exit(2);
+}
+
+const codexHome = process.env.CODEX_HOME ?? path.join(os.homedir(), ".codex");
+const codexBin = process.env.CODEX_BIN ?? "codex";
+
+/** Find the newest Codex state database schema in CODEX_HOME. */
+function findStateDatabase() {
+  const matches = fs
+    .readdirSync(codexHome)
+    .map((name) => ({ name, match: /^state_(\d+)\.sqlite$/.exec(name) }))
+    .filter(({ match }) => match !== null)
+    .sort((a, b) => Number(b.match[1]) - Number(a.match[1]));
+
+  if (matches.length === 0) {
+    throw new Error(`No state_*.sqlite found under ${codexHome}`);
+  }
+
+  return path.join(codexHome, matches[0].name);
+}
+
+/** Validate and canonicalize an explicitly configured worktree container. */
+function normalizeWorktreeRoot(root) {
+  const absolute = path.resolve(root);
+  if (!fs.existsSync(absolute) || !fs.statSync(absolute).isDirectory()) {
+    throw new Error(`Worktree container does not exist: ${absolute}`);
+  }
+  return { absolute, canonical: fs.realpathSync.native(absolute) };
+}
+
+/** Return a relative path only when a candidate is inside a container. */
+function relativeInside(container, candidate) {
+  const relative = path.relative(container, candidate);
+  if (relative === "") return relative;
+  if (
+    relative === ".." ||
+    relative.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relative)
+  ) {
+    return null;
+  }
+  return relative;
+}
+
+const worktreeRoots = worktreeRootArgs
+  .map(normalizeWorktreeRoot)
+  .sort((a, b) => b.absolute.length - a.absolute.length);
+
+/** Find the configured container and immediate worktree child for a CWD. */
+function findWorktreeBoundary(cwd) {
+  const absoluteCwd = path.resolve(cwd);
+
+  for (const root of worktreeRoots) {
+    const relative = relativeInside(root.absolute, absoluteCwd);
+    if (relative !== null) {
+      return { root, relative, basePath: root.absolute };
+    }
+  }
+
+  for (const root of worktreeRoots) {
+    const relative = relativeInside(root.canonical, absoluteCwd);
+    if (relative !== null) {
+      return { root, relative, basePath: root.canonical };
+    }
+  }
+
+  if (!fs.existsSync(absoluteCwd)) return null;
+  const canonicalCwd = fs.realpathSync.native(absoluteCwd);
+
+  for (const root of worktreeRoots) {
+    const relative = relativeInside(root.canonical, canonicalCwd);
+    if (relative !== null) {
+      return { root, relative, basePath: root.canonical };
+    }
+  }
+
+  return null;
+}
+
+/** Determine whether a CWD's configured worktree still exists. */
+function classifyCwd(cwd) {
+  const boundary = findWorktreeBoundary(cwd);
+  if (boundary === null) return "preserved-outside-roots";
+
+  const [worktreeName] = boundary.relative.split(path.sep).filter(Boolean);
+  if (!worktreeName) return "preserved-container-root";
+
+  const worktreePath = path.join(boundary.basePath, worktreeName);
+  if (!fs.existsSync(worktreePath)) return "orphan-missing-worktree";
+  if (missingOnly) return "preserved-existing";
+
+  try {
+    const reportedRoot = execFileSync(
+      "git",
+      ["-C", worktreePath, "rev-parse", "--show-toplevel"],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+    ).trim();
+    const canonicalWorktreePath = fs.realpathSync.native(worktreePath);
+    const canonicalReportedRoot = fs.realpathSync.native(reportedRoot);
+    if (canonicalWorktreePath === canonicalReportedRoot) {
+      return "valid-worktree";
+    }
+  } catch {
+    // An explicitly scoped worktree child exists but is no longer valid.
+  }
+
+  return "orphan-invalid-worktree";
+}
+
+/** Require persisted Git evidence before considering a thread orphaned. */
+function classifyThread(thread) {
+  if (!thread.git_sha && !thread.git_branch && !thread.git_origin_url) {
+    return "preserved-no-git-metadata";
+  }
+  return classifyCwd(thread.cwd);
+}
+
+/** Collect all persisted descendants of a thread, including the thread. */
+function collectSubtree(threadId, childrenByParent) {
+  const result = [];
+  const pending = [threadId];
+  const visited = new Set();
+
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (visited.has(current)) continue;
+    visited.add(current);
+    result.push(current);
+    pending.push(...(childrenByParent.get(current) ?? []));
+  }
+
+  return result;
+}
+
+/** Reload a thread and all current descendants immediately before deletion. */
+function readCurrentSubtree(stateDatabasePath, threadId) {
+  const currentDatabase = new DatabaseSync(stateDatabasePath, {
+    readOnly: true,
+  });
+
+  try {
+    return currentDatabase
+      .prepare(
+        `WITH RECURSIVE subtree(id) AS (
+           SELECT ?
+           UNION
+           SELECT edge.child_thread_id
+             FROM thread_spawn_edges AS edge
+             JOIN subtree ON edge.parent_thread_id = subtree.id
+         )
+         SELECT thread.id, thread.cwd, thread.is_pinned,
+                thread.git_sha, thread.git_branch, thread.git_origin_url
+           FROM threads AS thread
+           JOIN subtree ON subtree.id = thread.id`,
+      )
+      .all(threadId);
+  } finally {
+    currentDatabase.close();
+  }
+}
+
+const stateDatabase = findStateDatabase();
+const database = new DatabaseSync(stateDatabase, { readOnly: true });
+const threads = database
+  .prepare(
+    `SELECT id, cwd, rollout_path, is_pinned, archived, thread_source,
+            git_sha, git_branch, git_origin_url
+       FROM threads`,
+  )
+  .all();
+const edges = database
+  .prepare(`SELECT parent_thread_id, child_thread_id FROM thread_spawn_edges`)
+  .all();
+database.close();
+
+const threadById = new Map(threads.map((thread) => [thread.id, thread]));
+const parentByChild = new Map();
+const childrenByParent = new Map();
+
+for (const edge of edges) {
+  parentByChild.set(edge.child_thread_id, edge.parent_thread_id);
+  const children = childrenByParent.get(edge.parent_thread_id) ?? [];
+  children.push(edge.child_thread_id);
+  childrenByParent.set(edge.parent_thread_id, children);
+}
+
+const isOrphanStatus = (status) => status.startsWith("orphan-");
+const threadStatusById = new Map(
+  threads.map((thread) => [thread.id, classifyThread(thread)]),
+);
+const candidateIds = new Set(
+  threads
+    .filter(
+      (thread) =>
+        !thread.is_pinned && isOrphanStatus(threadStatusById.get(thread.id)),
+    )
+    .map((thread) => thread.id),
+);
+
+const safeSubtreeCache = new Map();
+
+/** Check that recursive deletion cannot remove a preserved descendant. */
+function isEntireSubtreeCandidate(threadId, visiting = new Set()) {
+  if (safeSubtreeCache.has(threadId)) return safeSubtreeCache.get(threadId);
+  if (visiting.has(threadId)) return false;
+  if (!candidateIds.has(threadId)) return false;
+
+  const nextVisiting = new Set(visiting).add(threadId);
+  const safe = (childrenByParent.get(threadId) ?? []).every((childId) =>
+    isEntireSubtreeCandidate(childId, nextVisiting),
+  );
+  safeSubtreeCache.set(threadId, safe);
+  return safe;
+}
+
+const safeIds = new Set(
+  [...candidateIds].filter((threadId) => isEntireSubtreeCandidate(threadId)),
+);
+const deletionRootIds = [...safeIds].filter((threadId) => {
+  const parentId = parentByChild.get(threadId);
+  return parentId === undefined || !safeIds.has(parentId);
+});
+const coveredIds = new Set(
+  deletionRootIds.flatMap((threadId) =>
+    collectSubtree(threadId, childrenByParent),
+  ),
+);
+const skippedUnsafeIds = [...candidateIds].filter(
+  (threadId) => !coveredIds.has(threadId),
+);
+
+let orphanedBytes = 0;
+for (const threadId of coveredIds) {
+  const rolloutPath = threadById.get(threadId)?.rollout_path;
+  if (!rolloutPath) continue;
+  try {
+    orphanedBytes += fs.statSync(rolloutPath).size;
+  } catch {
+    // Missing rollout files are already effectively reclaimed.
+  }
+}
+
+const orphanedByCwd = new Map();
+for (const thread of threads) {
+  if (!candidateIds.has(thread.id)) continue;
+  const entry = orphanedByCwd.get(thread.cwd) ?? {
+    cwd: thread.cwd,
+    reason: threadStatusById.get(thread.id),
+    threads: 0,
+  };
+  entry.threads += 1;
+  orphanedByCwd.set(thread.cwd, entry);
+}
+
+console.log(`Codex state database: ${stateDatabase}`);
+console.log(`Mode: ${shouldApply ? "DELETE" : "DRY RUN"}`);
+console.log("Worktree containers:");
+for (const root of worktreeRoots) console.log(`  ${root.absolute}`);
+console.log(`Persisted threads: ${threads.length}`);
+console.log(`Orphaned, unpinned threads: ${candidateIds.size}`);
+console.log(`Safe deletion roots: ${deletionRootIds.length}`);
+console.log(`Threads covered recursively: ${coveredIds.size}`);
+console.log(`Unsafe mixed subtrees skipped: ${skippedUnsafeIds.length}`);
+console.log(`Approximate reclaimable size: ${(orphanedBytes / 2 ** 30).toFixed(2)} GiB`);
+
+const cwdEntries = [...orphanedByCwd.values()].sort(
+  (a, b) => b.threads - a.threads || a.cwd.localeCompare(b.cwd),
+);
+const displayedEntries = verbose ? cwdEntries : cwdEntries.slice(0, 30);
+
+console.log("\nOrphaned working directories:");
+for (const entry of displayedEntries) {
+  console.log(`${entry.threads.toString().padStart(5)}  ${entry.reason}  ${entry.cwd}`);
+}
+if (!verbose && displayedEntries.length < cwdEntries.length) {
+  console.log(`... ${cwdEntries.length - displayedEntries.length} more; use --verbose`);
+}
+
+if (!shouldApply) {
+  console.log("\nNo files were changed. Re-run with --apply to delete.");
+  process.exit(0);
+}
+
+let deletedRoots = 0;
+let failedRoots = 0;
+let changedSinceScan = 0;
+
+for (const [index, threadId] of deletionRootIds.entries()) {
+  const currentSubtree = readCurrentSubtree(stateDatabase, threadId);
+  const subtreeStillOrphaned =
+    currentSubtree.length > 0 &&
+    currentSubtree.every(
+      (thread) =>
+        !thread.is_pinned && isOrphanStatus(classifyThread(thread)),
+    );
+
+  if (!subtreeStillOrphaned) {
+    changedSinceScan += 1;
+    console.error(`Skipping ${threadId}: pin or worktree state changed`);
+    continue;
+  }
+
+  console.log(`[${index + 1}/${deletionRootIds.length}] Deleting ${threadId}`);
+  const result = spawnSync(codexBin, ["delete", threadId, "--force"], {
+    stdio: "inherit",
+  });
+
+  if (result.status === 0) deletedRoots += 1;
+  else failedRoots += 1;
+}
+
+console.log("\nDeletion summary:");
+console.log(`Deleted roots: ${deletedRoots}`);
+console.log(`Failed roots: ${failedRoots}`);
+console.log(`Skipped after recheck: ${changedSinceScan}`);
+
+if (failedRoots > 0 || changedSinceScan > 0) process.exitCode = 1;
