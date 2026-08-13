@@ -9,6 +9,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
 
     # v5 is a ground-up C++ rewrite of the QML/Quickshell v4 line; the repo was
@@ -63,15 +68,21 @@
     vicinae.url = "github:vicinaehq/vicinae";
   };
 
-  outputs = inputs@{ self, nixpkgs, home-manager, nixos-hardware, niri, ... }:
+  outputs = inputs@{ self, nixpkgs, home-manager, nixos-hardware, niri, disko, ... }:
   let
-    mkSystem = { hostname, system ? "x86_64-linux", extraModules ? [], extraSpecialArgs ? {} }:
+    mkSystem = {
+      hostname,
+      system ? "x86_64-linux",
+      desktop ? true,
+      extraModules ? [],
+      extraSpecialArgs ? {},
+    }:
       nixpkgs.lib.nixosSystem {
         inherit system;
         specialArgs = {
-          inherit inputs;
+          inherit inputs desktop;
         } // extraSpecialArgs;
-        modules = [
+        modules = (nixpkgs.lib.optionals desktop [
           niri.nixosModules.niri
           {
             nixpkgs.overlays = [
@@ -93,15 +104,17 @@
             ];
           }
           ./noctalia.nix
+        ]) ++ [
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
             home-manager.users.aroman = import ./hosts/${hostname}/home.nix;
-            home-manager.extraSpecialArgs = { inherit inputs; };
+            home-manager.extraSpecialArgs = { inherit inputs desktop; };
           }
           ./modules/options.nix
           ./modules/common.nix
+        ] ++ (nixpkgs.lib.optional desktop ./modules/desktop.nix) ++ [
           ./modules/restic.nix
           ./hosts/${hostname}/default.nix
           ./hosts/${hostname}/hardware-configuration.nix
@@ -118,6 +131,14 @@
 
       wizardtower = mkSystem {
         hostname = "wizardtower";
+      };
+
+      fairycastle = mkSystem {
+        hostname = "fairycastle";
+        desktop = false;
+        extraModules = [
+          disko.nixosModules.disko
+        ];
       };
     };
   };

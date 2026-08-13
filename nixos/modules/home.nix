@@ -1,214 +1,41 @@
-{ config, pkgs, lib, inputs, osConfig, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  inputs,
+  desktop ? true,
+  desktopPackageSegments ? {
+    afterRcm = [];
+    afterFzf = [];
+    afterBtop = [];
+    afterGemini = [];
+    afterTypescript = [];
+  },
+  osConfig,
+  ...
+}:
 
 let
   dotfiles = "${config.home.homeDirectory}/Projects/dotfiles";
   link = path: config.lib.file.mkOutOfStoreSymlink "${dotfiles}/${path}";
 in
 {
-  imports = [
+  imports = lib.optionals desktop [
     inputs.vicinae.homeManagerModules.default
+    ./home-desktop.nix
   ];
 
   home.username = "aroman";
   home.homeDirectory = "/home/aroman";
-  systemd.user.sessionVariables = {
-    # Point nautilus at the aggregated user profile so it loads libnautilus-python.so
-    # (and the other extensions in home.packages, which would otherwise be invisible
-    # because nautilus's build-time NAUTILUS_EXTENSIONDIR points only into its own
-    # store path). nixpkgs patches nautilus to honor this env var.
-    NAUTILUS_4_EXTENSION_DIR = "${config.home.profileDirectory}/lib/nautilus/extensions-4";
-  };
-  home.pointerCursor = {
-    enable = true;
-    name = "Adwaita";
-    package = pkgs.adwaita-icon-theme;
-    size = 24;
-    gtk.enable = true;
-  };
 
-  # ── Symlink existing dotfiles ──────────────────────────────────────
-
-  # XDG config dirs (-> ~/.config/*)
+  # CLI configuration shared by desktop and headless hosts.
   xdg.configFile = {
-    "niri".source = link "config/niri";
     "nvim".source = link "config/nvim";
-    "zed".source = link "config/zed";
     "fish".source = link "config/fish";
     "bat".source = link "config/bat";
-    # Noctalia has no entry here: nixos/noctalia.nix generates
-    # ~/.config/noctalia/ declaratively, and v5 keeps its runtime writes in
-    # ~/.local/state/noctalia/ so nothing can dirty this repo.
-    "fuzzel".source = link "config/fuzzel";
-    # Symlink ghostty pieces individually so each OS only loads its own
-    # override file (ghostty's `config-file = ?<name>` only checks file
-    # existence, not OS — if the file is present it gets loaded).
-    # `macos` is deliberately omitted; `linux` is deliberately included.
-    "ghostty/config".source = link "config/ghostty/config";
-    "ghostty/themes".source = link "config/ghostty/themes";
-    "ghostty/linux".source = link "config/ghostty/linux";
-    # herdr is deliberately absent — it rewrites its own config.toml on
-    # every settings change, replacing the symlink with a plain file (which
-    # silently dropped keys.prefix here on 2026-07-31). HERDR_CONFIG_PATH in
-    # config/fish/config.fish points it at the tracked file directly, so
-    # there is no symlink to clobber and edits show up as a git diff.
     "lazygit".source = link "config/lazygit";
     "starship.toml".source = link "config/starship.toml";
-    "xdg-terminals.list".text = "com.mitchellh.ghostty.desktop\n";
   };
-
-  xdg.desktopEntries."dev.zed.Zed" = {
-    name = "Zed";
-    genericName = "Text Editor";
-    comment = "A high-performance, multiplayer code editor.";
-    exec = "zeditor --new %U";
-    icon = "zed";
-    terminal = false;
-    type = "Application";
-    categories = [ "Utility" "TextEditor" "Development" "IDE" ];
-    mimeType = [ "text/plain" "application/x-zerosize" "x-scheme-handler/zed" ];
-    startupNotify = true;
-  };
-
-  # Hide neovim's desktop entry from app launchers and "Open With" dialogs
-  xdg.desktopEntries.nvim = {
-    name = "Neovim wrapper";
-    exec = "nvim %F";
-    terminal = true;
-    noDisplay = true;
-    mimeType = [];
-  };
-
-  xdg.configFile."mimeapps.list".force = true;
-  xdg.dataFile."applications/mimeapps.list".force = true;
-  # Override the flatpak-exported desktop file (which lacks -platform wayland)
-  # by placing ours in ~/.local/share/applications/ where it takes XDG priority.
-  xdg.dataFile."applications/com.codeandweb.texturepacker.desktop".force = true;
-  xdg.dataFile."applications/com.codeandweb.texturepacker.desktop".text = ''
-    [Desktop Entry]
-    Name=TexturePacker
-    GenericName=Sprite Sheet Creator
-    Exec=TexturePacker -platform wayland --gui %F
-    Icon=com.codeandweb.texturepacker
-    Terminal=false
-    Type=Application
-    Categories=Development
-    MimeType=application/vnd.codeandweb.de.tps;application/vnd.codeandweb.de.pvr;application/vnd.codeandweb.de.pvr.ccz;application/vnd.codeandweb.de.pvr.gz
-  '';
-  # Flatpak per-app override. common.nix's `qt.platformTheme = "gnome"` exports
-  # QT_QPA_PLATFORMTHEME=gnome system-wide, which leaks into the sandbox — but
-  # TexturePacker bundles only `gtk3` and `xdgdesktopportal` Qt platform theme
-  # plugins (no `gnome`), so Qt fails the lookup and falls back to light Fusion.
-  # Pin to xdgdesktopportal so Qt follows the freedesktop color-scheme via the
-  # portal (= prefer-dark, set in dconf below). QT_STYLE_OVERRIDE=adwaita-dark
-  # also leaks in but is silently ignored (no adwaita style in the sandbox).
-  xdg.dataFile."flatpak/overrides/com.codeandweb.texturepacker".force = true;
-  xdg.dataFile."flatpak/overrides/com.codeandweb.texturepacker".text = ''
-    [Context]
-    sockets=wayland;
-    unset-environment=QT_STYLE_OVERRIDE;
-
-    [Environment]
-    QT_QPA_PLATFORM=wayland
-    QT_QPA_PLATFORMTHEME=xdgdesktopportal
-  '';
-  xdg.dataFile."applications/flatpak-install.desktop".text = ''
-    [Desktop Entry]
-    Name=Flatpak Install
-    Exec=flatpak-install %u
-    Terminal=true
-    Type=Application
-    NoDisplay=true
-    MimeType=application/vnd.flatpak.ref
-  '';
-  xdg.desktopEntries.linear = {
-    name = "Linear";
-    comment = "Linear (Chrome app mode)";
-    exec = "google-chrome-stable --user-data-dir=${config.home.homeDirectory}/.config/linear-chrome --hide-crash-restore-bubble --app=https://linear.app %U";
-    icon = ../linear.png;
-    terminal = false;
-    mimeType = [];
-  };
-
-  xdg.desktopEntries.rive = {
-    name = "Rive";
-    comment = "Rive (Chrome app mode)";
-    exec = "google-chrome-stable --user-data-dir=${config.home.homeDirectory}/.config/rive-chrome --hide-crash-restore-bubble --app=https://editor.rive.app %U";
-    icon = ../rive.png;
-    terminal = false;
-    mimeType = [];
-  };
-
-  # ── URL dispatcher (handlr-regex) ─────────────────────────────────
-  # Routes https:// links to the right app by domain regex.
-  # handlr.desktop is the default handler for http/https; it checks
-  # regex rules and falls through to Chrome for everything else.
-  xdg.desktopEntries.handlr = {
-    name = "URL Dispatcher";
-    comment = "Routes URLs to the right app (handlr-regex)";
-    exec = "handlr open %u";
-    terminal = false;
-    noDisplay = true;
-    mimeType = [ "x-scheme-handler/http" "x-scheme-handler/https" ];
-  };
-
-  xdg.configFile."handlr/handlr.toml".text = let
-    chrome = "google-chrome-stable";
-  in ''
-    [[handlers]]
-    exec = "${chrome} --profile-directory=\"Default\" %u"
-    regexes = ['https?://(www\.)?(youtube\.com|youtu\.be)(/.*)?']
-
-    [[handlers]]
-    exec = "${chrome} --profile-directory=\"Profile 1\" %u"
-    regexes = ['https?://.*']
-  '';
-
-  xdg.mimeApps = {
-    enable = true;
-    defaultApplications = {
-      "text/plain" = "dev.zed.Zed.desktop";
-      "application/x-zerosize" = "dev.zed.Zed.desktop";
-      "application/typescript" = "dev.zed.Zed.desktop";
-      # Belt-and-suspenders: the Perl File::MimeInfo backend that xdg-mime
-      # falls back to (when no recognized DE is detected — niri doesn't set
-      # XDG_CURRENT_DESKTOP to GNOME/KDE/LXQt) ignores glob weights and
-      # still reports *.ts as Qt Linguist. Map it to Zed too. Safe because
-      # we don't use Qt Linguist. gio/Qt-based consumers (vicinae, file
-      # managers) correctly see application/typescript via the override.
-      "text/vnd.trolltech.linguist" = "dev.zed.Zed.desktop";
-      "x-scheme-handler/http" = "handlr.desktop";
-      "x-scheme-handler/https" = "handlr.desktop";
-      "image/png" = "org.gnome.Loupe.desktop";
-      "image/jpeg" = "org.gnome.Loupe.desktop";
-      "image/gif" = "org.gnome.Loupe.desktop";
-      "image/webp" = "org.gnome.Loupe.desktop";
-      "image/avif" = "org.gnome.Loupe.desktop";
-      "image/svg+xml" = "org.gnome.Loupe.desktop";
-      "image/bmp" = "org.gnome.Loupe.desktop";
-      "image/tiff" = "org.gnome.Loupe.desktop";
-      "image/heic" = "org.gnome.Loupe.desktop";
-      "image/vnd.microsoft.icon" = "org.gnome.Loupe.desktop";
-      "application/vnd.flatpak.ref" = "flatpak-install.desktop";
-    };
-  };
-
-  # Teach the shared MIME database that *.ts is TypeScript. Upstream
-  # shared-mime-info has two globs both at priority 50 fighting for *.ts —
-  # text/vnd.trolltech.linguist (Qt translation source) and video/mp2t
-  # (MPEG-2 Transport Stream) — neither of which routes to Zed via xdg-open.
-  # Registering application/typescript at weight 80 wins outright.
-  xdg.dataFile."mime/packages/typescript-override.xml".text = ''
-    <?xml version="1.0" encoding="UTF-8"?>
-    <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
-      <mime-type type="application/typescript">
-        <comment>TypeScript source</comment>
-        <sub-class-of type="text/plain"/>
-        <glob pattern="*.ts" weight="80"/>
-        <glob pattern="*.mts" weight="80"/>
-        <glob pattern="*.cts" weight="80"/>
-      </mime-type>
-    </mime-info>
-  '';
 
   # Home directory dotfiles (-> ~/.<name>)
   home.file = {
@@ -224,15 +51,15 @@ in
     '';
   };
 
-  # ── User packages ──────────────────────────────────────────────────
-
+  # One default-priority definition preserves the original merge position
+  # relative to packages added automatically by Home Manager modules.
   home.packages = with pkgs; [
     # Shells & prompts
     starship
 
     # Core CLI
     rcm          # dotfile manager — `rcup` symlinks local/bin/* → ~/.local/bin/* etc.
-    handlr-regex # URL dispatcher — routes links to the right app by domain
+  ] ++ lib.optionals desktop desktopPackageSegments.afterRcm ++ [
     # opener-bridged: when SSH'd in, `xdg-open URL` hands the URL to the Mac,
     # which opens it in the local browser — Velja then routes it just like
     # handlr-regex does here.  At the console the shim falls through to real
@@ -277,25 +104,7 @@ in
     bat
     eza
     fzf
-    # Drop the bundled nautilus-python extension. It registers the same
-    # "Open in Ghostty" item via both get_file_items and get_background_items,
-    # which nautilus 50 surfaces as two identical menu entries.
-    #
-    # symlinkJoin, not overrideAttrs: any overrideAttrs forces a from-source
-    # Zig build of ghostty, and pruning one share/ subtree isn't worth that.
-    # This way ghostty itself comes straight off cache.nixos.org.
-    #
-    # The .desktop file keeps its absolute Exec= into the real ghostty store
-    # path (see the CLAUDE.md note on this) — harmless here, because we're
-    # not wrapping the binary, only removing a share/ subtree.
-    (symlinkJoin {
-      name = "ghostty-no-nautilus-ext";
-      paths = [ ghostty ];
-      postBuild = ''
-        rm -rf $out/share/nautilus-python
-      '';
-      inherit (ghostty) meta;
-    })
+  ] ++ lib.optionals desktop desktopPackageSegments.afterFzf ++ [
     kitty.kitten   # just the kitten CLI (icat for image previews), not the terminal app
     tree
     tmux
@@ -324,7 +133,7 @@ in
     gnupg
     cloudflared
     btop
-    resources    # net.nokyan.Resources — GTK4 GUI system/process monitor (btop's graphical counterpart)
+  ] ++ lib.optionals desktop desktopPackageSegments.afterBtop ++ [
     tokei
     unzip
 
@@ -333,322 +142,15 @@ in
     tree-sitter
     gcc # needed by tree-sitter to compile parsers
     gemini-cli
-    zed-editor
+  ] ++ lib.optionals desktop desktopPackageSegments.afterGemini ++ [
     biome
     typescript-language-server
-
-    # Wayland tools
-    wl-clipboard
-    ddcutil
-    playerctl
-    overskride
-    socat # IPC with niri socket (used by swap-monitors script)
-    fuzzel       # Wayland dmenu/rofi — used for worktree picker etc.
-    xdg-terminal-exec # XDG default terminal launcher — used by batman-picker
-    slurp        # area selection for screen recording
-    wf-recorder  # Wayland screen recorder
-    libnotify    # notify-send for desktop notifications
-
-    # Media & audio
-    pwvucontrol # TODO: missing icons (emblem-default-symbolic) — https://github.com/saivert/pwvucontrol/issues/71
-    # Spotify ≥ 1.2.86.502 forces its GPU subprocess onto X11/Xwayland
-    # when DISPLAY is set, even with --ozone-platform=wayland passed to
-    # the main process. On fractional scale that gives a bitmap-upscaled
-    # 2× cursor and slower Xwayland-buffer-copy compositing. Unsetting
-    # DISPLAY lets the internal auto-detect pick Wayland for every
-    # subprocess. Drop the wrapper once upstream restores flag-based
-    # selection:
-    # https://community.spotify.com/t5/Desktop-Linux/1-2-86-502-forces-X11-backend-can-t-enable-Wayland-via-flags/td-p/7401416
-    (symlinkJoin {
-      name = "spotify-wayland";
-      paths = [ spotify ];
-      nativeBuildInputs = [ makeWrapper ];
-      postBuild = ''
-        rm $out/bin/spotify
-        makeWrapper ${spotify}/bin/spotify $out/bin/spotify \
-          --unset DISPLAY
-      '';
-      inherit (spotify) meta;
-    })
-    celluloid
-    video-trimmer
-    newsflash
-    moonlight-qt # Sunshine client — pairs with wizardtower/moonbinder sunshine hosts
-
-    # Browsers
-    firefox
-    (google-chrome.override {
-      commandLineArgs = [
-        "--enable-features=TouchpadOverscrollHistoryNavigation"
-        "--new-window"
-        "--hide-crash-restore-bubble"
-      ];
-    })
-
-    # Design
-    gradia
-    texturepacker
-    tiled
-    adw-gtk3 # libadwaita look for GTK3 apps (Nemo, Thunar, etc.)
-
-    nautilus
-    nautilus-python # Python ↔ Nautilus bridge for the copy-path extension below
-    (stdenvNoCC.mkDerivation rec {
-      pname = "nautilus-copy-path";
-      version = "1.10.3";
-      src = fetchFromGitHub {
-        owner = "chr314";
-        repo = "nautilus-copy-path";
-        rev = version;
-        hash = "sha256-DvBwqko45tcjfoBWpuas8pLGmkw2Gibwt5BtrN7gF0k=";
-      };
-      dontConfigure = true;
-      dontBuild = true;
-      installPhase = ''
-        runHook preInstall
-        dest=$out/share/nautilus-python/extensions
-        mkdir -p $dest/nautilus-copy-path
-        cp nautilus-copy-path.py $dest/
-        cp nautilus_copy_path.py translation.py config.json $dest/nautilus-copy-path/
-        cp -r translations $dest/nautilus-copy-path/
-        runHook postInstall
-      '';
-      meta = {
-        description = "Nautilus extension: right-click → Copy Path / URI / Name";
-        homepage = "https://github.com/chr314/nautilus-copy-path";
-        license = lib.licenses.mit;
-        platforms = lib.platforms.linux;
-      };
-    })
-    file-roller
-    loupe
-    snapshot
-    papers
-    font-manager
-    seahorse
-    adwaita-icon-theme
-
-    # Desktop shell & launcher
-    # vicinae — installed via programs.vicinae below
-
+  ] ++ lib.optionals desktop desktopPackageSegments.afterTypescript ++ [
     # Development
     nodejs_24
   ];
 
-
-  # ── Vicinae launcher ─────────────────────────────────────────────
-
-  programs.vicinae = {
-    enable = true;
-    systemd = {
-      enable = true;
-      autoStart = true;
-    };
-  };
-
-
-
-  # ── GPG agent ──────────────────────────────────────────────────────
-
-  services.gpg-agent = {
-    enable = true;
-    pinentry.package = pkgs.pinentry-gnome3;
-  };
-
-  # ── Dark mode & GTK settings (dconf/gsettings) ─────────────────────
-
-  dconf.settings = {
-    "org/gnome/desktop/interface" = {
-      color-scheme = "prefer-dark";
-      gtk-theme = "adw-gtk3-dark";
-      accent-color = "blue";
-      font-name = "Inter 11";
-      monospace-font-name = "CaskaydiaCove Nerd Font 12";
-      icon-theme = "Adwaita";
-      cursor-theme = "Adwaita";
-      cursor-size = 24;
-      gtk-enable-primary-paste = false;
-    };
-    "org/gnome/nautilus/preferences" = {
-      default-sort-order = "mtime";
-      default-sort-in-reverse-order = true;
-    };
-  };
-
-  # ── Idle & lock-before-sleep ──────────────────────────────────────
-  # Niri has no built-in sleep inhibitor or lock-before-sleep mechanism
-  # (only an async `switch-events { lid-close }` that races with logind's
-  # suspend — see noctalia-shell#1066). swayidle takes a logind "sleep"
-  # delay inhibitor, guaranteeing the lock command completes before the
-  # system actually suspends.
-  #
-  # POSSIBLY REDUNDANT UNDER v5: noctalia 5.0.0-beta.7 added its own
-  # lock-before-sleep via a logind delay inhibit, the same mechanism this
-  # block exists to provide, and v5 also has a native [idle] config with
-  # its own timeouts.  Left in place deliberately — double-locking is
-  # harmless, failing to lock before suspend is not.  Retire this only
-  # after watching a few real suspends with it removed.
-  # Ref: https://github.com/niri-wm/niri/wiki/Example-systemd-Setup
-  # Ref: https://man.archlinux.org/man/swayidle.1
-  services.swayidle = {
-    enable = true;
-    timeouts = lib.optionals (!osConfig.local.headlessDisplay) [
-      # Power off monitors after 10 minutes idle.
-      # Any input (mouse move, keypress) wakes them back up.
-      # Skipped on headlessDisplay hosts: powering off the dummy plug
-      # tears down the CRTC, which breaks Sunshine's KMS capture.
-      { timeout = 600; command = "${pkgs.niri-unstable}/bin/niri msg action power-off-monitors"; }
-    ] ++ [
-      # Lock the session after 15 minutes idle.
-      { timeout = 900; command = "noctalia msg session lock"; }
-    ];
-    events = {
-      # Lock the session before systemd suspends (lid close, idle, manual).
-      # swayidle's delay inhibitor holds off sleep until this returns.
-      before-sleep = "noctalia msg session lock";
-      # Also lock when any external caller does `loginctl lock-session`.
-      lock = "noctalia msg session lock";
-    };
-  };
-
-  # ── Services ─────────────────────────────────────────────────────
-
-  # ── Clipboard persistence ───────────────────────────────────────
-  # On Wayland the clipboard dies when the source process exits, and voxtype's
-  # paste mode needs it to outlive its cgroup-reaped wl-copy child. wl-clip-persist
-  # takes over ownership (via wlr-data-control) so both survive.
-  #
-  # --ignore-event-on-error is the fix for the bug that started all this: Chrome
-  # offers selections with internal MIME types (chromium/x-internal-source-rfh-token,
-  # …); when a read of one errored, wl-clip-persist would still take over ownership
-  # serving a half/empty cache, so pasting a Chrome copy gave stale/empty text. With
-  # -e it skips errored selections and lets the source keep serving — copies paste
-  # correctly. vicinae stays the clipboard-history manager alongside it.
-  systemd.user.services.wl-clip-persist = {
-    Unit = {
-      Description = "Keep Wayland clipboard after source exits";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
-    };
-    Service = {
-      ExecStart = "${pkgs.wl-clip-persist}/bin/wl-clip-persist --clipboard regular --ignore-event-on-error";
-      Restart = "on-failure";
-    };
-    Install.WantedBy = [ "graphical-session.target" ];
-  };
-
-  # ── Wayland environment gate ──────────────────────────────────────
-  # Workaround for a niri ↔ systemd async-D-Bus race.
-  #
-  # On niri exit, niri-session runs `systemctl --user unset-environment
-  # WAYLAND_DISPLAY` as cleanup, and niri.service restarts automatically.
-  # niri *does* import WAYLAND_DISPLAY + NIRI_SOCKET into systemd's
-  # activation env (via UpdateActivationEnvironment) before sending
-  # sd_notify(READY=1) — but UpdateActivationEnvironment is async, so
-  # systemd can mark niri.service active and activate graphical-session
-  # .target before the D-Bus call actually lands.  Dependents (voxtype,
-  # swayidle, niri-dwt-toggle, vicinae, etc.) get pulled
-  # in by graphical-session.target and launch into a session where the
-  # variables aren't set, so wtype, wl-copy, and `niri msg` fail silently.
-  #
-  # Fresh boot doesn't hit this — boot is slow enough that the D-Bus
-  # call lands before dependents are scheduled.  The race is specific
-  # to the restart path through niri-session's cleanup.
-  #
-  # NOT redundant with home-manager #5785 / #6253.  Those fixed an
-  # orthogonal bug (services using After=graphical-session-pre.target
-  # instead of After=graphical-session.target).  Their fix assumes
-  # graphical-session.target activation means env is set; this race
-  # means it doesn't.  Future home-manager updates won't change that.
-  # uwsm has the same workaround built-in as wayland-session-waitenv
-  # .service — migrating to uwsm replaces this gate with theirs, same
-  # mechanism.  YaLTeR declined an upstream niri fix in niri#633; see
-  # also uwsm#40 where Vladimir-csp acknowledges the race directly.
-  #
-  # Mechanism: oneshot polls `systemctl --user show-environment` until
-  # both vars appear, holding graphical-session.target via Before=.
-  #
-  # No timeout: while ExecStart runs the unit stays "activating", which
-  # holds graphical-session.target in queue.  Normal restart exits in
-  # seconds; logout → greeter → relogin can take 30–60s (cage/foot/
-  # fingerprint + DRM init); the gate covers both.  If niri never
-  # comes back, dependents stay queued instead of half-starting into
-  # a Wayland-less session.
-  #
-  # RequiredBy (not WantedBy): if the gate ever exits failed,
-  # graphical-session.target fails with it, so dependents refuse to
-  # start instead of activating broken — closes the fail-open hole
-  # the previous 5s-timeout version had.
-  systemd.user.services.niri-wayland-env-gate = {
-    Unit = {
-      Description = "Wait for WAYLAND_DISPLAY and NIRI_SOCKET in systemd environment";
-      After = [ "niri.service" ];
-      Before = [ "graphical-session.target" ];
-      BindsTo = [ "graphical-session.target" ];
-    };
-    Service = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      ExecStart = pkgs.writeShellScript "wait-wayland-env" ''
-        until env=$(${pkgs.systemd}/bin/systemctl --user show-environment) \
-              && echo "$env" | grep -q '^WAYLAND_DISPLAY=' \
-              && echo "$env" | grep -q '^NIRI_SOCKET='; do
-          sleep 0.2
-        done
-      '';
-    };
-    Install.RequiredBy = [ "graphical-session.target" ];
-  };
-
-  # ── niri.service ExecStop drop-in ────────────────────────────────
-  # Stop graphical-session.target *before* niri gets SIGTERM'd so PartOf=
-  # services (xdg-desktop-portal etc.) can tear down cleanly while niri's
-  # Wayland socket is still alive.  Without this, systemd-initiated stops
-  # (logout, shutdown, `systemctl stop niri.service`) yank the socket out
-  # from under dependents mid-shutdown and leave them in `failed` state,
-  # which blocks auto-start on the next login.  Workaround for niri#2435.
-  # https://github.com/niri-wm/niri/issues/2435
-  #
-  # Written as a raw drop-in via xdg.configFile (not
-  # systemd.user.services.niri) because the latter injects a narrow
-  # Environment=PATH= that would mask the user manager's PATH and break
-  # niri's spawn-at-startup for user-profile tools like noctalia.
-  xdg.configFile."systemd/user/niri.service.d/50-execstop-graphical-session.conf".text = ''
-    [Service]
-    ExecStop=${pkgs.systemd}/bin/systemctl --user stop graphical-session.target
-  '';
-
-  # ── Portal permissions ────────────────────────────────────────────
-  # xdg-desktop-portal-gnome can't show the "allow camera?" dialog
-  # outside a full GNOME session (no org.gnome.Shell on niri), so we
-  # grant camera access directly in the permission store on startup.
-  systemd.user.services.portal-camera-permission = let
-    dbus-send = "${pkgs.dbus}/bin/dbus-send";
-    grant = app: ''
-      ${dbus-send} --session \
-        --dest=org.freedesktop.impl.portal.PermissionStore \
-        --type=method_call \
-        /org/freedesktop/impl/portal/PermissionStore \
-        org.freedesktop.impl.portal.PermissionStore.SetPermission \
-        string:devices boolean:true string:camera \
-        string:${app} array:string:yes
-    '';
-    cameraApps = [
-      "org.gnome.Snapshot"
-    ];
-  in {
-    Unit = {
-      Description = "Grant camera permission in XDG portal store";
-      After = [ "xdg-desktop-portal.service" ];
-    };
-    Service = {
-      Type = "oneshot";
-      ExecStart = pkgs.writeShellScript "grant-camera-permissions" ''
-        ${lib.concatMapStringsSep "\n" grant cameraApps}
-      '';
-    };
-    Install.WantedBy = [ "default.target" ];
-  };
+  services.gpg-agent.enable = true;
 
   programs.home-manager.enable = true;
 

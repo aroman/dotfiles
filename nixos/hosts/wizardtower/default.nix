@@ -3,6 +3,10 @@
 {
   networking.hostName = "wizardtower";
 
+  # GCE administration for cloud dev boxes such as fairycastle. Authentication
+  # remains per-user state under ~/.config/gcloud.
+  environment.systemPackages = [ pkgs.google-cloud-sdk ];
+
   # No real monitor — drives a Ugreen HDMI dummy plug for Sunshine streaming.
   # Disables idle-driven monitor power-off (see modules/options.nix).
   local.headlessDisplay = true;
