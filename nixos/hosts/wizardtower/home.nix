@@ -42,6 +42,15 @@
       Environment = [
         "HERDR_CONFIG_PATH=${config.home.homeDirectory}/Projects/dotfiles/config/herdr/config.toml"
       ];
+      # The xdg-open shim (modules/home.nix) treats "a display is set" as "the
+      # user is sitting at this machine" and opens locally instead of over the
+      # bridge to the Mac. That holds for this unit at boot, which is before
+      # niri exists — but niri imports WAYLAND_DISPLAY and DISPLAY into the
+      # user manager's environment, so any *restart* after login would inherit
+      # them and silently start opening links on the tower's own monitor, exit
+      # 0, with nobody in front of it. Same unit, opposite behaviour, decided
+      # by whether it last started before or after a graphical login.
+      UnsetEnvironment = [ "WAYLAND_DISPLAY" "DISPLAY" ];
       ExecStart = "${config.home.homeDirectory}/.nix-profile/bin/herdr server";
       # Graceful shutdown persists session.json; SIGTERM remains the
       # fallback if the API socket is already gone.

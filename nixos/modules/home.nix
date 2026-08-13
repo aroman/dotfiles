@@ -83,6 +83,12 @@ in
     # spawns, so its absence means nobody is looking at a local screen here,
     # which is true of ssh and herdr alike.
     #
+    # On a host that also runs a compositor, that absence is not automatic:
+    # niri imports WAYLAND_DISPLAY into the *user manager's* environment, so a
+    # unit restarted after login inherits it even though it inherits nothing
+    # from any session.  hosts/wizardtower/home.nix clears it on herdr for
+    # exactly this reason.
+    #
     # Deliberately no falling through to the real xdg-open when the bridge is
     # down.  With no display and no bridge there is nowhere legitimate to open
     # anything, and failing loudly is the whole point: the previous version
