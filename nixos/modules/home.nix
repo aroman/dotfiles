@@ -305,7 +305,21 @@ in
     difftastic
     fd
     jq
-    gh
+    # nixpkgs wraps gh to default GH_TELEMETRY, so os.Executable() sees the
+    # versioned /nix/store/.../bin/.gh-wrapped implementation. Without this
+    # override, `gh auth setup-git` persists that GC-vulnerable path in the
+    # shared gitconfig instead of the portable `gh` command.
+    (symlinkJoin {
+      name = "gh-portable-path-${gh.version}";
+      paths = [ gh ];
+      nativeBuildInputs = [ makeWrapper ];
+      postBuild = ''
+        rm $out/bin/gh
+        makeWrapper ${gh}/bin/gh $out/bin/gh \
+          --set-default GH_PATH gh
+      '';
+      inherit (gh) meta;
+    })
     git-lfs
     gnupg
     cloudflared
