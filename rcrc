@@ -1,1 +1,7 @@
 EXCLUDES="fish_variables linux"
+# ~/Library, not ~/.Library. rcm dots every destination by default, so these
+# landed somewhere launchd never reads and the two plists that did work had
+# been symlinked by hand. Anything under Library/ is a real macOS path.
+# The pattern names the top-level directory, not the files under it:
+# "Library/*" and "Library/LaunchAgents/*" both match nothing here.
+UNDOTTED="Library"
