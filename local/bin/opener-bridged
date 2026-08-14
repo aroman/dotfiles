@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-"""Open URLs from SSH-connected remotes in this Mac's browser.
+"""Open URLs from NixOS hosts in this Mac's browser.
 
-Listens on 127.0.0.1:47831.  Each remote carries the same endpoint back to
-itself with `RemoteForward 127.0.0.1:47831 127.0.0.1:47831` (ssh/config), and
-the NixOS xdg-open shim (nixos/modules/home.nix) speaks this protocol at it:
+    opener-bridged <host>...
+
+The whole bridge, one process: it listens on 127.0.0.1:47831, dials every
+<host> with `ssh -R` so the same endpoint exists there, and each host's
+xdg-open shim (nixos/modules/home.nix) speaks one line each way:
 
     -> open <origin> <url>\n      origin = short hostname where xdg-open ran
     <- ok <final-url>\n  |  err <message>\n
-
-A connection that sends nothing is a liveness probe (`nc -z`, used by the
-ssh/config Match gate) and is answered with silence.
 
 Two jobs beyond handing the URL to open(1):
 
@@ -17,10 +16,10 @@ Two jobs beyond handing the URL to open(1):
     as the URL scheme `localhost:` and fails with kLSApplicationNotFoundErr.
 
   * Rewrite loopback URLs.  `localhost:4034` names a port on the *remote*.
-    We ask the existing ControlMaster for `-L 127.0.0.1:4034:localhost:4034`
-    and hand the browser the rewritten address.  ssh resolves `localhost` on
-    the far side, which is what reaches listeners bound to [::1] only --
-    most of them are, so a Tailscale hostname would not do.
+    We ask the tunnel's ControlMaster to forward an ephemeral local port
+    there and hand the browser the rewritten address.  ssh resolves
+    `localhost` on the far side, which is what reaches listeners bound to
+    [::1] only -- most of them are, so a Tailscale hostname would not do.
 
 Replying (rather than firing and forgetting) is the point of the request /
 response shape: it is what lets the shim exit nonzero when nothing opened.
@@ -32,9 +31,9 @@ import socket
 import socketserver
 import subprocess
 import sys
+import threading
 import time
 from urllib.parse import urlsplit, urlunsplit
-from zlib import crc32
 
 ADDR = ("127.0.0.1", 47831)
 
@@ -73,30 +72,98 @@ HOSTPORT_RE = re.compile(
 # in practice has a digits-then-slash opaque part.  Catches `wizardtower:80/x`.
 HOSTPORT_PATH_RE = re.compile(r"\A[A-Za-z0-9][A-Za-z0-9-]*:\d+[/?#]")
 
-# gethostname() here returns `MacBookPro.localdomain`; the name this Mac is
-# known by over ssh is LocalHostName.  Collect both -- an origin naming any of
-# them means `localhost` already refers to this machine.
-def _self_names():
-    names = {socket.gethostname().split(".")[0].lower()}
-    for key in ("LocalHostName", "ComputerName"):
-        try:
-            out = subprocess.run(["/usr/sbin/scutil", "--get", key],
-                                 capture_output=True, text=True, timeout=5)
-            if out.returncode == 0 and out.stdout.strip():
-                names.add(out.stdout.strip().split(".")[0].lower())
-        except OSError:
-            pass
-    return names
-
-# (origin, remote port) -> local port.  Purely an optimisation: losing it on
-# restart costs one redundant `-O forward`, which the mux dedupes anyway.
+# (origin, remote port) -> forwarded local port.  Keeps repeat opens of one
+# dev server on one stable URL and one listener; a lost entry just means the
+# next open picks a fresh ephemeral port and the old listener idles until
+# the tunnel next reconnects.
 FORWARDS = {}
 
-SELF_NAMES = _self_names()
+# (origin, remote port) -> Lock serialising forward creation for that key
+# (see localise); other keys and plain-URL opens stay concurrent.
+FORWARD_LOCKS = {}
 
 
 def log(msg):
     print("%s %s" % (time.strftime("%Y-%m-%d %H:%M:%S"), msg), flush=True)
+
+
+def tunnel_master(host):
+    """The ControlMaster socket of our own connection to `host`."""
+    return os.path.expanduser("~/.ssh/opener-tunnel-%s" % host)
+
+
+def hold_tunnel(host):
+    """Keep one ssh to `host` alive, carrying 47831 back here.  Runs forever.
+
+    ExitOnForwardFailure is the heart of it: a bind we cannot win (a stale
+    session still holding the port after this Mac slept, say) is a nonzero
+    exit, and the loop is the retry.  The connection doubles as the
+    ControlMaster ssh_forward() asks for -L forwards -- its own socket, not
+    the config's `cm-*`, so interactive sessions and the bridge cannot end
+    each other.
+
+    ControlPersist=no matters: ssh/config sets 10m for these hosts, and a
+    persisting master forks to the background the moment -N leaves it idle --
+    the child we supervise would exit 0 and the respawn would lose the 47831
+    bind to the ghost it replaced.
+    """
+    ctl = tunnel_master(host)
+    delay = 30
+    last, repeats = None, 0
+    while True:
+        try:
+            os.unlink(ctl)  # corpse from a kill/panic; we are its only owner
+        except FileNotFoundError:
+            pass
+        started = time.monotonic()
+        p = subprocess.Popen(
+            ["/usr/bin/ssh", "-N", "-T",
+             "-o", "BatchMode=yes",
+             "-o", "ExitOnForwardFailure=yes",
+             "-o", "ConnectTimeout=10",
+             "-o", "ServerAliveInterval=15",
+             "-o", "ServerAliveCountMax=4",
+             "-o", "ControlMaster=yes",
+             "-o", "ControlPath=%s" % ctl,
+             "-o", "ControlPersist=no",
+             "-R", "127.0.0.1:47831:127.0.0.1:47831",
+             host],
+            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+        lines = []
+        for line in p.stderr:  # ssh -N is silent except for trouble
+            lines = (lines + [line.rstrip()])[-4:]
+        code = p.wait()
+
+        # An offline host (moonbinder is a laptop) would otherwise mean an
+        # ssh spawn and two log lines every 40 seconds, forever, into a file
+        # nothing rotates.  Consecutive identical failures double the delay
+        # and are logged once.  The 120s cap is deliberate: reconnect latency
+        # is the product — sit down at a freshly booted host and links should
+        # just work — so this trades only the pointless retries, not the
+        # responsive ones.
+        if time.monotonic() - started > 60:
+            # It connected and stayed up; its death is always news, and the
+            # next failure is a fresh story.
+            if repeats:
+                log("[%s] (previous failure repeated %d times)" % (host, repeats))
+            for l in lines:
+                log("[%s] %s" % (host, l))
+            log("[%s] tunnel exited %s after %dm up" %
+                (host, code, (time.monotonic() - started) // 60))
+            delay, last, repeats = 30, None, 0
+        else:
+            state = (tuple(lines), code)
+            if state == last:
+                repeats += 1
+            else:
+                if repeats:
+                    log("[%s] (previous failure repeated %d times)" % (host, repeats))
+                for l in lines:
+                    log("[%s] %s" % (host, l))
+                log("[%s] tunnel exited %s; retrying" % (host, code))
+                last, repeats = state, 0
+            delay = min(delay * 2, 120)
+        time.sleep(delay)
 
 
 def normalise(url):
@@ -125,27 +192,20 @@ def free_port():
         s.close()
 
 
-def derived_port(origin, rport):
-    """A stable fallback port for when the remote's own port is taken here.
-
-    crc32, not hash(): str hashing is salted per process, so hash() would pick
-    a different port on every daemon restart -- precisely the instability this
-    is meant to remove.
-    """
-    return 20000 + (crc32(origin.encode()) * 137 + rport) % 20000
-
-
 def ssh_forward(origin, lport, rport):
-    """Ask origin's ControlMaster for -L 127.0.0.1:lport:localhost:rport.
+    """Ask origin's tunnel master for -L 127.0.0.1:lport:localhost:rport.
 
-    Requesting a forward that already exists exits 0, so this is idempotent
-    and needs no bookkeeping.  TAILPORT_NO_OPENER keeps our own ssh from
-    matching the RemoteForward block while it parses the config.
+    That master is the same connection this request just arrived through, so
+    it is necessarily up.  Requesting a forward that already exists exits 0,
+    so this is idempotent and needs no bookkeeping.
     """
+    tunnel = tunnel_master(origin)
+    if not os.path.exists(tunnel):
+        raise ValueError("no tunnel to %s" % origin)
     return subprocess.run(
         ["/usr/bin/ssh", "-O", "forward",
-         "-L", "127.0.0.1:%d:localhost:%d" % (lport, rport), origin],
-        env=dict(os.environ, TAILPORT_NO_OPENER="1"),
+         "-L", "127.0.0.1:%d:localhost:%d" % (lport, rport),
+         "-S", tunnel, origin],
         capture_output=True, text=True, timeout=10,
     )
 
@@ -161,50 +221,64 @@ def rewrite(parts, lport):
     return urlunsplit(parts._replace(netloc="%s127.0.0.1:%d" % (userinfo, lport)))
 
 
-def candidates(origin, rport, cached):
-    """Local ports to try, best first.  Lazy: free_port() only runs if reached."""
-    if cached is not None:
-        yield cached
-    # The remote's own port keeps the URL recognisable, and is free here in all
-    # but the colliding case -- another host's forward, a tailport listener, or
-    # an unrelated local server, all of which ssh reports as exit 255.
-    yield rport
-    # Derived, so a collision still lands somewhere stable across restarts.
-    yield derived_port(origin, rport)
-    yield free_port()
-
-
 def localise(url, origin):
-    """Rewrite a loopback URL on `origin` to a forwarded port on this Mac."""
+    """Rewrite a loopback URL on `origin` to a forwarded port on this Mac.
+
+    The local port is always an OS-assigned ephemeral one, never the remote's
+    own number.  The master holding the forward lives as long as the tunnel
+    does, so a listener on a recognisable port (3000, 4001...) would squat it
+    for weeks against exactly the local dev servers and tailport forwards
+    that want it -- worse, a later local server can bind [::1] while the
+    forward holds 127.0.0.1, and `localhost:4001` then reaches a different
+    machine per address family.  Ephemeral listeners collide with nothing
+    anyone types.
+
+    Only `ssh -O forward` exiting 0 proves the listener on a port belongs to
+    *origin's* master.  Probing the port instead would also succeed against
+    another host's forward, or a local process that grabbed it after a master
+    lapsed -- and we would then open the wrong machine's server and call it
+    ok, which is the whole failure class this daemon exists to remove.  So
+    the cached port is re-asserted, never trusted: the call is idempotent,
+    costs one mux round-trip, and re-binds the port on the new master after
+    a reconnect.
+    """
     parts = urlsplit(url)
     rport = parts.port or DEFAULT_PORT.get(parts.scheme)
     if rport is None:
         raise ValueError("no port in %s" % url)
 
-    # Only `ssh -O forward` exiting 0 proves the listener on a port belongs to
-    # *origin's* master.  Probing the port instead would also succeed against
-    # another host's forward, or a local process that grabbed it after a master
-    # lapsed -- and we would then open the wrong machine's server and call it
-    # ok, which is the whole failure class this daemon exists to remove.  So
-    # the cache is a hint about which port to try first, never an answer.  The
-    # call is idempotent and costs one mux round-trip, and re-asserting it also
-    # re-binds the port on the new master after a reconnect.
-    last = None
-    tried = set()
-    for lport in candidates(origin, rport, FORWARDS.get((origin, rport))):
-        if lport in tried:
-            continue
-        tried.add(lport)
-        last = ssh_forward(origin, lport, rport)
-        if last.returncode == 0:
-            FORWARDS[(origin, rport)] = lport
-            return rewrite(parts, lport), lport
+    # Per-key lock: two concurrent first opens of the same dev server would
+    # otherwise each install its own ephemeral forward, and the loser's
+    # listener would idle untracked until the tunnel next reconnects.
+    # dict.setdefault is atomic under the GIL, so the registry needs no lock
+    # of its own; it grows exactly as FORWARDS does.
+    with FORWARD_LOCKS.setdefault((origin, rport), threading.Lock()):
+        cached = FORWARDS.get((origin, rport))
+        if cached is not None:
+            last = ssh_forward(origin, cached, rport)
+            if last.returncode == 0:
+                return rewrite(parts, cached), cached
+
+        # First open of this port, or the cached one was lost to another
+        # process while the tunnel was down: bind a fresh ephemeral port.
+        # free_port() closes its probe before ssh binds -- a TOCTOU window --
+        # and the mux client only reports "failed", never why (the bind error
+        # lands on the master's stderr, i.e. in the tunnel log).  So a lost
+        # race is indistinguishable from any other failure: try a few fresh
+        # ports before concluding the problem is not the port.
+        for _ in range(3):
+            lport = free_port()
+            last = ssh_forward(origin, lport, rport)
+            if last.returncode == 0:
+                FORWARDS[(origin, rport)] = lport
+                return rewrite(parts, lport), lport
+            if "Control socket" in (last.stderr or ""):
+                break  # tunnel is down; another port will not help
 
     err = [l for l in (last.stderr or "").strip().splitlines() if l]
     detail = err[-1] if err else "ssh exit %d" % last.returncode
     if "Control socket" in detail or "ControlPath" in detail:
-        # Reached via a chain (moonbinder->wizardtower), or the master lapsed.
-        raise ValueError("no direct ssh connection to %s" % origin)
+        raise ValueError("tunnel to %s is down" % origin)
     raise ValueError("forward failed: %s" % detail)
 
 
@@ -220,7 +294,7 @@ class Handler(socketserver.StreamRequestHandler):
         except OSError:
             return
         if not raw.strip():
-            return  # liveness probe
+            return  # port scan / half-open connect; nothing to answer
 
         if len(raw) > 8192:
             # readline caps rather than raising, so without this a long request
@@ -257,8 +331,7 @@ class Handler(socketserver.StreamRequestHandler):
 
         url = normalise(url)
 
-        # An origin naming this Mac means localhost already is this machine.
-        if origin.lower() not in SELF_NAMES and is_loopback(urlsplit(url).hostname):
+        if is_loopback(urlsplit(url).hostname):
             url, _ = localise(url, origin)
 
         try:
@@ -277,24 +350,26 @@ class Handler(socketserver.StreamRequestHandler):
 
 class Server(socketserver.ThreadingTCPServer):
     # Threaded because a handler blocks on `ssh -O forward` (up to 10s) and on
-    # open(1), while ssh/config consults this port via `nc -z` on *every*
-    # outbound connection.  Serialised handlers would queue those probes behind
-    # a slow request and, past the backlog, refuse them outright -- which the
-    # Match gate reads as "daemon down" and silently drops the forward.  That
-    # is the bug class this whole thing exists to remove, so don't reintroduce
-    # it.  Concurrent forwards for one (origin, port) are harmless: a duplicate
-    # `-O forward` exits 0.
+    # open(1) (up to 15s); one slow open must not queue every other host's
+    # requests behind it.  Concurrent forwards for one (origin, port) are
+    # harmless: a duplicate `-O forward` exits 0.
     allow_reuse_address = True
     daemon_threads = True
-    request_queue_size = 64
 
 
 def main():
+    hosts = sys.argv[1:]
+    if not hosts:
+        sys.exit("usage: opener-bridged <host>...")
+    # Bind before dialing out, so the remote end of a tunnel never forwards
+    # into nothing.
     try:
         server = Server(ADDR, Handler)
     except OSError as e:
         sys.exit("opener-bridged: cannot bind %s:%d: %s" % (ADDR[0], ADDR[1], e))
-    log("listening on %s:%d (self=%s)" % (ADDR[0], ADDR[1], ",".join(sorted(SELF_NAMES))))
+    for host in hosts:
+        threading.Thread(target=hold_tunnel, args=(host,), daemon=True).start()
+    log("listening on %s:%d, tunnels: %s" % (ADDR[0], ADDR[1], " ".join(hosts)))
     server.serve_forever()
 
 

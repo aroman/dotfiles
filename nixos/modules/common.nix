@@ -38,10 +38,13 @@
   # SSH + Mosh
   services.openssh.enable = true;
   services.openssh.settings.AcceptEnv = [ "GHOSTTY_RESOURCES_DIR" "COLORTERM" ];
-  # Auto-remove forwarded UNIX sockets (e.g. ~/.opener.sock from RemoteForward)
-  # when the SSH session ends — without this, the socket file lingers and the
-  # next reconnect fails with "remote port forwarding failed for listen path".
-  services.openssh.settings.StreamLocalBindUnlink = "yes";
+  # Reap sessions whose client vanished without closing the TCP connection —
+  # a Mac that slept, a laptop that changed networks. sshd otherwise waits out
+  # the kernel's retransmits, and until it does, the dead session still holds
+  # its forwarded ports. The opener-tunnel job on the Mac then cannot rebind
+  # 47831 and the bridge is down for as long as the corpse lasts. ~90s.
+  services.openssh.settings.ClientAliveInterval = 30;
+  services.openssh.settings.ClientAliveCountMax = 3;
   programs.mosh.enable = true;
 
   # Local ssh-agent so passphrased keys can be unlocked once and stay loaded

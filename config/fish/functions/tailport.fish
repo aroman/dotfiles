@@ -77,8 +77,5 @@ function tailport --description 'SSH-forward remote port(s) to the same local po
     # -N leaves it with nothing to do: the forward survives without us, we return
     # to the prompt immediately, Ctrl-C stops nothing, and the leftover listener
     # makes the next tailport report the port as already in use.
-    # TAILPORT_NO_OPENER keeps this dedicated connection from taking over the
-    # ~/.opener.sock RemoteForward that ssh/config sets up for the shared master —
-    # see the comment on that Match block.
-    env TAILPORT_NO_OPENER=1 ssh -N -o ExitOnForwardFailure=yes -o ControlPath=none -o SendEnv=$tag $forwards $host
+    ssh -N -o ExitOnForwardFailure=yes -o ControlPath=none -o SendEnv=$tag $forwards $host
 end

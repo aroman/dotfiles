@@ -11,7 +11,7 @@ Match host * exec "test -f ~/.orbstack/ssh/config"
 Host *
   SendEnv COLORTERM
 
-Host moonbinder moonbinder.marlin-antares.ts.net dawnbinder dawnbinder.marlin-antares.ts.net wizardtower wizardtower.marlin-antares.ts.net dad dad.tail5c0d6f.ts.net
+Host moonbinder moonbinder.marlin-antares.ts.net dawnbinder dawnbinder.marlin-antares.ts.net wizardtower wizardtower.marlin-antares.ts.net fairycastle fairycastle.marlin-antares.ts.net dad dad.tail5c0d6f.ts.net
   ControlMaster auto
   ControlPath ~/.ssh/cm-%r@%h:%p
   ControlPersist 10m
@@ -43,55 +43,15 @@ Host wizardtower wizardtower.marlin-antares.ts.net
   HostName 100.116.179.31
   SendEnv GHOSTTY_RESOURCES_DIR
 
+# A GCE instance, so it is only ever reached over the tailnet — there is no
+# LAN address to fall back to when the pin goes stale.
+Host fairycastle fairycastle.marlin-antares.ts.net
+  HostName 100.88.159.74
+  SendEnv GHOSTTY_RESOURCES_DIR
+
 Host dad dad.tail5c0d6f.ts.net
   HostName 100.71.243.105
   SendEnv GHOSTTY_RESOURCES_DIR
-
-# Forward the opener(1) socket so xdg-open on the remote opens URLs in the
-# local browser via opener.  The `exec` test only matches when the socket
-# exists locally (i.e., when the client is the Mac running `brew services
-# start superbrothers/opener/opener`); Linux→Linux SSH skips this cleanly.
-# TAILPORT_NO_OPENER opts a connection out: the servers set
-# StreamLocalBindUnlink=yes, so a second connection rebinds this socket and
-# unlinks it again on exit, leaving the original session's xdg-open bridge dead.
-# `tailport` forces its own connection (ControlPath=none) and would do exactly
-# that, so it sets the variable rather than stealing the socket.
-# `originalhost`, not `host`: `host` matches after HostName substitution, and the
-# stanzas above pin HostName to a raw Tailscale IP, so `moonbinder*` would be
-# compared against `100.x.y.z` and never match.
-Match originalhost moonbinder*,dawnbinder*,wizardtower* exec "test -S ~/.opener.sock && test -z \"$TAILPORT_NO_OPENER\""
-  RemoteForward /home/aroman/.opener.sock %d/.opener.sock
-
-# Its replacement: opener-bridged (local/bin) on 127.0.0.1:47831.  Runs
-# alongside the block above until that one is retired, since they share no
-# endpoint.  Three things the socket version got wrong:
-#
-# `nc -z` is a real connect, where `test -S` only proved a file existed.  A
-# dead daemon used to leave a socket that still satisfied the gate, so ssh
-# forwarded to nothing and xdg-open exited 0 having done nothing at all.
-#
-# TCP rather than a unix socket.  Two sessions forwarding the same socket path
-# both bind it, but StreamLocalBindUnlink makes whichever exits *last* unlink
-# the file — so a dying loser would take the live winner's bridge with it.  A
-# second TCP bind just fails, leaving the first untouched and no file behind.
-#
-# Same port on both ends, so a Linux client's probe tests its own forwarded
-# 47831 and carries the bridge onward: moonbinder→wizardtower chains for free.
-# Plain URLs, that is — a localhost:PORT opened on the far end of a chain still
-# needs a direct Mac→that-host master to forward the port, and says so.
-#
-# `-w 2` bounds the probe: a wedged daemon would otherwise leave the exec
-# waiting out the kernel's SYN retransmits (~75s) on every new ssh, making the
-# gate itself the outage.
-#
-# dawnbinder is absent by design — it runs the daemon, so forwarding into it
-# could only collide with the live listener.
-#
-# TAILPORT_NO_OPENER still opts a connection out, for a new reason: tailport
-# sets ExitOnForwardFailure, and inheriting this RemoteForward (whose remote
-# bind collides with the shared master's) would kill its whole connection.
-Match originalhost moonbinder*,wizardtower* exec "test -z \"$TAILPORT_NO_OPENER\" && nc -z -w 2 127.0.0.1 47831 >/dev/null 2>&1"
-  RemoteForward 127.0.0.1:47831 127.0.0.1:47831
 
 Host github.com
   # Route through port 443 so SSH works on networks that block port 22

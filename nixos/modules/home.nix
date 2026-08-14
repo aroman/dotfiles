@@ -66,7 +66,8 @@ in
     # xdg-open → handlr → Chrome.
     #
     # 127.0.0.1:47831 is the mouth of a tunnel back to the Mac's opener-bridged
-    # daemon (ssh/config RemoteForwards it there).  One line each way:
+    # daemon (an opener-tunnel launchd job on the Mac holds it open).  One
+    # line each way:
     #
     #   -> open <origin> <url>        <- ok <final-url>  |  err <message>
     #

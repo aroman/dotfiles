@@ -9,6 +9,10 @@
         <!-- Absolute: launchd's PATH has no ~/.local/bin.  The script's own
              `#!/usr/bin/env python3` resolves to /usr/bin/python3 here. -->
         <string>/Users/aroman/.local/bin/opener-bridged</string>
+        <!-- One tunnel per NixOS host.  Adding a host is adding a line. -->
+        <string>moonbinder</string>
+        <string>wizardtower</string>
+        <string>fairycastle</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
