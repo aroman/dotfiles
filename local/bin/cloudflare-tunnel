@@ -5,8 +5,8 @@ METRICS_ADDR="127.0.0.1:20241"
 PIDFILE="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/cloudflare-tunnel.pid"
 # The tunnel token is a static credential. Keep it in a 0600 file outside the
 # dotfiles repo so this works identically on the desktop and over SSH, with no
-# password-manager / GUI dependency. Populate it once with:
-#   install -m600 /dev/stdin ~/.config/cloudflare-tunnel/token   (paste, ^D)
+# password-manager / GUI dependency. Populate it with:
+#   reconcile-dev-access.ts install <machine-slug>
 TOKEN_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/cloudflare-tunnel/token"
 
 is_running() {
@@ -21,15 +21,13 @@ case "${1:-start}" in
 
     if [[ ! -s "$TOKEN_FILE" ]]; then
       echo "cloudflare-tunnel: no token at $TOKEN_FILE." \
-           "Create it (mode 0600) with the tunnel token from the Cloudflare" \
-           "Zero Trust dashboard." >&2
+           "Run reconcile-dev-access.ts install <machine-slug>." >&2
       exit 1
     fi
-    token=$(cat "$TOKEN_FILE")
-
     LOGFILE="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/cloudflare-tunnel.log"
-    TUNNEL_TOKEN="$token" nohup cloudflared tunnel --metrics "$METRICS_ADDR" run \
-      </dev/null >>"$LOGFILE" 2>&1 &
+    TUNNEL_TOKEN_FILE="$TOKEN_FILE" \
+      nohup cloudflared tunnel --metrics "$METRICS_ADDR" run \
+        </dev/null >>"$LOGFILE" 2>&1 &
     echo $! > "$PIDFILE"
     disown
     ;;
