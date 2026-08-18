@@ -61,9 +61,7 @@
     "niri": {
       "inputs": {
         "niri-stable": "niri-stable",
-        "niri-unstable": [
-          "niri-cursor-zoom"
-        ],
+        "niri-unstable": "niri-unstable",
         "nixpkgs": "nixpkgs",
         "nixpkgs-stable": "nixpkgs-stable",
         "xwayland-satellite-stable": "xwayland-satellite-stable",
@@ -83,23 +81,6 @@
         "type": "github"
       }
     },
-    "niri-cursor-zoom": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1778600645,
-        "narHash": "sha256-42vWjhaRPDkcF9mivLOpzkBiGCz07LyG5edW/t3ju8k=",
-        "owner": "Atan-D-RP4",
-        "repo": "niri",
-        "rev": "601fcdc1100e08fb25060cd790d2be62c32b2ee5",
-        "type": "github"
-      },
-      "original": {
-        "owner": "Atan-D-RP4",
-        "ref": "601fcdc110",
-        "repo": "niri",
-        "type": "github"
-      }
-    },
     "niri-stable": {
       "flake": false,
       "locked": {
@@ -113,6 +94,22 @@
       "original": {
         "owner": "YaLTeR",
         "ref": "v25.08",
+        "repo": "niri",
+        "type": "github"
+      }
+    },
+    "niri-unstable": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1785701241,
+        "narHash": "sha256-ircVOzPWRircI39ac/tqJajr5OoJxEVrDlBb05TULEk=",
+        "owner": "YaLTeR",
+        "repo": "niri",
+        "rev": "feb3e43f1475e0865bb89cbd1e898b34d1d2ccf6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "YaLTeR",
         "repo": "niri",
         "type": "github"
       }
@@ -271,7 +268,6 @@
         "disko": "disko",
         "home-manager": "home-manager",
         "niri": "niri",
-        "niri-cursor-zoom": "niri-cursor-zoom",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs_3",
         "noctalia": "noctalia",

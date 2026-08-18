@@ -32,27 +32,20 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Niri: cursor-zoom variant via Atan-D-RP4's feat/cursor-zoom branch
-    # (PR #3246).  Branch is rebased on niri main, so blur (which landed in
-    # v26.04) is included.  No companion patch needed at this pin.
+    # Niri: vanilla niri-unstable as pinned by niri-flake.  Deliberately NOT
+    # overridden with a fork — sodiboo pushes niri-unstable builds to
+    # niri.cachix.org (a substituter in modules/common.nix), so this stays a
+    # binary download.  Any `inputs.niri-unstable.follows` override points the
+    # flake at an uncached source tree and forces a ~10 min Rust build on every
+    # bump.  We ran Atan-D-RP4's feat/cursor-zoom branch (PR #3246) for that
+    # reason until 2026-08-16, and dropped it to get cache hits back.
     #
-    # Pin is 601fcdc1 — HEAD of feat/cursor-zoom on 2026-05-12.  The branch
-    # is force-pushed regularly during development; bump this commit when
-    # updating.  The API is unstable and the author has stated they plan a
-    # from-scratch rewrite with cleaner history before YaLTeR review, so
-    # config syntax may change.
-    #
-    # To drop back to vanilla niri-unstable: remove niri-cursor-zoom input,
-    # remove the `inputs.niri-unstable.follows` line on the niri input.
-    niri-cursor-zoom = {
-      url = "github:Atan-D-RP4/niri/601fcdc110";
-      flake = false;
-    };
-
-    niri = {
-      url = "github:sodiboo/niri-flake";
-      inputs.niri-unstable.follows = "niri-cursor-zoom";
-    };
+    # Cache hits require `niri/niri-unstable` in flake.lock to match the rev
+    # niri-flake itself pins — cachix only has what sodiboo's CI built.  Bump
+    # with `nix flake update niri`, which inherits that pin.  A bare
+    # `nix flake lock` resolves niri-unstable to YaLTeR/niri HEAD instead,
+    # which is always newer than niri-flake's pin and always a source build.
+    niri.url = "github:sodiboo/niri-flake";
 
     voxtype = {
       url = "github:peteonrails/voxtype";
