@@ -70,23 +70,90 @@
 
   outputs = inputs@{ self, nixpkgs, home-manager, nixos-hardware, niri, disko, ... }:
   let
-    mkSystem = {
+    reservedHostArgumentNames = [
+      "inputs"
+      "desktop"
+      "username"
+      "cloudDevbox"
+      "cloudDevboxDisk"
+      "resticRepository"
+      "cloudDevboxGit"
+    ];
+    extraSpecialArgsAreSafe = args:
+      builtins.all
+        (name: !(builtins.hasAttr name args))
+        reservedHostArgumentNames;
+
+    # The raw constructor is deliberately private. Host-kind wrappers below
+    # close over identity-sensitive flags so callers cannot accidentally build
+    # a desktop for another user or turn cloud hardening off.
+    mkHost = {
       hostname,
+      username,
+      desktop,
+      cloudDevbox,
+      resticRepository,
+      cloudDevboxGit,
       system ? "x86_64-linux",
-      desktop ? true,
+      cloudDevboxDisk ? null,
       extraModules ? [],
       extraSpecialArgs ? {},
     }:
+      assert nixpkgs.lib.assertMsg (desktop != cloudDevbox)
+        "mkHost: exactly one of desktop or cloudDevbox must be enabled";
+      assert nixpkgs.lib.assertMsg (!desktop || username == "aroman")
+        "mkHost: desktop configurations are intentionally fixed to aroman";
+      assert nixpkgs.lib.assertMsg (cloudDevbox == (cloudDevboxDisk != null))
+        "mkHost: cloudDevboxDisk must be set exactly when cloudDevbox is enabled";
+      assert nixpkgs.lib.assertMsg
+        (extraSpecialArgsAreSafe extraSpecialArgs)
+        "mkHost: extraSpecialArgs cannot override reserved host arguments";
       nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = {
-          inherit inputs desktop;
-        } // extraSpecialArgs;
+        # Structural arguments are right-biased as defense in depth; the
+        # assertion above also rejects attempts to smuggle one through.
+        specialArgs = extraSpecialArgs // {
+          inherit
+            inputs
+            desktop
+            username
+            cloudDevbox
+            cloudDevboxDisk
+            resticRepository
+            cloudDevboxGit
+            ;
+        };
         modules = (nixpkgs.lib.optionals desktop [
           niri.nixosModules.niri
           {
             nixpkgs.overlays = [
               niri.overlays.niri
+              # nixpkgs removed `libdisplay-info_0_2` on 2026-08-04 ("unused
+              # in Nixpkgs"), leaving a throwing alias behind.  niri-flake's
+              # package still asks for it *and* asserts `version == "0.2.0"`,
+              # so evaluating `programs.niri.package` hits the throw.
+              #
+              # niri's libdisplay-info-sys 0.3.0 accepts any C library in
+              # `>= 0.1.0, < 0.4.0`, so 0.3 would do — but the assert only
+              # takes 0.2.0, and plain `libdisplay-info` is 0.4.0, out of
+              # range.  So reinstate 0.2.0 from the current recipe; it's a
+              # few seconds of meson.
+              #
+              # Drop this once niri-flake merges sodiboo/niri-flake#1853
+              # (picks the C library from each niri's Cargo.lock) and the
+              # niri input is bumped past it.
+              (final: prev: {
+                libdisplay-info_0_2 = prev.libdisplay-info.overrideAttrs {
+                  version = "0.2.0";
+                  src = prev.fetchFromGitLab {
+                    domain = "gitlab.freedesktop.org";
+                    owner = "emersion";
+                    repo = "libdisplay-info";
+                    tag = "0.2.0";
+                    hash = "sha256-6xmWBrPHghjok43eIDGeshpUEQTuwWLXNHg7CnBUt3Q=";
+                  };
+                };
+              })
               # tuigreet hardcodes "Authenticate into {hostname}" as the
               # main prompt title via a bundled fluent translation. Patch
               # the en-US locale to drop the prefix, leaving just the
@@ -109,36 +176,133 @@
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
-            home-manager.users.aroman = import ./hosts/${hostname}/home.nix;
-            home-manager.extraSpecialArgs = { inherit inputs desktop; };
+            home-manager.users.${username} = import ./hosts/${hostname}/home.nix;
+            home-manager.extraSpecialArgs = {
+              inherit inputs desktop username cloudDevbox cloudDevboxGit;
+            };
           }
           ./modules/options.nix
           ./modules/common.nix
-        ] ++ (nixpkgs.lib.optional desktop ./modules/desktop.nix) ++ [
-          ./modules/restic.nix
+        ] ++ (nixpkgs.lib.optional desktop ./modules/desktop.nix)
+        ++ (nixpkgs.lib.optionals cloudDevbox [
+          disko.nixosModules.disko
+          ./modules/cloud-devbox.nix
+          ./modules/cloud-devbox-disko.nix
+        ])
+        ++ (nixpkgs.lib.optional (resticRepository != null) ./modules/restic.nix)
+        ++ [
           ./hosts/${hostname}/default.nix
           ./hosts/${hostname}/hardware-configuration.nix
         ] ++ extraModules;
       };
+    mkDesktopSystem = {
+      hostname,
+      system ? "x86_64-linux",
+      extraModules ? [],
+      extraSpecialArgs ? {},
+    }:
+      mkHost {
+        inherit hostname system extraModules extraSpecialArgs;
+        username = "aroman";
+        desktop = true;
+        cloudDevbox = false;
+        cloudDevboxDisk = null;
+        cloudDevboxGit = null;
+        resticRepository = "b2:aroman-backups";
+      };
+
+    mkCloudDevbox = {
+      hostname,
+      username,
+      cloudDevboxDisk,
+      resticRepository,
+      gitUserName,
+      gitUserEmail,
+      gitSigningKey,
+      githubIdentityFile,
+      system ? "x86_64-linux",
+      extraModules ? [],
+      extraSpecialArgs ? {},
+    }:
+      mkHost {
+        inherit
+          hostname
+          username
+          system
+          cloudDevboxDisk
+          resticRepository
+          extraModules
+          extraSpecialArgs
+          ;
+        desktop = false;
+        cloudDevbox = true;
+        cloudDevboxGit = {
+          inherit gitUserName gitUserEmail gitSigningKey githubIdentityFile;
+        };
+      };
+
+    cloudDevboxInterfaceCheck =
+      let
+        testArgs = {
+          hostname = "fairycastle";
+          username = "newdev";
+          cloudDevboxDisk = "/dev/disk/by-id/test-cloud-devbox";
+          resticRepository = "b2:test-cloud-devbox";
+          gitUserName = "New Developer";
+          gitUserEmail = "newdev@example.com";
+          gitSigningKey = "~/.ssh/newdev.pub";
+          githubIdentityFile = "~/.ssh/newdev";
+        };
+        testConfig = (mkCloudDevbox testArgs).config;
+        noBackupConfig = (mkCloudDevbox (testArgs // {
+          resticRepository = null;
+        })).config;
+        testHome = testConfig.home-manager.users.newdev;
+        cloudArgs = builtins.functionArgs mkCloudDevbox;
+      in
+        assert testConfig.users.users ? newdev;
+        assert !(testConfig.users.users ? aroman);
+        assert testConfig.home-manager.users ? newdev;
+        assert !(testConfig.home-manager.users ? aroman);
+        assert testConfig.services.restic.backups.b2.repository == "b2:test-cloud-devbox";
+        assert noBackupConfig.services.restic.backups == {};
+        assert !(builtins.hasAttr "restic-backups-b2" noBackupConfig.systemd.services);
+        assert nixpkgs.lib.hasInfix "name = New Developer" testHome.home.file.".gitconfig.local".text;
+        assert nixpkgs.lib.hasInfix "email = newdev@example.com" testHome.home.file.".gitconfig.local".text;
+        assert nixpkgs.lib.hasInfix "IdentityFile ~/.ssh/newdev" testHome.home.file.".ssh/config.local".text;
+        assert !(cloudArgs ? desktop);
+        assert !(cloudArgs ? cloudDevbox);
+        assert cloudArgs.username == false;
+        assert cloudArgs.resticRepository == false;
+        assert !(extraSpecialArgsAreSafe { username = "otherdev"; });
+        nixpkgs.legacyPackages.x86_64-linux.runCommand
+          "cloud-devbox-interface-check"
+          { }
+          "touch $out";
   in {
+    checks.x86_64-linux.cloud-devbox-interface = cloudDevboxInterfaceCheck;
+
     nixosConfigurations = {
-      moonbinder = mkSystem {
+      moonbinder = mkDesktopSystem {
         hostname = "moonbinder";
         extraModules = [
           nixos-hardware.nixosModules.framework-16-amd-ai-300-series
         ];
       };
 
-      wizardtower = mkSystem {
+      wizardtower = mkDesktopSystem {
         hostname = "wizardtower";
       };
 
-      fairycastle = mkSystem {
+      fairycastle = mkCloudDevbox {
         hostname = "fairycastle";
-        desktop = false;
-        extraModules = [
-          disko.nixosModules.disko
-        ];
+        username = "aroman";
+        cloudDevboxDisk = "/dev/disk/by-id/nvme-eui.6cdf21c8b4d3addc0000000000000000";
+        resticRepository = "b2:aroman-backups";
+        gitUserName = "Avi Romanoff";
+        gitUserEmail = "avi@magiccircle.studio";
+        gitSigningKey = "~/.ssh/fairycastle.pub";
+        githubIdentityFile = "~/.ssh/fairycastle";
       };
     };
   };

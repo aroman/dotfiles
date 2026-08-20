@@ -2,7 +2,8 @@
   config,
   pkgs,
   lib,
-  desktop ? true,
+  desktop,
+  username,
   desktopSystemPackages ? [],
   ...
 }:
@@ -68,9 +69,9 @@
   systemd.services.tailscaled.restartIfChanged = false;
 
   # User account
-  users.users.aroman = {
+  users.users.${username} = {
     isNormalUser = true;
-    description = "aroman";
+    description = username;
     extraGroups = [ "wheel" ];
     shell = pkgs.fish;
     # Keep the user systemd instance alive between logins so ssh-agent
@@ -174,7 +175,7 @@
 
   programs.nh = {
     enable = true;
-    flake = "/home/aroman/Projects/dotfiles/nixos";
+    flake = "/home/${username}/Projects/dotfiles/nixos";
     # Weekly GC via `nh clean all` instead of nix.gc: root's
     # nix-collect-garbage only prunes profiles under /nix/var/nix/profiles,
     # so per-user profile generations (~/.local/state/nix/profiles) pile up

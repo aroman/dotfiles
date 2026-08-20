@@ -1,13 +1,18 @@
-{ ... }:
+{ cloudDevboxDisk, lib, ... }:
 
 {
+  assertions = [
+    {
+      assertion = cloudDevboxDisk != null;
+      message = "mkCloudDevbox: cloudDevboxDisk is required";
+    }
+  ];
+
   disko.devices.disk.main = {
     type = "disk";
-    # Debian's GCE guest rules also expose this disk as
-    # /dev/disk/by-id/google-devbox-fairycastle. The generic nixos-anywhere
-    # kexec image does not ship that alias, but does expose the disk's stable
-    # NVMe EUI, so use the identity that exists in both environments.
-    device = "/dev/disk/by-id/nvme-eui.6cdf21c8b4d3addc0000000000000000";
+    # Use the stable NVMe EUI. GCE's google-* alias exists in the guest OS but
+    # is absent from nixos-anywhere's generic kexec image.
+    device = lib.mkIf (cloudDevboxDisk != null) cloudDevboxDisk;
     content = {
       type = "gpt";
       partitions = {

@@ -3,7 +3,9 @@
   pkgs,
   lib,
   inputs,
-  desktop ? true,
+  desktop,
+  cloudDevbox,
+  username,
   desktopPackageSegments ? {
     afterRcm = [];
     afterFzf = [];
@@ -23,10 +25,10 @@ in
   imports = lib.optionals desktop [
     inputs.vicinae.homeManagerModules.default
     ./home-desktop.nix
-  ];
+  ] ++ lib.optional cloudDevbox ./home-cloud-devbox.nix;
 
-  home.username = "aroman";
-  home.homeDirectory = "/home/aroman";
+  home.username = username;
+  home.homeDirectory = "/home/${username}";
 
   # CLI configuration shared by desktop and headless hosts.
   xdg.configFile = {

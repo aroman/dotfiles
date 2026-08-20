@@ -1,4 +1,4 @@
-{ config, pkgs, lib, inputs, ... }:
+{ config, pkgs, lib, inputs, username, ... }:
 
 {
   # Networking
@@ -338,7 +338,7 @@
 
   # Desktop-only groups. Each is created by an option in this module; keep
   # these out of the headless base so activation cannot reference missing groups.
-  users.users.aroman.extraGroups = [ "networkmanager" "video" "input" "i2c" "audio" "kvm" "dialout" ];
+  users.users.${username}.extraGroups = [ "networkmanager" "video" "input" "i2c" "audio" "kvm" "dialout" ];
 
   programs.dconf.enable = true;
 
