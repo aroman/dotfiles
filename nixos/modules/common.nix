@@ -165,9 +165,17 @@
     chafa
     curl
     file
-    # herdr is deliberately not here (nor in home.packages) — it's managed
-    # imperatively via `nix profile`, pinned to the same tagged release as
-    # remote clients, so it can be upgraded independently of a system rebuild.
+    # herdr is deliberately not here (nor in home.packages) — it's imperative
+    # so it can move without a system rebuild:
+    #
+    #   nix profile remove herdr
+    #   nix profile add github:NixOS/nixpkgs/nixos-unstable#herdr
+    #
+    # nixpkgs, not `github:herdrdev/herdr/vX.Y.Z` — that flake declares no
+    # substituters and so builds from source on every host. Upgrade all
+    # machines together, since the wire protocol requires an exact
+    # client/server match, and move the running server with `herdr --remote
+    # <host> --handoff` once modules/herdr-server.nix is deployed.
     git
     lazygit
     lsof
