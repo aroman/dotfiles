@@ -56,6 +56,11 @@
   # Home Manager configuration for `username`.
   security.googleOsLogin.enable = lib.mkForce false;
 
+  # Do not let GCE metadata create mutable users or execute metadata scripts.
+  # The guest agent remains available for the platform integration supplied by
+  # google-compute-config.nix, but identity and boot-time code are declarative.
+  users.mutableUsers = false;
+
   # Keep defense in depth even though GCE also has VPC firewall rules.
   networking.firewall.enable = lib.mkForce true;
   networking.firewall.interfaces.tailscale0.allowedTCPPortRanges = [
@@ -83,13 +88,18 @@
 
   # A persistent daily timer can catch up immediately after first boot. When
   # backups are enabled, skip cleanly until the three untracked secrets exist.
-  systemd.services = lib.optionalAttrs (resticRepository != null) {
-    restic-backups-b2.unitConfig.ConditionPathExists = [
-      "/etc/restic/password"
-      "/etc/restic/b2-env"
-      "/etc/restic/healthchecks-url"
-    ];
-  };
+  systemd.services =
+    {
+      google-startup-scripts.wantedBy = lib.mkForce [];
+      google-shutdown-scripts.wantedBy = lib.mkForce [];
+    }
+    // lib.optionalAttrs (resticRepository != null) {
+      restic-backups-b2.unitConfig.ConditionPathExists = [
+        "/etc/restic/password"
+        "/etc/restic/b2-env"
+        "/etc/restic/healthchecks-url"
+      ];
+    };
 
   # 24+ hardware threads: four builds with six cores each leaves interactive
   # headroom and matches the background scheduling policy on wizardtower.

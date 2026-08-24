@@ -76,6 +76,7 @@
       "username"
       "cloudDevbox"
       "cloudDevboxDisk"
+      "gceBootDiskId"
       "resticRepository"
       "cloudDevboxGit"
     ];
@@ -215,6 +216,7 @@
       hostname,
       username,
       cloudDevboxDisk,
+      gceBootDiskId,
       resticRepository,
       gitUserName,
       gitUserEmail,
@@ -224,6 +226,9 @@
       extraModules ? [],
       extraSpecialArgs ? {},
     }:
+      assert nixpkgs.lib.assertMsg
+        (builtins.match "[0-9]+" gceBootDiskId != null)
+        "mkCloudDevbox: gceBootDiskId must be a decimal GCE disk ID";
       mkHost {
         inherit
           hostname
@@ -241,12 +246,29 @@
         };
       };
 
+    cloudDevboxHostnames = builtins.filter
+      (hostname:
+        builtins.pathExists (./hosts + "/${hostname}/cloud-devbox.nix"))
+      (builtins.attrNames (builtins.readDir ./hosts));
+    cloudDevboxSystems = builtins.listToAttrs (map
+      (hostname:
+        let
+          hostArgs = import (./hosts + "/${hostname}/cloud-devbox.nix");
+        in {
+          name = hostname;
+          value = assert nixpkgs.lib.assertMsg (hostArgs.hostname == hostname)
+            "hosts/${hostname}/cloud-devbox.nix must declare hostname = \"${hostname}\"";
+            mkCloudDevbox hostArgs;
+        })
+      cloudDevboxHostnames);
+
     cloudDevboxInterfaceCheck =
       let
         testArgs = {
           hostname = "fairycastle";
           username = "newdev";
           cloudDevboxDisk = "/dev/disk/by-id/test-cloud-devbox";
+          gceBootDiskId = "123456789";
           resticRepository = "b2:test-cloud-devbox";
           gitUserName = "New Developer";
           gitUserEmail = "newdev@example.com";
@@ -267,22 +289,27 @@
         assert testConfig.services.restic.backups.b2.repository == "b2:test-cloud-devbox";
         assert noBackupConfig.services.restic.backups == {};
         assert !(builtins.hasAttr "restic-backups-b2" noBackupConfig.systemd.services);
+        assert testConfig.users.mutableUsers == false;
+        assert testConfig.systemd.services.google-startup-scripts.wantedBy == [];
+        assert testConfig.systemd.services.google-shutdown-scripts.wantedBy == [];
+        assert nixpkgs.lib.hasInfix
+          "accounts_daemon = false"
+          testConfig.environment.etc."default/instance_configs.cfg".text;
         assert nixpkgs.lib.hasInfix "name = New Developer" testHome.home.file.".gitconfig.local".text;
         assert nixpkgs.lib.hasInfix "email = newdev@example.com" testHome.home.file.".gitconfig.local".text;
         assert nixpkgs.lib.hasInfix "IdentityFile ~/.ssh/newdev" testHome.home.file.".ssh/config.local".text;
         assert !(cloudArgs ? desktop);
         assert !(cloudArgs ? cloudDevbox);
         assert cloudArgs.username == false;
+        assert cloudArgs.gceBootDiskId == false;
         assert cloudArgs.resticRepository == false;
         assert !(extraSpecialArgsAreSafe { username = "otherdev"; });
         nixpkgs.legacyPackages.x86_64-linux.runCommand
           "cloud-devbox-interface-check"
           { }
           "touch $out";
-  in {
-    checks.x86_64-linux.cloud-devbox-interface = cloudDevboxInterfaceCheck;
 
-    nixosConfigurations = {
+    staticSystems = {
       moonbinder = mkDesktopSystem {
         hostname = "moonbinder";
         extraModules = [
@@ -293,17 +320,20 @@
       wizardtower = mkDesktopSystem {
         hostname = "wizardtower";
       };
-
-      fairycastle = mkCloudDevbox {
-        hostname = "fairycastle";
-        username = "aroman";
-        cloudDevboxDisk = "/dev/disk/by-id/nvme-eui.6cdf21c8b4d3addc0000000000000000";
-        resticRepository = "b2:aroman-backups";
-        gitUserName = "Avi Romanoff";
-        gitUserEmail = "avi@magiccircle.studio";
-        gitSigningKey = "~/.ssh/fairycastle.pub";
-        githubIdentityFile = "~/.ssh/fairycastle";
-      };
     };
+    cloudDevboxStaticCollisions = builtins.attrNames
+      (builtins.intersectAttrs staticSystems cloudDevboxSystems);
+  in {
+    packages.x86_64-linux.nixos-anywhere-host-key-pinned =
+      nixpkgs.legacyPackages.x86_64-linux.callPackage
+        ./nixos-anywhere-host-key-pinned.nix
+        { };
+
+    checks.x86_64-linux.cloud-devbox-interface = cloudDevboxInterfaceCheck;
+
+    nixosConfigurations =
+      assert nixpkgs.lib.assertMsg (cloudDevboxStaticCollisions == [])
+        "cloud devboxes cannot shadow static hosts: ${builtins.concatStringsSep ", " cloudDevboxStaticCollisions}";
+      staticSystems // cloudDevboxSystems;
   };
 }

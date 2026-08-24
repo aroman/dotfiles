@@ -1,0 +1,1020 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+usage() {
+  cat <<'EOF'
+Provision a GCE cloud devbox and install NixOS from this flake.
+
+Usage:
+  provision-cloud-devbox \
+    --hostname HOSTNAME \
+    --username USERNAME \
+    --git-name NAME \
+    --git-email EMAIL \
+    [options]
+
+Required:
+  --hostname HOSTNAME       NixOS hostname, for example webster
+  --username USERNAME       Primary Unix user, for example xxl
+  --git-name NAME           Commit author name
+  --git-email EMAIL         Commit author email
+
+Options:
+  --project PROJECT         GCP project (default: magic-circle-developers)
+  --instance-name NAME      GCE instance name (default: devbox-HOSTNAME)
+  --zones CSV               Capacity fallback order
+  --identity-file PATH      SSH private key used by the operator
+  --dry-run                 Validate access and print the GCE plan only
+  -h, --help                Show this help
+
+The script is resumable. It reuses an existing instance with the requested
+name, verifies generated host files instead of overwriting edits, and asks for
+separate typed confirmations before creating billable resources and before
+nixos-anywhere wipes the boot disk.
+
+Example:
+  nixos/scripts/provision-cloud-devbox \
+    --hostname webster \
+    --username xxl \
+    --git-name 'Xiao Xiao Long' \
+    --git-email xiaoxiao@magiccircle.studio
+EOF
+}
+
+die() {
+  printf 'error: %s\n' "$*" >&2
+  exit 1
+}
+
+need_command() {
+  command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
+}
+
+nix_string() {
+  local json_string
+
+  json_string="$(jq -Rn --arg value "$1" '$value')"
+  # JSON string syntax is a subset of Nix string syntax except that `${` starts
+  # interpolation in Nix.  Escape it in the serialized source, after JSON has
+  # handled quotes, backslashes, and control characters.
+  printf '%s\n' "${json_string//\$\{/\\\$\{}"
+}
+
+validate_disk_path() {
+  local disk_path="$1"
+
+  [[ "$disk_path" =~ ^/dev/disk/by-id/nvme-eui\.[[:xdigit:]]{32}$ ]] ||
+    die "unexpected disk identifier: $disk_path"
+}
+
+remove_instance_metadata_keys() {
+  local key
+  local description
+  local -a requested_keys=("$@")
+  local -a present_keys=()
+
+  if ! description="$(
+    gcloud compute instances describe "$instance_name" \
+      --project="$project" --zone="$selected_zone" --format=json
+  )"; then
+    die "could not inspect instance metadata"
+  fi
+
+  for key in "${requested_keys[@]}"; do
+    if jq -e --arg key "$key" \
+        'any(.metadata.items[]?; .key == $key)' \
+        <<<"$description" >/dev/null; then
+      present_keys+=("$key")
+    fi
+  done
+
+  if ((${#present_keys[@]} > 0)); then
+    local keys_csv
+    keys_csv="$(IFS=,; printf '%s' "${present_keys[*]}")"
+    gcloud compute instances remove-metadata "$instance_name" \
+      --project="$project" \
+      --zone="$selected_zone" \
+      --keys="$keys_csv" \
+      --quiet
+  fi
+
+  if ! description="$(
+    gcloud compute instances describe "$instance_name" \
+      --project="$project" --zone="$selected_zone" --format=json
+  )"; then
+    die "could not verify instance metadata cleanup"
+  fi
+  for key in "${requested_keys[@]}"; do
+    if jq -e --arg key "$key" \
+        'any(.metadata.items[]?; .key == $key)' \
+        <<<"$description" >/dev/null; then
+      die "instance metadata key is still present: $key"
+    fi
+  done
+}
+
+confirm_exact() {
+  local expected="$1"
+  local prompt="$2"
+  local answer
+
+  [[ -t 0 ]] || die "confirmation requires an interactive terminal"
+  printf '%s\n' "$prompt"
+  read -r -p "Type '$expected' to continue: " answer
+  [[ "$answer" == "$expected" ]] || die "confirmation not received"
+}
+
+preflight_generated_file() {
+  local generated="$1"
+  local target="$2"
+
+  if [[ -e "$target" || -L "$target" ]]; then
+    [[ -f "$target" && ! -L "$target" ]] ||
+      die "expected a regular, non-symlink file: $target"
+    if cmp -s "$generated" "$target"; then
+      return
+    fi
+    diff -u "$target" "$generated" || true
+    die "refusing to overwrite existing file: $target"
+  fi
+}
+
+install_generated_file() {
+  local generated="$1"
+  local target="$2"
+
+  [[ ! -e "$target" && ! -L "$target" ]] || return 0
+
+  mkdir -p "$(dirname "$target")"
+  install -m 0644 "$generated" "$target"
+}
+
+validate_partial_host_dir() {
+  local partial_dir="$1"
+  local expected_dir="$2"
+  local entry
+  local entry_name
+  local nullglob_was_set=false
+  local dotglob_was_set=false
+  local -a entries
+
+  [[ -d "$partial_dir" ]] || return 0
+  [[ ! -f "$partial_dir/cloud-devbox.nix" ]] || return 0
+
+  if shopt -q nullglob; then nullglob_was_set=true; fi
+  if shopt -q dotglob; then dotglob_was_set=true; fi
+  shopt -s nullglob dotglob
+  entries=("$partial_dir"/*)
+  [[ "$nullglob_was_set" == true ]] || shopt -u nullglob
+  [[ "$dotglob_was_set" == true ]] || shopt -u dotglob
+
+  for entry in "${entries[@]}"; do
+    entry_name="${entry##*/}"
+    case "$entry_name" in
+      default.nix|home.nix|hardware-configuration.nix)
+        preflight_generated_file "$expected_dir/$entry_name" "$entry"
+        ;;
+      *)
+        die "hosts/$hostname contains unexpected partial-host entry: $entry_name"
+        ;;
+    esac
+  done
+}
+
+project="magic-circle-developers"
+hostname=""
+username=""
+git_name=""
+git_email=""
+instance_name=""
+zones_csv="us-west4-b,us-west4-a,us-west4-c,us-west3-b,us-west3-a,us-west3-c"
+identity_file="${HOME:?HOME is required}/.ssh/wizardtower"
+dry_run=false
+
+machine_type="c4-standard-24"
+disk_size_gb="1000"
+disk_type="hyperdisk-balanced"
+disk_iops="9000"
+disk_throughput="1640"
+
+while (($# > 0)); do
+  case "$1" in
+    --project)
+      (($# >= 2)) || die "--project requires a value"
+      project="$2"
+      shift 2
+      ;;
+    --hostname)
+      (($# >= 2)) || die "--hostname requires a value"
+      hostname="$2"
+      shift 2
+      ;;
+    --username)
+      (($# >= 2)) || die "--username requires a value"
+      username="$2"
+      shift 2
+      ;;
+    --git-name)
+      (($# >= 2)) || die "--git-name requires a value"
+      git_name="$2"
+      shift 2
+      ;;
+    --git-email)
+      (($# >= 2)) || die "--git-email requires a value"
+      git_email="$2"
+      shift 2
+      ;;
+    --instance-name)
+      (($# >= 2)) || die "--instance-name requires a value"
+      instance_name="$2"
+      shift 2
+      ;;
+    --zones)
+      (($# >= 2)) || die "--zones requires a value"
+      zones_csv="$2"
+      shift 2
+      ;;
+    --identity-file)
+      (($# >= 2)) || die "--identity-file requires a value"
+      identity_file="$2"
+      shift 2
+      ;;
+    --dry-run)
+      dry_run=true
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      die "unknown argument: $1"
+      ;;
+  esac
+done
+
+[[ -n "$hostname" ]] || die "--hostname is required"
+[[ -n "$username" ]] || die "--username is required"
+[[ -n "$git_name" ]] || die "--git-name is required"
+[[ -n "$git_email" ]] || die "--git-email is required"
+[[ -n "$project" ]] || die "--project must not be empty"
+[[ "$hostname" =~ ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$ ]] ||
+  die "hostname must be a lowercase DNS label"
+[[ "$username" =~ ^[a-z_][a-z0-9_-]*$ ]] ||
+  die "username contains unsupported characters"
+[[ ! "$git_name" =~ [[:cntrl:]] ]] ||
+  die "git name must not contain control characters"
+[[ "$git_email" == *@* && ! "$git_email" =~ [[:cntrl:]] ]] ||
+  die "git email is invalid"
+
+if [[ -z "$instance_name" ]]; then
+  instance_name="devbox-$hostname"
+fi
+[[ "$instance_name" =~ ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$ ]] ||
+  die "instance name must be a lowercase GCE resource name"
+
+for command_name in gcloud git grep jq nix ssh ssh-keygen; do
+  need_command "$command_name"
+done
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+nixos_dir="$(cd "$script_dir/.." && pwd)"
+repo_root="$(git -C "$nixos_dir" rev-parse --show-toplevel)"
+flake_ref="path:$nixos_dir"
+operator_keys_file="$nixos_dir/operator-authorized-keys.nix"
+host_dir="$nixos_dir/hosts/$hostname"
+state_base="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles-cloud-devbox"
+project_state_key="$(jq -rn --arg project "$project" '$project | @uri')"
+project_state_dir="$state_base/project-$project_state_key"
+state_dir="$project_state_dir/$instance_name"
+generated_dir="$state_dir/generated"
+
+[[ -f "$operator_keys_file" ]] || die "missing $operator_keys_file"
+[[ -f "$identity_file" ]] || die "SSH identity not found: $identity_file"
+[[ -f "$identity_file.pub" ]] || die "SSH public key not found: $identity_file.pub"
+
+mkdir -p "$generated_dir"
+chmod 0700 "$state_base" "$project_state_dir" "$state_dir" "$generated_dir"
+
+hostname_nix="$(nix_string "$hostname")"
+username_nix="$(nix_string "$username")"
+git_name_nix="$(nix_string "$git_name")"
+git_email_nix="$(nix_string "$git_email")"
+# These paths are written into the remote user's Git/SSH config; the tilde
+# must stay literal until those programs resolve it on the devbox.
+# shellcheck disable=SC2088
+remote_ssh_dir="~/.ssh"
+git_signing_key_nix="$(nix_string "$remote_ssh_dir/$hostname.pub")"
+github_identity_nix="$(nix_string "$remote_ssh_dir/$hostname")"
+
+cat >"$generated_dir/default.nix" <<EOF
+{ username, ... }:
+
+let
+  # Add the developer's workstation keys here during onboarding.
+  developerAuthorizedKeys = [];
+  operatorAuthorizedKeys = import ../../operator-authorized-keys.nix;
+in
+{
+  networking.hostName = $hostname_nix;
+
+  users.users.root.openssh.authorizedKeys.keys = operatorAuthorizedKeys;
+  users.users.\${username}.openssh.authorizedKeys.keys =
+    operatorAuthorizedKeys ++ developerAuthorizedKeys;
+}
+EOF
+
+cat >"$generated_dir/home.nix" <<'EOF'
+{ ... }:
+
+{
+  imports = [
+    ../../modules/home.nix
+  ];
+}
+EOF
+
+cat >"$generated_dir/hardware-configuration.nix" <<'EOF'
+{ lib, ... }:
+
+{
+  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+}
+EOF
+
+if [[ -L "$host_dir" || (-e "$host_dir" && ! -d "$host_dir") ]]; then
+  die "host path exists but is not a directory: $host_dir"
+fi
+if [[ -L "$host_dir/cloud-devbox.nix" ]]; then
+  die "cloud devbox marker must not be a symlink: $host_dir/cloud-devbox.nix"
+fi
+validate_partial_host_dir "$host_dir" "$generated_dir"
+
+if ! declared_hostnames="$(
+  nix eval --json "$flake_ref#nixosConfigurations" --apply builtins.attrNames
+)"; then
+  die "could not discover existing NixOS configurations"
+fi
+if jq -e --arg hostname "$hostname" 'index($hostname) != null' \
+    <<<"$declared_hostnames" >/dev/null &&
+    [[ ! -f "$host_dir/cloud-devbox.nix" ]]; then
+  die "nixosConfigurations.$hostname already exists and is not a cloud devbox"
+fi
+
+if ! operator_keys_json="$(nix eval --json --file "$operator_keys_file")"; then
+  die "could not evaluate $operator_keys_file"
+fi
+if ! operator_keys_lines="$(jq -er '.[]' <<<"$operator_keys_json")"; then
+  die "operator key list must be a non-empty JSON array"
+fi
+mapfile -t operator_keys <<<"$operator_keys_lines"
+((${#operator_keys[@]} > 0)) || die "operator key list is empty"
+for operator_key in "${operator_keys[@]}"; do
+  ssh-keygen -l -f <(printf '%s\n' "$operator_key") >/dev/null ||
+    die "invalid public key in $operator_keys_file"
+done
+
+identity_public_fields="$(awk 'NF >= 2 { print $1 " " $2; exit }' "$identity_file.pub")"
+identity_is_authorized=false
+for operator_key in "${operator_keys[@]}"; do
+  if [[ "$(awk '{ print $1 " " $2 }' <<<"$operator_key")" == "$identity_public_fields" ]]; then
+    identity_is_authorized=true
+    break
+  fi
+done
+[[ "$identity_is_authorized" == true ]] ||
+  die "$identity_file.pub is not present in operator-authorized-keys.nix"
+
+active_account="$(gcloud auth list --filter=status:ACTIVE --format='value(account)' | head -n1)"
+[[ -n "$active_account" ]] ||
+  die "gcloud has no active account; run: gcloud auth login --no-launch-browser"
+gcloud projects describe "$project" --format='value(projectId)' >/dev/null
+
+IFS=',' read -r -a requested_zones <<<"$zones_csv"
+candidate_zones=()
+for requested_zone in "${requested_zones[@]}"; do
+  requested_zone="${requested_zone//[[:space:]]/}"
+  [[ -n "$requested_zone" ]] || continue
+  if gcloud compute machine-types describe "$machine_type" \
+      --project="$project" --zone="$requested_zone" >/dev/null 2>&1; then
+    candidate_zones+=("$requested_zone")
+  fi
+done
+((${#candidate_zones[@]} > 0)) ||
+  die "$machine_type is unavailable in every requested zone"
+
+if ! existing_zones_output="$(
+  gcloud compute instances list \
+    --project="$project" \
+    --filter="name=$instance_name" \
+    --format='value(zone.basename())'
+)"; then
+  die "could not discover existing instances named $instance_name"
+fi
+existing_zones=()
+while IFS= read -r existing_zone; do
+  [[ -n "$existing_zone" ]] && existing_zones+=("$existing_zone")
+done <<<"$existing_zones_output"
+((${#existing_zones[@]} <= 1)) ||
+  die "multiple instances named $instance_name were found"
+
+printf 'GCP account:       %s\n' "$active_account"
+printf 'Project:           %s\n' "$project"
+printf 'Instance:          %s\n' "$instance_name"
+printf 'NixOS hostname:    %s\n' "$hostname"
+printf 'Developer:         %s (%s <%s>)\n' "$username" "$git_name" "$git_email"
+printf 'Machine:           %s\n' "$machine_type"
+printf 'Boot disk:         %s GB %s, %s IOPS, %s MiB/s\n' \
+  "$disk_size_gb" "$disk_type" "$disk_iops" "$disk_throughput"
+printf 'Zone candidates:   %s\n' "${candidate_zones[*]}"
+printf 'Restic:            disabled\n'
+
+if [[ "$dry_run" == true ]]; then
+  if ((${#existing_zones[@]} == 1)); then
+    printf 'Existing instance: %s\n' "${existing_zones[0]}"
+  else
+    printf 'Existing instance: none\n'
+  fi
+  printf 'Dry run complete; no repository files or GCP resources were changed.\n'
+  exit 0
+fi
+
+baseline_wizardtower="$(
+  nix eval --raw "$flake_ref#nixosConfigurations.wizardtower.config.system.build.toplevel.drvPath"
+)"
+baseline_moonbinder="$(
+  nix eval --raw "$flake_ref#nixosConfigurations.moonbinder.config.system.build.toplevel.drvPath"
+)"
+
+startup_script="$state_dir/bootstrap-root-ssh.sh"
+{
+  cat <<'STARTUP_HEADER'
+#!/bin/sh
+set -eu
+install -d -m 0700 /root/.ssh
+cat > /root/.ssh/authorized_keys <<'AUTHORIZED_KEYS'
+STARTUP_HEADER
+  printf '%s\n' "${operator_keys[@]}"
+  cat <<'STARTUP_FOOTER'
+AUTHORIZED_KEYS
+chmod 0600 /root/.ssh/authorized_keys
+install -d -m 0755 /etc/ssh/sshd_config.d
+cat > /etc/ssh/sshd_config.d/99-nixos-anywhere.conf <<'SSHD_CONFIG'
+PermitRootLogin prohibit-password
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+AllowUsers root
+SSHD_CONFIG
+systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || true
+STARTUP_FOOTER
+} >"$startup_script"
+chmod 0600 "$startup_script"
+
+selected_zone=""
+instance_reused=false
+if ((${#existing_zones[@]} == 1)); then
+  selected_zone="${existing_zones[0]}"
+  instance_reused=true
+  printf 'Reusing existing instance in %s.\n' "$selected_zone"
+else
+  confirm_exact \
+    "create $instance_name" \
+    "This creates a billable $machine_type instance and $disk_size_gb GB Hyperdisk."
+
+  for candidate_zone in "${candidate_zones[@]}"; do
+    attempt_log="$state_dir/create-$candidate_zone.log"
+    printf 'Trying %s...\n' "$candidate_zone"
+    if gcloud compute instances create "$instance_name" \
+      --project="$project" \
+      --zone="$candidate_zone" \
+      --machine-type="$machine_type" \
+      --image-family=debian-13 \
+      --image-project=debian-cloud \
+      --boot-disk-device-name="$instance_name" \
+      --boot-disk-interface=NVME \
+      --boot-disk-size="${disk_size_gb}GB" \
+      --boot-disk-type="$disk_type" \
+      --boot-disk-provisioned-iops="$disk_iops" \
+      --boot-disk-provisioned-throughput="$disk_throughput" \
+      --no-boot-disk-auto-delete \
+      --network-interface=network=default,network-tier=PREMIUM,nic-type=GVNIC,stack-type=IPV4_ONLY \
+      --can-ip-forward \
+      --deletion-protection \
+      --no-service-account \
+      --no-scopes \
+      --no-shielded-secure-boot \
+      --shielded-vtpm \
+      --no-shielded-integrity-monitoring \
+      --metadata=enable-oslogin=FALSE,block-project-ssh-keys=TRUE \
+      --metadata-from-file="startup-script=$startup_script" \
+      --labels="role=cloud-devbox,managed-by=nixos-anywhere,developer=$username" \
+      --quiet 2>&1 | tee "$attempt_log"; then
+      selected_zone="$candidate_zone"
+      break
+    fi
+
+    if gcloud compute instances describe "$instance_name" \
+        --project="$project" --zone="$candidate_zone" >/dev/null 2>&1; then
+      selected_zone="$candidate_zone"
+      printf 'The instance exists despite the create command returning an error; resuming.\n'
+      break
+    fi
+
+    if grep -Eqi \
+        'ZONE_RESOURCE_POOL_EXHAUSTED|resource pool exhausted|does not have enough resources|QUOTA_EXCEEDED|quota.*exceeded' \
+        "$attempt_log"; then
+      printf 'Capacity or quota unavailable in %s; trying the next zone.\n' "$candidate_zone"
+      continue
+    fi
+
+    die "instance creation failed in $candidate_zone; see $attempt_log"
+  done
+  [[ -n "$selected_zone" ]] ||
+    die "no requested zone had capacity/quota for $machine_type"
+fi
+
+if ! instance_description="$(
+  gcloud compute instances describe "$instance_name" \
+    --project="$project" --zone="$selected_zone" \
+    --format=json
+)"; then
+  die "could not inspect $instance_name"
+fi
+actual_machine_type="$(jq -er '.machineType | split("/")[-1]' \
+  <<<"$instance_description")"
+[[ "$actual_machine_type" == "$machine_type" ]] ||
+  die "existing instance uses $actual_machine_type, expected $machine_type"
+if ! jq -e '((.serviceAccounts // []) | length) == 0' \
+    <<<"$instance_description" >/dev/null; then
+  die "existing instance has a service account; refusing to install"
+fi
+if ! jq -e '.canIpForward == true and .deletionProtection == true' \
+    <<<"$instance_description" >/dev/null; then
+  die "existing instance is missing IP forwarding or deletion protection"
+fi
+if jq -e '.shieldedInstanceConfig.enableSecureBoot == true' \
+    <<<"$instance_description" >/dev/null; then
+  die "existing instance has Secure Boot enabled; disable it before installing NixOS"
+fi
+instance_status="$(jq -er '.status' <<<"$instance_description")"
+case "$instance_status" in
+  RUNNING|TERMINATED|SUSPENDED)
+    ;;
+  *)
+    die "instance is $instance_status; wait for RUNNING, TERMINATED, or SUSPENDED and rerun"
+    ;;
+esac
+boot_disk_device_name="$(jq -er '
+  [.disks[] | select(.boot == true)] |
+  if length == 1 then .[0].deviceName else error("expected exactly one boot disk") end
+' <<<"$instance_description")"
+boot_disk_interface="$(jq -er '
+  [.disks[] | select(.boot == true)][0].interface
+' <<<"$instance_description")"
+boot_disk_source="$(jq -er '
+  [.disks[] | select(.boot == true)][0].source
+' <<<"$instance_description")"
+[[ "$boot_disk_interface" == "NVME" ]] ||
+  die "existing boot disk uses $boot_disk_interface, expected NVME"
+[[ "$boot_disk_device_name" =~ ^[a-zA-Z0-9._-]+$ ]] ||
+  die "unsafe GCE boot-disk device name: $boot_disk_device_name"
+if ! jq -e '
+    [.disks[] | select(.boot == true)][0] |
+    .autoDelete == false and .mode == "READ_WRITE" and .type == "PERSISTENT"
+  ' <<<"$instance_description" >/dev/null; then
+  die "existing boot disk has unsafe attachment settings"
+fi
+if ! jq -e '
+    (.networkInterfaces | length) == 1 and
+    .networkInterfaces[0].nicType == "GVNIC" and
+    .networkInterfaces[0].accessConfigs[0].networkTier == "PREMIUM"
+  ' <<<"$instance_description" >/dev/null; then
+  die "existing instance does not use the expected single Premium gVNIC"
+fi
+
+boot_disk_name="${boot_disk_source##*/}"
+[[ "$boot_disk_name" =~ ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$ ]] ||
+  die "unsafe GCE boot-disk resource name: $boot_disk_name"
+if ! boot_disk_description="$(
+  gcloud compute disks describe "$boot_disk_name" \
+    --project="$project" --zone="$selected_zone" --format=json
+)"; then
+  die "could not inspect GCE boot disk $boot_disk_name"
+fi
+gce_boot_disk_id="$(jq -er '.id | strings | select(test("^[0-9]+$"))' \
+  <<<"$boot_disk_description")"
+if ! jq -e \
+    --arg size "$disk_size_gb" \
+    --arg type "$disk_type" \
+    --arg iops "$disk_iops" \
+    --arg throughput "$disk_throughput" '
+      .sizeGb == $size and
+      (.type | split("/")[-1]) == $type and
+      .provisionedIops == $iops and
+      .provisionedThroughput == $throughput
+    ' <<<"$boot_disk_description" >/dev/null; then
+  die "existing boot disk does not match the requested Hyperdisk"
+fi
+
+# Reapply the deterministic bootstrap on every run.  This repairs a run that
+# was interrupted after instance creation but before the guest installed the
+# root key.  Keep it in metadata until pinned root SSH succeeds below.
+gcloud compute instances add-metadata "$instance_name" \
+  --project="$project" \
+  --zone="$selected_zone" \
+  --metadata=enable-oslogin=FALSE,block-project-ssh-keys=TRUE \
+  --metadata-from-file="startup-script=$startup_script" \
+  --quiet
+if ! instance_description="$(
+  gcloud compute instances describe "$instance_name" \
+    --project="$project" --zone="$selected_zone" --format=json
+)"; then
+  die "could not verify hardened instance metadata"
+fi
+expected_startup_script="$(<"$startup_script")"
+if ! actual_startup_script="$(jq -er '
+    [.metadata.items[]? | select(.key == "startup-script").value] |
+    if length == 1 then .[0] else error("missing bootstrap startup script") end
+  ' <<<"$instance_description")" ||
+    [[ "$actual_startup_script" != "$expected_startup_script" ]]; then
+  die "instance does not contain the expected bootstrap startup script"
+fi
+if ! jq -e '
+    any(.metadata.items[]?;
+      .key == "block-project-ssh-keys" and (.value | ascii_upcase) == "TRUE")
+    and
+    any(.metadata.items[]?;
+      .key == "enable-oslogin" and (.value | ascii_upcase) == "FALSE")
+  ' <<<"$instance_description" >/dev/null; then
+  die "hardened SSH metadata was not applied"
+fi
+
+# Remove every other instance-level SSH or metadata-script channel before the
+# first operator connection.  The verified bootstrap stays until SSH succeeds.
+pre_ssh_metadata_keys=(
+  ssh-keys
+  sshKeys
+  startup-script-url
+  shutdown-script
+  shutdown-script-url
+)
+remove_instance_metadata_keys "${pre_ssh_metadata_keys[@]}"
+
+case "$instance_status" in
+  RUNNING)
+    ;;
+  TERMINATED)
+    printf 'Starting stopped instance %s.\n' "$instance_name"
+    gcloud compute instances start "$instance_name" \
+      --project="$project" --zone="$selected_zone" --quiet
+    ;;
+  SUSPENDED)
+    printf 'Resuming suspended instance %s.\n' "$instance_name"
+    gcloud compute instances resume "$instance_name" \
+      --project="$project" --zone="$selected_zone" --quiet
+    ;;
+  *)
+    die "instance is $instance_status; wait for RUNNING, TERMINATED, or SUSPENDED and rerun"
+    ;;
+esac
+
+external_ip=""
+for ((attempt = 1; attempt <= 60; attempt++)); do
+  external_ip="$(
+    gcloud compute instances describe "$instance_name" \
+      --project="$project" --zone="$selected_zone" \
+      --format='value(networkInterfaces[0].accessConfigs[0].natIP)'
+  )"
+  [[ -n "$external_ip" ]] && break
+  sleep 5
+done
+[[ -n "$external_ip" ]] || die "instance has no external IPv4 address"
+
+known_hosts="$state_dir/known_hosts"
+touch "$known_hosts"
+chmod 0600 "$known_hosts"
+ssh_common_options=(
+  -i "$identity_file"
+  -o BatchMode=yes
+  -o ConnectTimeout=10
+  -o IdentitiesOnly=yes
+  -o "UserKnownHostsFile=$known_hosts"
+)
+bootstrap_ssh_options=(
+  "${ssh_common_options[@]}"
+  -o StrictHostKeyChecking=accept-new
+)
+
+printf 'Waiting for root SSH at %s...\n' "$external_ip"
+wait_for_root_ssh() {
+  local max_attempts="$1"
+  local attempt
+
+  for ((attempt = 1; attempt <= max_attempts; attempt++)); do
+    if ssh "${bootstrap_ssh_options[@]}" \
+        "root@$external_ip" true 2>/dev/null; then
+      return 0
+    fi
+    if ((attempt < max_attempts)); then
+      sleep 5
+    fi
+  done
+  return 1
+}
+
+# A reused RUNNING or SUSPENDED guest will not execute newly attached startup
+# metadata.  First avoid disrupting it if the operator key already works; if it
+# does not, require an explicit hard reboot so the verified bootstrap executes.
+initial_ssh_attempts=60
+if [[ "$instance_reused" == true &&
+      ("$instance_status" == RUNNING || "$instance_status" == SUSPENDED) ]]; then
+  initial_ssh_attempts=3
+fi
+if ! wait_for_root_ssh "$initial_ssh_attempts"; then
+  confirm_exact \
+    "reboot $instance_name" \
+    "Root SSH is unavailable. A hard reboot is required to run the verified bootstrap script."
+  gcloud compute instances reset "$instance_name" \
+    --project="$project" --zone="$selected_zone" --quiet
+  printf 'Waiting for root SSH after reboot...\n'
+  wait_for_root_ssh 60 ||
+    die "root SSH did not become ready within five minutes after reboot"
+fi
+
+ssh-keygen -F "$external_ip" -f "$known_hosts" >/dev/null ||
+  die "SSH succeeded without recording a host key for $external_ip"
+ssh_options=(
+  "${ssh_common_options[@]}"
+  -o StrictHostKeyChecking=yes
+)
+ssh "${ssh_options[@]}" "root@$external_ip" true ||
+  die "could not verify root SSH with the recorded host key"
+printf 'Pinned SSH host key:\n'
+ssh-keygen -l -f "$known_hosts"
+
+# Older instances created by an earlier version of this script may not have
+# received AllowUsers=root from their startup script.  Tighten Debian before
+# doing anything destructive; kexec and installed NixOS both use root anyway.
+ssh "${ssh_options[@]}" "root@$external_ip" 'set -eu
+  if [ -e /etc/debian_version ]; then
+    install -d -m 0755 /etc/ssh/sshd_config.d
+    cat > /etc/ssh/sshd_config.d/99-nixos-anywhere.conf <<SSHD_CONFIG
+PermitRootLogin prohibit-password
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+AllowUsers root
+SSHD_CONFIG
+    systemctl reload ssh 2>/dev/null || systemctl reload sshd
+  fi'
+
+# The bootstrap has completed.  Remove and verify every metadata key that can
+# add an SSH principal or execute code in the guest before wiping the disk.
+remove_instance_metadata_keys \
+  ssh-keys \
+  sshKeys \
+  startup-script \
+  startup-script-url \
+  shutdown-script \
+  shutdown-script-url
+printf 'Instance SSH-key and metadata-script channels are absent.\n'
+
+saved_cloud_devbox_config=""
+if [[ -f "$host_dir/cloud-devbox.nix" ]]; then
+  saved_cloud_devbox_config="$host_dir/cloud-devbox.nix"
+elif [[ -f "$generated_dir/cloud-devbox.nix" ]]; then
+  saved_cloud_devbox_config="$generated_dir/cloud-devbox.nix"
+fi
+
+root_boot_eui=""
+if root_boot_eui="$(
+  ssh "${ssh_options[@]}" "root@$external_ip" 'set -eu
+    root_source=$(findmnt -n -o SOURCE /)
+    root_device=$(readlink -f "$root_source")
+    parent=$(lsblk -npo PKNAME "$root_device" | head -n1)
+    if [ -z "$parent" ]; then parent="$root_device"; fi
+    [ -b "$parent" ] || exit 1
+    for candidate in /dev/disk/by-id/nvme-eui.*; do
+      [ -e "$candidate" ] || continue
+      if [ "$(readlink -f "$candidate")" = "$parent" ]; then
+        printf "%s\n" "$candidate"
+        exit 0
+      fi
+    done
+    exit 1'
+)"; then
+  validate_disk_path "$root_boot_eui"
+fi
+
+gce_alias_path="/dev/disk/by-id/google-$boot_disk_device_name"
+alias_boot_eui=""
+if alias_boot_eui="$(
+  ssh "${ssh_options[@]}" "root@$external_ip" \
+    sh -s -- "$gce_alias_path" <<'REMOTE_DISK_LOOKUP'
+set -eu
+alias_path="$1"
+[ -e "$alias_path" ] || exit 1
+alias_device=$(readlink -f "$alias_path")
+for candidate in /dev/disk/by-id/nvme-eui.*; do
+  [ -e "$candidate" ] || continue
+  if [ "$(readlink -f "$candidate")" = "$alias_device" ]; then
+    printf '%s\n' "$candidate"
+    exit 0
+  fi
+done
+exit 1
+REMOTE_DISK_LOOKUP
+)"; then
+  validate_disk_path "$alias_boot_eui"
+fi
+
+if [[ -n "$root_boot_eui" && -n "$alias_boot_eui" &&
+      "$root_boot_eui" != "$alias_boot_eui" ]]; then
+  die "running root and GCE boot-disk alias resolve to different NVMe devices"
+fi
+observed_boot_eui="${root_boot_eui:-$alias_boot_eui}"
+
+saved_boot_eui=""
+saved_gce_boot_disk_id=""
+if [[ -n "$saved_cloud_devbox_config" ]]; then
+  if ! saved_cloud_devbox_json="$(
+    nix eval --json --file "$saved_cloud_devbox_config"
+  )"; then
+    die "could not evaluate saved disk configuration: $saved_cloud_devbox_config"
+  fi
+  saved_hostname="$(jq -er '.hostname' <<<"$saved_cloud_devbox_json")"
+  [[ "$saved_hostname" == "$hostname" ]] ||
+    die "$saved_cloud_devbox_config belongs to hostname $saved_hostname"
+  if ! saved_boot_eui="$(jq -er '.cloudDevboxDisk' \
+      <<<"$saved_cloud_devbox_json")"; then
+    die "saved cloud devbox configuration has no boot-disk path"
+  fi
+  validate_disk_path "$saved_boot_eui"
+  saved_gce_boot_disk_id="$(jq -r '.gceBootDiskId // ""' \
+    <<<"$saved_cloud_devbox_json")"
+  if [[ -n "$saved_gce_boot_disk_id" &&
+        ! "$saved_gce_boot_disk_id" =~ ^[0-9]+$ ]]; then
+    die "saved GCE boot-disk ID is invalid"
+  fi
+  if [[ -n "$saved_gce_boot_disk_id" &&
+        "$saved_gce_boot_disk_id" != "$gce_boot_disk_id" ]]; then
+    die "recorded disk ID no longer matches the instance's GCE boot disk"
+  fi
+fi
+
+cloud_devbox_disk=""
+if [[ -n "$observed_boot_eui" ]]; then
+  if [[ -n "$saved_boot_eui" &&
+        "$saved_boot_eui" != "$observed_boot_eui" ]]; then
+    die "recorded NVMe EUI no longer resolves to the observed GCE boot disk"
+  fi
+  cloud_devbox_disk="$observed_boot_eui"
+  printf 'Verified boot disk from the running guest: %s\n' \
+    "$cloud_devbox_disk"
+elif [[ -n "$saved_boot_eui" ]]; then
+  # In nixos-anywhere's kexec image, / is an initramfs and the google-* udev
+  # alias is unavailable.  Resume only if the saved EUI exists and its saved
+  # immutable GCE disk resource ID still matches the current boot attachment.
+  [[ -n "$saved_gce_boot_disk_id" ]] ||
+    die "cannot verify a recorded boot disk after kexec without its GCE disk ID"
+  [[ "$saved_gce_boot_disk_id" == "$gce_boot_disk_id" ]] ||
+    die "recorded GCE disk ID does not match the current boot disk"
+  if ! ssh "${ssh_options[@]}" "root@$external_ip" \
+      test -b "$saved_boot_eui"; then
+    die "recorded NVMe EUI is not an attached block device"
+  fi
+  cloud_devbox_disk="$saved_boot_eui"
+  printf 'Verified recorded boot disk for kexec resume: %s\n' \
+    "$cloud_devbox_disk"
+else
+  die "could not prove which NVMe EUI belongs to the GCE boot disk"
+fi
+validate_disk_path "$cloud_devbox_disk"
+
+disk_nix="$(nix_string "$cloud_devbox_disk")"
+gce_boot_disk_id_nix="$(nix_string "$gce_boot_disk_id")"
+
+cat >"$generated_dir/cloud-devbox.nix" <<EOF
+{
+  hostname = $hostname_nix;
+  username = $username_nix;
+  cloudDevboxDisk = $disk_nix;
+  gceBootDiskId = $gce_boot_disk_id_nix;
+  resticRepository = null;
+  gitUserName = $git_name_nix;
+  gitUserEmail = $git_email_nix;
+  gitSigningKey = $git_signing_key_nix;
+  githubIdentityFile = $github_identity_nix;
+}
+EOF
+
+generated_names=(
+  default.nix
+  home.nix
+  hardware-configuration.nix
+  cloud-devbox.nix
+)
+for generated_name in "${generated_names[@]}"; do
+  preflight_generated_file \
+    "$generated_dir/$generated_name" \
+    "$host_dir/$generated_name"
+done
+for generated_name in "${generated_names[@]}"; do
+  # cloud-devbox.nix is deliberately installed last: it is the marker that
+  # makes flake.nix expose this directory as a NixOS configuration.
+  install_generated_file \
+    "$generated_dir/$generated_name" \
+    "$host_dir/$generated_name"
+done
+
+new_wizardtower="$(
+  nix eval --raw "$flake_ref#nixosConfigurations.wizardtower.config.system.build.toplevel.drvPath"
+)"
+new_moonbinder="$(
+  nix eval --raw "$flake_ref#nixosConfigurations.moonbinder.config.system.build.toplevel.drvPath"
+)"
+[[ "$new_wizardtower" == "$baseline_wizardtower" ]] ||
+  die "wizardtower derivation changed while adding $hostname"
+[[ "$new_moonbinder" == "$baseline_moonbinder" ]] ||
+  die "moonbinder derivation changed while adding $hostname"
+
+new_system="$(
+  nix eval --raw "$flake_ref#nixosConfigurations.$hostname.config.system.build.toplevel.drvPath"
+)"
+nix flake check --no-build "$flake_ref"
+nixos_anywhere_package="$(
+  nix build --no-link --print-out-paths \
+    "$flake_ref#nixos-anywhere-host-key-pinned"
+)"
+nixos_anywhere="$nixos_anywhere_package/bin/nixos-anywhere"
+[[ -x "$nixos_anywhere" ]] ||
+  die "patched nixos-anywhere executable was not built"
+
+printf 'Generated and validated %s.\n' "$host_dir"
+printf 'System derivation: %s\n' "$new_system"
+printf 'Instance: %s (%s, %s)\n' "$instance_name" "$selected_zone" "$external_ip"
+git -C "$repo_root" status -sb
+
+confirm_exact \
+  "wipe $instance_name" \
+  "nixos-anywhere will now erase the Debian boot disk and install $hostname."
+
+"$nixos_anywhere" \
+  --flake "$flake_ref#$hostname" \
+  --target-host "root@$external_ip" \
+  -i "$identity_file" \
+  --ssh-option "UserKnownHostsFile=$known_hosts" \
+  --ssh-option StrictHostKeyChecking=yes \
+  --build-on local \
+  --copy-host-keys
+
+printf 'Waiting for NixOS to return...\n'
+nixos_ready=false
+for ((attempt = 1; attempt <= 60; attempt++)); do
+  if remote_hostname="$(
+      ssh "${ssh_options[@]}" "root@$external_ip" hostname 2>/dev/null
+    )" && [[ "$remote_hostname" == "$hostname" ]]; then
+    nixos_ready=true
+    break
+  fi
+  sleep 5
+done
+[[ "$nixos_ready" == true ]] ||
+  die "installation finished, but NixOS did not return within five minutes"
+
+# Recheck the handoff boundary after the final reboot.  The installed module
+# also disables metadata accounts and script units, but the GCE resource itself
+# must remain free of these channels and metadata credentials.
+remove_instance_metadata_keys \
+  ssh-keys \
+  sshKeys \
+  startup-script \
+  startup-script-url \
+  shutdown-script \
+  shutdown-script-url
+if ! final_instance_description="$(
+  gcloud compute instances describe "$instance_name" \
+    --project="$project" --zone="$selected_zone" --format=json
+)"; then
+  die "could not verify the installed instance's GCE identity"
+fi
+if ! jq -e '
+    ((.serviceAccounts // []) | length) == 0 and
+    any(.metadata.items[]?;
+      .key == "block-project-ssh-keys" and (.value | ascii_upcase) == "TRUE")
+  ' <<<"$final_instance_description" >/dev/null; then
+  die "installed instance failed final service-account/SSH metadata verification"
+fi
+
+cat <<EOF
+
+$hostname is running NixOS at $external_ip.
+
+Next, connect as the developer and complete interactive onboarding:
+  ssh -i $(printf '%q' "$identity_file") $username@$external_ip
+  sudo tailscale up
+
+Then generate ~/.ssh/$hostname for GitHub authentication/signing, register its
+public key on GitHub, clone the dotfiles into ~/Projects/dotfiles, and authenticate
+gh, Codex, and Claude. Restic is disabled.
+EOF
