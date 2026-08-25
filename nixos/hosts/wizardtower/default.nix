@@ -8,7 +8,9 @@
   environment.systemPackages = [ pkgs.google-cloud-sdk ];
 
   # No real monitor — drives a Ugreen HDMI dummy plug for Sunshine streaming.
-  # Disables idle-driven monitor power-off (see modules/options.nix).
+  # Disables the whole idle/lock stack, not just monitor power-off: swayidle
+  # is switched off here entirely (see modules/options.nix for why each of
+  # its jobs is inert on a headless host).
   local.headlessDisplay = true;
 
   # Exit node — route other tailnet peers' internet egress through this host.

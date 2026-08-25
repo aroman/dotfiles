@@ -363,29 +363,42 @@ in
   # POSSIBLY REDUNDANT UNDER v5: noctalia 5.0.0-beta.7 added its own
   # lock-before-sleep via a logind delay inhibit, the same mechanism this
   # block exists to provide, and v5 also has a native [idle] config with
-  # its own timeouts.  Left in place deliberately — double-locking is
-  # harmless, failing to lock before suspend is not.  Retire this only
-  # after watching a few real suspends with it removed.
+  # its own timeouts.  Left in place deliberately on hosts with a real
+  # display — double-locking is harmless, failing to lock before suspend
+  # is not.
+  #
+  # Disabled outright on headlessDisplay hosts, where every job this block
+  # does is already gated off or simply dead: monitor power-off is skipped
+  # by definition, and before-sleep cannot fire on a host that never
+  # suspends (wizardtower's /sys/power/suspend_stats has read 0 success /
+  # 0 fail for its entire logged history) — noctalia holds its own "Lock
+  # before sleep" delay inhibitor there besides.  All that remained was an
+  # idle lock firing into a headless dummy plug.  This also retires the
+  # old "remove it after watching a few real suspends" note, which was
+  # unsatisfiable on exactly the host it mattered for: there are no
+  # suspends there to watch.
+  #
+  # The lock command must be an absolute store path.  swayidle.service runs
+  # with Environment=PATH set to bash-interactive/bin alone, so a bare
+  # `noctalia` does not resolve — every lock silently no-opped with
+  # "noctalia: command not found", which is how this went unnoticed.
   # Ref: https://github.com/niri-wm/niri/wiki/Example-systemd-Setup
   # Ref: https://man.archlinux.org/man/swayidle.1
   services.swayidle = {
-    enable = true;
-    timeouts = lib.optionals (!osConfig.local.headlessDisplay) [
+    enable = !osConfig.local.headlessDisplay;
+    timeouts = [
       # Power off monitors after 10 minutes idle.
       # Any input (mouse move, keypress) wakes them back up.
-      # Skipped on headlessDisplay hosts: powering off the dummy plug
-      # tears down the CRTC, which breaks Sunshine's KMS capture.
       { timeout = 600; command = "${pkgs.niri-unstable}/bin/niri msg action power-off-monitors"; }
-    ] ++ [
       # Lock the session after 15 minutes idle.
-      { timeout = 900; command = "noctalia msg session lock"; }
+      { timeout = 900; command = "${pkgs.noctalia}/bin/noctalia msg session lock"; }
     ];
     events = {
       # Lock the session before systemd suspends (lid close, idle, manual).
       # swayidle's delay inhibitor holds off sleep until this returns.
-      before-sleep = "noctalia msg session lock";
+      before-sleep = "${pkgs.noctalia}/bin/noctalia msg session lock";
       # Also lock when any external caller does `loginctl lock-session`.
-      lock = "noctalia msg session lock";
+      lock = "${pkgs.noctalia}/bin/noctalia msg session lock";
     };
   };
 
