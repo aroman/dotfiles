@@ -152,14 +152,31 @@
               # main prompt title via a bundled fluent translation. Patch
               # the en-US locale to drop the prefix, leaving just the
               # hostname.
+              #
+              # 0.11.0 moved the locales out of contrib/ and into their own
+              # crate, renaming the file in the process:
+              #   contrib/locales/en-US/tuigreet.ftl
+              #   -> crates/tuigreet-locales/locales/en-US/tuigreet-locales.ftl
+              # The old path silently vanished, and because substitute()
+              # errors on a missing file this broke the build outright on
+              # every host rather than degrading quietly. Keep --replace-fail
+              # so a future string change fails loudly here too.
               (final: prev: {
                 tuigreet = prev.tuigreet.overrideAttrs (old: {
                   postPatch = (old.postPatch or "") + ''
-                    substituteInPlace contrib/locales/en-US/tuigreet.ftl \
+                    substituteInPlace crates/tuigreet-locales/locales/en-US/tuigreet-locales.ftl \
                       --replace-fail \
                         'title_authenticate = Authenticate into {$hostname}' \
                         'title_authenticate = {$hostname}'
                   '';
+                  # show_wrapped_greet asserts on the exact title string the
+                  # patch above rewrites, so it necessarily fails once the
+                  # prefix is gone. Skip that one case rather than turning
+                  # off doCheck — the other 90 tests still run and still
+                  # guard the package.
+                  checkFlags = (old.checkFlags or [ ]) ++ [
+                    "--skip=integration::display::show_wrapped_greet"
+                  ];
                 });
               })
             ];
