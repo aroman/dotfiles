@@ -218,8 +218,16 @@
         ACTION="''${2:-}"
         [ "$IFACE" = "lo" ] && exit 0
 
+        # Every external binary is pinned. nm-dispatcher runs this with a
+        # minimal PATH and a missing one fails *silently*: an unresolved
+        # `awk` left gw empty, so the script hit the IPv4-only branch below,
+        # flushed the chain and exited 0 on every single event. The RA filter
+        # this whole block exists to install has therefore never actually
+        # been installed — fail-open, unnoticed, since at least 2026-05-25.
         NFT=${pkgs.nftables}/bin/nft
         IP=${pkgs.iproute2}/bin/ip
+        AWK=${pkgs.gawk}/bin/awk
+        SLEEP=${pkgs.coreutils}/bin/sleep
 
         flush_chain() {
           $NFT flush chain ip6 ra-filter input 2>/dev/null || true
@@ -231,9 +239,9 @@
             gw=""
             for _ in 1 2 3 4 5 6 7 8 9 10; do
               gw=$($IP -6 route show default dev "$IFACE" 2>/dev/null \
-                | awk '/^default via/ {print $3; exit}')
+                | $AWK '/^default via/ {print $3; exit}')
               [ -n "$gw" ] && break
-              sleep 1
+              $SLEEP 1
             done
             # IPv4-only network (no v6 gateway) — leave RAs unfiltered.
             [ -z "$gw" ] && { flush_chain; exit 0; }
@@ -242,9 +250,9 @@
             mac=""
             for _ in 1 2 3 4 5; do
               mac=$($IP -6 neigh show "$gw" dev "$IFACE" 2>/dev/null \
-                | awk '/lladdr/ {print $5; exit}')
+                | $AWK '/lladdr/ {print $5; exit}')
               [ -n "$mac" ] && break
-              sleep 1
+              $SLEEP 1
             done
             [ -z "$mac" ] && { flush_chain; exit 0; }
 
