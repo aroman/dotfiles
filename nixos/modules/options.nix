@@ -6,8 +6,10 @@
       type = lib.types.bool;
       default = false;
       description = ''
-        Whether this host drives only a virtual/dummy display (e.g. an HDMI
-        dummy plug for headless GPU streaming) rather than a real monitor.
+        Whether this host has no real monitor — either because it drives a
+        virtual/dummy display (an HDMI dummy plug for headless GPU
+        streaming), or because it has no display at all (a cloud devbox
+        reached only over SSH).
 
         When true, the whole idle/lock stack is skipped — not just monitor
         power-off — because none of it has anything to act on:
