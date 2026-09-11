@@ -92,32 +92,77 @@
     # shell. That defeats Nix 2.35's lazy flake-source copying and writes the
     # entire source tree to /nix/store for every dirty worktree. Keep
     # nix-direnv's other helpers, but restore a lazy `use flake` implementation.
+    #
+    # Cache the evaluated dev env in the layout dir the way nix-direnv does,
+    # keyed on flake.nix/flake.lock mtimes. Without a cache every new shell
+    # re-runs `nix print-dev-env`, and in a worktree with edits the flake's
+    # fingerprint changes with them, so Nix's eval cache misses and the shell
+    # waits out a full re-evaluation. A cache hit runs no nix at all.
+    #
+    # Uses nix-direnv's `_nix_import_env` and `_nix_argsum_suffix`, which are
+    # in scope because nix-direnv's direnvrc is sourced above this.
     direnvrcExtra = ''
       use_flake() {
         local flake_ref="''${1:-.}"
         local flake_uri="''${flake_ref%%#*}"
         local flake_dir="''${flake_uri#path:}"
-        local layout_dir profile dev_env
-
-        if [[ "$(nix --extra-experimental-features nix-command eval --raw --expr 'if builtins.compareVersions builtins.nixVersion "2.35" >= 0 then "yes" else "no"')" != yes ]]; then
-          log_error "lazy flake activation requires Nix 2.35 or newer"
-          return 1
-        fi
+        local layout_dir profile profile_rc dev_env
 
         if [[ -d "$flake_dir" ]]; then
           watch_file "$flake_dir/flake.nix" "$flake_dir/flake.lock"
         fi
 
         layout_dir="$(direnv_layout_dir)"
-        profile="$layout_dir/flake-profile"
+        # Suffix the cache by flake expression, so `use flake` and
+        # `use flake .#mobile` in one directory cannot read each other's env.
+        profile="$layout_dir/flake-profile$(_nix_argsum_suffix "''${1-}")"
+        profile_rc="$profile.rc"
         mkdir -p "$layout_dir"
 
-        if ! dev_env="$(nix --extra-experimental-features 'nix-command flakes' print-dev-env --profile "$profile" "$@")"; then
-          return 1
+        local stale=0 file
+        if [[ ! -e "$profile" || ! -e "$profile_rc" ]] ||
+           [[ -n "''${_nix_direnv_force_reload-}" ]]; then
+          stale=1
+        else
+          for file in "$flake_dir/flake.nix" "$flake_dir/flake.lock" \
+                      "$HOME/.direnvrc" "$HOME/.config/direnv/direnvrc"; do
+            if [[ -e "$file" && "$file" -nt "$profile_rc" ]]; then
+              stale=1
+            fi
+          done
         fi
 
-        eval "$dev_env"
-        nix --extra-experimental-features 'nix-command flakes' profile wipe-history --profile "$profile"
+        if (( stale )); then
+          # Assert the Nix version only on a miss: a hit invokes no nix at all,
+          # and an older nix would merely fall back to copying the whole source
+          # tree — slow, not wrong.
+          if [[ "$(nix --extra-experimental-features nix-command eval --raw --expr 'if builtins.compareVersions builtins.nixVersion "2.35" >= 0 then "yes" else "no"')" != yes ]]; then
+            log_error "lazy flake activation requires Nix 2.35 or newer"
+            return 1
+          fi
+
+          if dev_env="$(nix --extra-experimental-features 'nix-command flakes' print-dev-env --profile "$profile" "$@")"; then
+            # Write through a temp file: two terminals opening at once after a
+            # flake.lock change would otherwise race, and a reader can see a
+            # half-written rc. Rename within the layout dir is atomic.
+            printf '%s\n' "$dev_env" > "$profile_rc.$$"
+            mv -f "$profile_rc.$$" "$profile_rc"
+            nix --extra-experimental-features 'nix-command flakes' profile wipe-history --profile "$profile"
+          elif [[ -e "$profile_rc" ]]; then
+            # A tracked file can be mid-edit (a half-written package.json is not
+            # JSON). Keep the last good env rather than handing out a shell with
+            # no toolchain, and say so.
+            log_error "evaluating the devShell failed; falling back to the cached environment"
+          else
+            return 1
+          fi
+        fi
+
+        watch_file "$profile_rc"
+        # nix-direnv's importer, not a bare `eval`: it restores TMPDIR and
+        # friends (print-dev-env points them at a throwaway build dir it then
+        # leaves behind) and de-duplicates XDG_DATA_DIRS.
+        _nix_import_env "$profile_rc"
       }
     '';
   };
