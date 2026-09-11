@@ -74,14 +74,28 @@
     openFirewall = true;
   };
 
-  # SSH only: no password/PAM fallback and no public Mosh UDP range.
-  programs.mosh.enable = lib.mkForce false;
+  # SSH: no password/PAM fallback.
   services.openssh.settings = {
     PasswordAuthentication = false;
     KbdInteractiveAuthentication = false;
     PermitRootLogin = "prohibit-password";
     AllowUsers = [ "root" username ];
   };
+
+  # Mosh, tailnet-only. common.nix enables it for every host; what was
+  # unacceptable here was the nixpkgs module's openFirewall default, which
+  # opens UDP 60000-61000 on *every* interface — including this host's public
+  # GCE address. Scope the range to tailscale0 rather than drop mosh entirely.
+  #
+  # mosh-server still binds 0.0.0.0, but only tailnet peers can reach it, and
+  # the tailnet is the only path in use anyway: the client SSHes to the tailnet
+  # address to spawn mosh-server, then sends its UDP datagrams to that same
+  # address. useRoutingFeatures is "client" here, so tailscale0 is *not* in
+  # firewall.trustedInterfaces and this per-interface rule is load-bearing.
+  programs.mosh.openFirewall = false;
+  networking.firewall.interfaces.tailscale0.allowedUDPPortRanges = [
+    { from = 60000; to = 61000; }
+  ];
 
   # The primary user intentionally has no password on remote-only hosts.
   security.sudo.wheelNeedsPassword = false;
