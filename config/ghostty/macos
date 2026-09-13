@@ -23,3 +23,7 @@ keybind = super+backspace=text:\x15
 
 # Bell sound
 bell-audio-path = /Users/aroman/Library/Sounds/ghostty-bell-options/2-blop.mp3
+
+# Auto secure input gets stuck holding EnableSecureEventInput, which blocks
+# Raycast snippets/hotkeys and Wispr Flow dictation system-wide.
+macos-auto-secure-input = false
