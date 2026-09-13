@@ -7,6 +7,10 @@ if status --is-interactive; and test (uname) = Darwin
     end
 end
 
+# Casks like Chrome, Slack, Zoom ship their own updaters. Let them self-update
+# instead of having `brew upgrade` yank the app out from under a running copy.
+set -gx HOMEBREW_NO_UPGRADE_AUTO_UPDATES_CASKS 1
+
 if test (uname) = Darwin
     set -g DOTFILES_DIR ~/.dotfiles
 else
