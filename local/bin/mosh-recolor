@@ -1,0 +1,161 @@
+#!/usr/bin/env python3
+"""Recolor mosh-client's "Last contact ..." notification bar.
+
+mosh hardcodes the bar to fg color 7 / bg color 4 (terminaloverlay.cc), with no
+flag or env var to change it -- upstream master still does. Rather than
+maintain a patched build, this rewrites the four MOVZ immediates that feed
+Renditions::set_{foreground,background}_color inside NotificationEngine::apply,
+then re-signs the binary ad-hoc (editing it invalidates Homebrew's signature,
+and macOS SIGKILLs a binary whose signature doesn't match).
+
+Colors are ANSI palette indices 0-255, so the bar tracks whatever Ghostty theme
+is active instead of pinning a hex value.
+
+Re-run after `brew upgrade mosh` -- the new bottle lands unpatched.
+"""
+
+import argparse
+import re
+import shutil
+import struct
+import subprocess
+import sys
+
+APPLY = "__ZNK7Overlay18NotificationEngine5applyERN8Terminal11FramebufferE"
+SETTERS = {
+    "__ZN8Terminal10Renditions20set_foreground_colorEi": "fg",
+    "__ZN8Terminal10Renditions20set_background_colorEi": "bg",
+}
+
+# MOVZ Wd, #imm16  ->  0x52800000 | (imm16 << 5) | Rd
+MOVZ_MASK = 0xFFE0001F
+MOVZ_W1 = 0x52800001
+
+
+def movz_w1(imm):
+    return 0x52800000 | (imm << 5) | 1
+
+
+def die(msg):
+    sys.exit(f"mosh-recolor: {msg}")
+
+
+def text_slide(path):
+    """file offset = vmaddr - slide, for the __TEXT segment."""
+    out = subprocess.run(["otool", "-l", path], capture_output=True, text=True).stdout
+    seg = re.search(
+        r"segname __TEXT\n\s+vmaddr (0x[0-9a-f]+)\n\s+vmsize 0x[0-9a-f]+\n\s+fileoff (\d+)",
+        out,
+    )
+    if not seg:
+        die("could not locate the __TEXT segment")
+    return int(seg.group(1), 16) - int(seg.group(2))
+
+
+def apply_bounds(path):
+    """Address range of NotificationEngine::apply, bounded by the next symbol."""
+    out = subprocess.run(["nm", path], capture_output=True, text=True).stdout
+    syms = []
+    for line in out.splitlines():
+        parts = line.split()
+        if len(parts) == 3 and re.fullmatch(r"[0-9a-f]+", parts[0]):
+            syms.append((int(parts[0], 16), parts[2]))
+    start = next((a for a, n in syms if n == APPLY), None)
+    if start is None:
+        die(f"{path} has no {APPLY} symbol (stripped, or not mosh-client?)")
+    later = [a for a, _ in syms if a > start]
+    if not later:
+        die("could not bound NotificationEngine::apply")
+    return start, min(later)
+
+
+def find_sites(path, lo, hi):
+    """Every `mov w1, #imm` immediately followed by `bl set_{fg,bg}_color`."""
+    out = subprocess.run(["otool", "-tvV", path], capture_output=True, text=True).stdout
+    insns = []
+    for line in out.splitlines():
+        m = re.match(r"^([0-9a-f]{16})\t(.*)$", line)
+        if m:
+            addr = int(m.group(1), 16)
+            if lo <= addr < hi:
+                insns.append((addr, m.group(2)))
+
+    sites = []
+    for (addr, insn), (_, nxt) in zip(insns, insns[1:]):
+        mv = re.match(r"mov\s+w1, #(0x[0-9a-f]+|\d+)$", insn.strip())
+        if not mv or not nxt.strip().startswith("bl"):
+            continue
+        for sym, kind in SETTERS.items():
+            if sym in nxt:
+                sites.append((addr, kind, int(mv.group(1), 0)))
+    return sites
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--fg", type=int, default=3, help="foreground palette index (default: 3, yellow)")
+    p.add_argument("--bg", type=int, default=0, help="background palette index (default: 0, near-bg)")
+    p.add_argument("-n", "--dry-run", action="store_true", help="show the edits, change nothing")
+    p.add_argument("binary", nargs="?", help="path to mosh-client (default: first on PATH)")
+    args = p.parse_args()
+
+    for name, val in (("--fg", args.fg), ("--bg", args.bg)):
+        if not 0 <= val <= 255:
+            die(f"{name} must be 0-255, got {val}")
+
+    path = args.binary or shutil.which("mosh-client")
+    if not path:
+        die("no mosh-client on PATH")
+
+    slide = text_slide(path)
+    lo, hi = apply_bounds(path)
+    sites = find_sites(path, lo, hi)
+    if len(sites) != 4:
+        die(f"expected 4 color sites in NotificationEngine::apply, found {len(sites)} "
+            "-- mosh's overlay code has changed; re-check the disassembly")
+
+    want = {"fg": args.fg, "bg": args.bg}
+    edits = []
+    with open(path, "rb") as f:
+        blob = bytearray(f.read())
+
+    for addr, kind, cur in sites:
+        off = addr - slide
+        word = struct.unpack_from("<I", blob, off)[0]
+        if word & MOVZ_MASK != MOVZ_W1:
+            die(f"0x{addr:x} is not a `movz w1, #imm` (0x{word:08x}) -- refusing to patch")
+        new = movz_w1(want[kind])
+        edits.append((addr, off, kind, cur, want[kind], word != new))
+        struct.pack_into("<I", blob, off, new)
+
+    for addr, off, kind, cur, new, changed in edits:
+        state = "" if changed else "  (already set)"
+        print(f"  0x{addr:x} (+0x{off:x})  {kind}: {cur} -> {new}{state}")
+
+    if args.dry_run:
+        print("dry run, nothing written")
+        return
+    if not any(e[5] for e in edits):
+        print(f"{path} already uses fg={args.fg} bg={args.bg}")
+        return
+
+    # The file is mode 555; drop write back after.
+    import os, stat
+    mode = os.stat(path).st_mode
+    os.chmod(path, mode | stat.S_IWUSR)
+    try:
+        with open(path, "r+b") as f:
+            f.write(blob)
+    finally:
+        os.chmod(path, mode)
+
+    sign = subprocess.run(["codesign", "-f", "-s", "-", path], capture_output=True, text=True)
+    if sign.returncode != 0:
+        die(f"patched, but re-signing failed -- the binary will be killed on launch:\n{sign.stderr}")
+
+    print(f"patched and re-signed {path}")
+
+
+if __name__ == "__main__":
+    main()
