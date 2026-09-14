@@ -322,9 +322,30 @@ in
   };
 
   # ── Vicinae launcher ─────────────────────────────────────────────
-
+  #
+  # launchPrefix puts every app Vicinae starts into its own transient
+  # systemd scope.  Vicinae otherwise launches with a bare
+  # QProcess::startDetached, so launched apps inherit the vicinae.service
+  # cgroup — and systemd-oomd (enableUserSlices, monitoring app.slice)
+  # picks its kill candidates per cgroup.  One runaway app would take the
+  # launcher, clipboard daemon, file indexer, input server and every other
+  # Vicinae-launched app down with it.  KillMode=process in the upstream
+  # unit does not help here: oomd kills the whole cgroup, not the main pid.
+  #
+  # --scope, not a transient .service: the app stays a child of Vicinae and
+  # so keeps the XDG_ACTIVATION_TOKEN Vicinae minted for it, and focus still
+  # transfers.  Going through the user manager instead drops that env and
+  # apps open then immediately close.
+  #
+  # Vicinae would auto-detect `uwsm-app --` for this, but only when `uwsm
+  # check is-active` succeeds — never here (greetd → niri.service).  A uwsm
+  # session would also buy nicer scope names (app-<desktop-id>-<random>
+  # instead of run-p<pid>-i<n>); see the uwsm note in the swayidle block below.
+  # Ref: https://github.com/vicinaehq/vicinae/issues/1235
   programs.vicinae = {
     enable = true;
+    settings.providers.applications.preferences.launchPrefix =
+      "systemd-run --user --scope --quiet --collect --";
     systemd = {
       enable = true;
       autoStart = true;
