@@ -19,16 +19,16 @@
     # v5 is a ground-up C++ rewrite of the QML/Quickshell v4 line; the repo was
     # renamed noctalia-shell -> noctalia and the binary noctalia-shell ->
     # noctalia.  The noctalia-qs input is gone with it — nothing pulls
-    # Quickshell any more.  Still a beta: pin an exact tag, don't track a branch.
+    # Quickshell any more.  Pin an exact tag, don't track a branch.
     #
     # This input is used for its home-manager module ONLY, not its package.
     # Building nix/package.nix here would be a from-source C++ build; nixpkgs
-    # ships the identical 5.0.0-beta.7 prebuilt on cache.nixos.org, so
+    # ships the identical 5.1.0 prebuilt on cache.nixos.org, so
     # noctalia.nix overrides programs.noctalia.package with `pkgs.noctalia`.
     # Keep this tag and the nixpkgs `version` in lockstep when bumping — the
     # module and the package are versioned together upstream.
     noctalia = {
-      url = "github:noctalia-dev/noctalia/v5.0.0-beta.7";
+      url = "github:noctalia-dev/noctalia/v5.1.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

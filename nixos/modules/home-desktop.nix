@@ -215,7 +215,7 @@ in
     afterBtop = [
       resources
     ];
-    afterGemini = [
+    afterGcc = [
       zed-editor
     ];
     afterTypescript = [
@@ -228,11 +228,11 @@ in
     fuzzel       # Wayland dmenu/rofi — used for worktree picker etc.
     xdg-terminal-exec # XDG default terminal launcher — used by batman-picker
     slurp        # area selection for screen recording
-    # wf-recorder 0.6.0 still reads AVCodec.sample_fmts, which ffmpeg 9.0
-    # dropped (deprecated since 7.1), and nixpkgs' default ffmpeg is now
-    # 9.0 — so it no longer compiles.  Upstream ammen99/wf-recorder#350 is
-    # open; build against ffmpeg 8 until that lands in nixpkgs.
-    (wf-recorder.override { ffmpeg = ffmpeg_8; })  # Wayland screen recorder
+    # ammen99/wf-recorder#350 is still open (0.6.0 reads AVCodec.sample_fmts,
+    # which ffmpeg 9.0 dropped), but nixpkgs now takes `ffmpeg_8` as
+    # wf-recorder's own argument, so the local override is gone — `ffmpeg` is
+    # no longer a parameter and passing it fails evaluation outright.
+    wf-recorder  # Wayland screen recorder
     libnotify    # notify-send for desktop notifications
 
     # Media & audio
@@ -259,12 +259,12 @@ in
     celluloid
     video-trimmer
     newsflash
-    # Same ffmpeg 9.0 fallout as wf-recorder above: 6.1.0 reads
-    # AVCodec.pix_fmts, which 9.0 dropped.  Fixed upstream in
-    # moonlight-stream/moonlight-qt#1964 (2026-08-05) but unreleased —
-    # v6.1.0 is still the latest tag — so build against ffmpeg 8.
+    # Same story as wf-recorder above: 6.1.0 reads AVCodec.pix_fmts, dropped in
+    # ffmpeg 9.0, and the fix (moonlight-stream/moonlight-qt#1964) is merged but
+    # unreleased.  nixpkgs pins `ffmpeg_8` as moonlight-qt's own argument now,
+    # so no override here either.
     # Sunshine client — pairs with wizardtower/moonbinder sunshine hosts
-    (moonlight-qt.override { ffmpeg = ffmpeg_8; })
+    moonlight-qt
 
     # Browsers
     firefox

@@ -1,7 +1,8 @@
 # Noctalia v5 (native C++ rewrite; v4 was QML on Quickshell).
 #
-# v5 splits config into two layers, which is why this file can be fully
-# declarative where v4 could not:
+# v5 splits config into two layers, which is why this file is very nearly fully
+# declarative where v4 could not be (the wallpaper path is the one thing that
+# moved the other way in beta.8 — see the wallpaper block below):
 #
 #   ~/.config/noctalia/*.toml          read-only, generated here, merged
 #                                      alphabetically
@@ -237,14 +238,30 @@
         # claiming the same paths.  This list only decides which get loaded.
         plugins = {
           enabled = [ "aroman/voxtype" ];
-          auto_update = false;
+          # beta.9 turned this from a boolean into a scope (all|official|none).
+          # `false` still parses, but validate warns on it.
+          auto_update = "none";
         };
 
+        # The wallpaper *path* is deliberately not set here.  Through
+        # v5.0.0-beta.7 it lived in this file as wallpaper.default.path and
+        # wallpaper.monitors.<connector>.path; beta.8 removed both from the
+        # config schema and moved the current wallpaper into the state layer
+        # (~/.local/state/noctalia/settings.toml), written by the wallpaper
+        # panel or `noctalia msg wallpaper-set`.
+        #
+        # They are not deprecated-but-honoured: they are unknown *subtables*,
+        # which `noctalia config validate` does not descend into.  So a stale
+        # path here validates clean and the desktop renders blank — that is
+        # exactly how this broke on 2026-09-19.  Set it imperatively:
+        #   noctalia msg wallpaper-set eDP-1 ~/Pictures/Wallpapers/wallpaper.png
+        #
+        # `directory` is the part this layer can still own: the source the
+        # wallpaper panel browses and that automation picks from.
         wallpaper = {
           transition = [ "zoom" ];
           transition_on_startup = true;
-          default.path = "/home/aroman/Pictures/Wallpapers/wallpaper.png";
-          monitors.eDP-1.path = "/home/aroman/Pictures/Wallpapers/wallpaper.png";
+          directory = "/home/aroman/Pictures/Wallpapers";
         };
 
         lockscreen_widgets = {
