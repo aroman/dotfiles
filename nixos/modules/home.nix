@@ -10,7 +10,7 @@
     afterRcm = [];
     afterFzf = [];
     afterBtop = [];
-    afterGemini = [];
+    afterGcc = [];
     afterTypescript = [];
   },
   osConfig,
@@ -150,8 +150,7 @@ in
     neovim
     tree-sitter
     gcc # needed by tree-sitter to compile parsers
-    gemini-cli
-  ] ++ lib.optionals desktop desktopPackageSegments.afterGemini ++ [
+  ] ++ lib.optionals desktop desktopPackageSegments.afterGcc ++ [
     biome
     typescript-language-server
   ] ++ lib.optionals desktop desktopPackageSegments.afterTypescript ++ [
