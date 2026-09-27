@@ -188,14 +188,10 @@ layout {
         active-color "#ff2e4d"
         inactive-color "#1a2426"
 
-        // Magenta at top → cyan in the middle → red-orange at the bottom.
-        // Niri gradients only take two stops, so the middle color is whatever
-        // the oklch hue arc passes through. Cyan is hue 183.3, nearly opposite
-        // magenta at 335.5, so centering it forces the endpoint to hue 31 and
-        // makes the arc take the long way round — 304 of 360 degrees. That
-        // means the bottom half sweeps through green and yellow on its way to
-        // the endpoint. It is close to a full spectrum, by construction.
-        active-gradient from="#ff2ee0" to="#f76049" angle=180 in="oklch longer hue"
+        // Magenta at top → red at the bottom, matching the contour lines in the
+        // wallpaper. "shorter hue" keeps the oklch arc inside the pink/red
+        // family instead of sweeping through green and yellow.
+        active-gradient from="#ea3daa" to="#f24c50" angle=180 in="oklch shorter hue"
 
         // You can also color the gradient relative to the entire view
         // of the workspace, rather than relative to just the window itself.
@@ -524,6 +520,10 @@ binds {
     // the script since Noctalia can't drive DDC itself).
     XF86MonBrightnessUp allow-when-locked=true { spawn-sh "brightness-focused up"; }
     XF86MonBrightnessDown allow-when-locked=true { spawn-sh "brightness-focused down"; }
+    // Same on bare F7/F8, for external keyboards without brightness keys.
+    // Note this takes F7/F8 away from every app.
+    F7 allow-when-locked=true { spawn-sh "brightness-focused down"; }
+    F8 allow-when-locked=true { spawn-sh "brightness-focused up"; }
 
     // Open/close the Overview: a zoomed-out view of workspaces and windows.
     // You can also move the mouse into the top-left hot corner,
