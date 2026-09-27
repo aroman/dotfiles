@@ -4,6 +4,12 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
+    # Kernel pin for moonbinder: the nixpkgs rev that shipped linux 7.2.6.
+    # 7.2.8 (nixpkgs e158d9e, 2026-09-26) booted with WiFi never attempting
+    # to associate. See
+    # hosts/moonbinder/default.nix. Delete this input once unpinned.
+    nixpkgs-kernel.url = "github:NixOS/nixpkgs/e554fab72f81915600f3f449b786fd9af40439a5";
+
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";

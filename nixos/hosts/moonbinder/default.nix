@@ -1,5 +1,12 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, inputs, ... }:
 
+let
+  # Kernel pinned to 7.2.6 via the `nixpkgs-kernel` flake input (see the
+  # boot.kernelPackages comment). The patched mt7925 module is built from the
+  # same package set so both are the exact store paths from generation 522 —
+  # no kernel or module rebuild.
+  kernelPkgs = inputs.nixpkgs-kernel.legacyPackages.${pkgs.stdenv.hostPlatform.system};
+in
 {
   imports = [
     ../../fw16-speaker-dsp.nix
@@ -29,7 +36,7 @@
   # network subsystem during AP roaming. Also adds mutex protection in
   # reset/suspend/PM paths and NULL checks for MLO link state transitions.
   boot.extraModulePackages = [
-    (pkgs.callPackage ../../mt7925-patched.nix {
+    (kernelPkgs.callPackage ../../mt7925-patched.nix {
       kernel = config.boot.kernelPackages.kernel;
     })
   ];
@@ -41,7 +48,22 @@
   #   - 6.19.2  s0ix deep sleep started working on this platform
   #   - 6.19.11 MES hang fix (TLB fence rework) backported to stable, which is
   #             what let us drop the downstream patch we used to carry
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  #
+  # PINNED to 7.2.6 on 2026-09-27. On 7.2.8 (nixpkgs e158d9e) WiFi never
+  # attempted to associate: firmware loaded, iwd saw wlan0, but zero
+  # authenticate lines in dmesg. Same userland on 7.2.6 connects in seconds.
+  # The mt7925 patch applies identically to both, and 7.2.7/7.2.8 touch no
+  # mt7925 code — but 7.2.8 carries ~57 mac80211/cfg80211 patches.
+  #
+  # Not this kernel's fault, despite showing up in the same boot: the LG 5K
+  # flapping connect/disconnect over USB-C (DPCD link-training failures,
+  # UCSI_GET_PDOS errors, cage crashing on connector teardown). That also
+  # happened on 7.2.6 and was the Apple TBT4 active cable failing USB-PD with
+  # the LG — the LG's own cable fixed it. To unpin: set this back to
+  # pkgs.linuxPackages_latest, switch the mt7925 callPackage back to pkgs,
+  # and drop the nixpkgs-kernel input; confirm WiFi + external display on
+  # the new kernel before committing.
+  boot.kernelPackages = kernelPkgs.linuxPackages_latest;
 
   # Seamless ethernet↔WiFi failover (like macOS):
   # Both interfaces stay connected simultaneously. Route metrics control which
