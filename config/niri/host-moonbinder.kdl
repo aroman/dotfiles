@@ -29,14 +29,15 @@
 // plus an external-display surprise-disconnect, which is what actually hung.
 // Wizardtower has Nvidia, doesn't have this bug — its outputs may enable VRR.
 
-// Outputs are laid out with the internal panel at the origin and the external
-// to its right. The internal is 2560x1600 @ 1.5x = 1706.67x1066.67 logical, so
-// the externals start at x=1707 (one logical px of slack rather than x=1706,
+// Outputs are laid out with the internal panel at the origin. The 4K externals
+// sit to its right and the 5K LG to its left (see its stanza). The internal is
+// 2560x1600 @ 1.5x = 1706.67x1066.67 logical, so the right-hand externals
+// start at x=1707 (one logical px of slack rather than x=1706,
 // which would overlap the internal by the 0.67 px that got truncated away).
 // y=187 vertically centers the shorter internal against the 1440-logical-tall
 // externals: (1440 - 1066.67) / 2.
 
-// Internal: Framework 16 laptop display (BOE 2560x1600) — leftmost, at the origin.
+// Internal: Framework 16 laptop display (BOE 2560x1600) — at the origin.
 output "BOE NE160QDM-NZ6 Unknown" {
     scale 1.5
     transform "normal"
@@ -49,6 +50,15 @@ output "LG Electronics 27GN950 203NTCZC4835" {
     scale 1.5
     backdrop-color "#1D2029"
     position x=1707 y=0
+}
+
+// External: LG UltraGear+ 5K — to the LEFT of the internal panel. 5120x2880 @
+// 2x = 2560x1440 logical, so x=-2560 butts its right edge against the
+// internal's left edge at x=0 without moving the internal off the origin.
+output "LG Electronics LG ULTRAGEAR+ 605NTLEND928" {
+    scale 2
+    backdrop-color "#1D2029"
+    position x=-2560 y=0
 }
 
 // External: Work monitor (Acer XV282K 4K) — to the right of the internal panel.
