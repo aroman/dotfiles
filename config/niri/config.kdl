@@ -295,7 +295,7 @@ hotkey-overlay {
 // Default 0.5 (workspaces drawn at 50% size). Lower = more zoomed-out
 // (more workspaces fit on screen). Clamped to [0.0001, 0.75] in niri.
 overview {
-    zoom 0.25
+    zoom 0.4
 }
 
 // Ask clients to omit their client-side decorations if possible.
@@ -530,7 +530,7 @@ binds {
     // or do a four-finger swipe up on a touchpad.
     Mod+O repeat=false { toggle-overview; }
     MouseBack repeat=false { focus-window-or-workspace-down; }
-    MouseForward repeat=false { focus-window-or-workspace-up; }
+    MouseForward repeat=false { toggle-overview; }
     // TODO: bind unmodified WheelScrollRight/Left to focus-column-right/left
     // Blocked by: https://github.com/YaLTeR/niri/issues/1584
 
