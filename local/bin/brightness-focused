@@ -2,9 +2,9 @@
 # Adjust brightness of the focused niri output only.
 #
 # Internal panel (eDP-*) uses sysfs backlight via brightnessctl; Noctalia OSDs
-# off the inotify event. External monitors use DDC/CI via ddcutil, targeting
-# the focused output by EDID serial (stable across plug/unplug, unlike the
-# --display number).
+# off the inotify event. External monitors use DDC/CI via ddcutil, addressed
+# by the connector's own i2c bus from sysfs (falling back to EDID serial, then
+# model), and push the new value to Noctalia's OSD since it has no DDC support.
 #
 # Usage: brightness-focused up|down [step]   (step defaults to 10)
 set -euo pipefail
@@ -13,27 +13,40 @@ direction=${1:?usage: brightness-focused up|down [step]}
 step=${2:-10}
 
 case "$direction" in
-  up)   bctl_arg="+${step}%"; ddc_sign="+" ;;
-  down) bctl_arg="${step}%-"; ddc_sign="-" ;;
+  up)   bctl_arg="+${step}%"; delta=$step ;;
+  down) bctl_arg="${step}%-"; delta=-$step ;;
   *) echo "usage: $0 up|down [step]" >&2; exit 2 ;;
 esac
 
-outputs_json=$(niri msg --json outputs)
-focused=$(niri msg --json focused-output | jq -r '.name')
+IFS=$'\t' read -r focused serial model < <(
+  niri msg --json focused-output | jq -r '[.name, .serial // "", .model // ""] | @tsv'
+)
 
 if [[ "$focused" == eDP-* ]]; then
   exec brightnessctl -e --class=backlight set "$bctl_arg"
 fi
 
-serial=$(jq -r --arg n "$focused" '.[$n].serial // ""' <<<"$outputs_json")
-model=$(jq -r --arg n "$focused" '.[$n].model // ""' <<<"$outputs_json")
-
-selector=()
-if [[ -n "$serial" ]]; then
-  selector=(--sn "$serial")
+# --bus skips ddcutil's display detection, which probes every bus and costs
+# ~0.6s per call vs ~0.1s.
+ddc=(ddcutil --noverify --sleep-multiplier=0.05)
+shopt -s nullglob
+buses=(/sys/class/drm/card*-"$focused"/i2c-*)
+if (( ${#buses[@]} )); then
+  ddc+=(--bus "${buses[0]##*i2c-}")
+elif [[ -n "$serial" ]]; then
+  ddc+=(--sn "$serial")
 elif [[ -n "$model" ]]; then
-  selector=(--model "$model")
+  ddc+=(--model "$model")
 fi
 
-ddcutil --noverify --sleep-multiplier=0.05 "${selector[@]}" \
-  setvcp 10 "$ddc_sign" "$step" >/dev/null 2>&1 &
+# Serialize key repeats so each read-modify-write sees the previous write.
+# Read the current value ourselves (rather than relative setvcp) so we know
+# the new value up front and can show Noctalia's OSD before the slow write.
+(
+  flock -w 5 9 || exit 0
+  read -r _ _ _ cur max < <("${ddc[@]}" --brief getvcp 10 2>/dev/null) || exit 0
+  new=$(( cur + delta ))
+  new=$(( new < 0 ? 0 : new > max ? max : new ))
+  noctalia msg brightness-osd "$(( new * 100 / max ))" >/dev/null 2>&1 || true
+  "${ddc[@]}" setvcp 10 "$new" >/dev/null 2>&1
+) 9>"${XDG_RUNTIME_DIR:-/tmp}/brightness-focused.lock" &

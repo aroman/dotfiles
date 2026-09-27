@@ -520,7 +520,8 @@ binds {
 
     // Brightness: dispatch to the focused output only. Internal panel uses
     // brightnessctl (instant; Noctalia OSDs off inotify); external monitors
-    // use ddcutil over DDC/CI (~100-200ms I2C latency, backgrounded).
+    // use ddcutil over DDC/CI (backgrounded, with a Noctalia OSD pushed by
+    // the script since Noctalia can't drive DDC itself).
     XF86MonBrightnessUp allow-when-locked=true { spawn-sh "brightness-focused up"; }
     XF86MonBrightnessDown allow-when-locked=true { spawn-sh "brightness-focused down"; }
 
