@@ -59,9 +59,14 @@ let
       # us mid-run.
       systemctl --no-ask-password restart ${unit}
 
-      # There's no way to read an active lock back, so give it a moment to
-      # land (NVIDIA suggests 200–500 ms) and show what the card is doing.
-      sleep 0.5
+      # There's no way to read an active lock back, and coming out of idle the
+      # clock takes the best part of a second to land (NVIDIA's 200–500 ms
+      # isn't enough here), so wait until it reads right, then show what the
+      # card is doing.
+      for _ in {1..30}; do
+        [ "$(${smi} --query-gpu=clocks.gr --format=csv,noheader,nounits)" = ${clockMHz} ] && break
+        sleep 0.1
+      done
       echo "gpu-freq-pin: $(${smi} --query-gpu=pstate,clocks.gr,clocks.mem,power.draw --format=csv,noheader)" >&2
 
       # Our scope exists now, so the lock has done its job; don't hand it on.
