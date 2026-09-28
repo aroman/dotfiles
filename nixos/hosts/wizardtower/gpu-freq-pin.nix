@@ -9,8 +9,12 @@
 # Pin per run, not permanently, as profilers do (Nsight, ANGLE's perf runner):
 # a permanent pin costs idle watts and the card's zero-RPM fan stop.
 #
-# Only the graphics clock can be pinned: `nvidia-smi -lmc` is Ampere+ only, so
-# memory still follows the P-state. Clock locks need root and NVML can't
+# Only the graphics clock can be pinned: `nvidia-smi -lmc` is Ampere+ only, and
+# memory follows the P-state — pinned but lightly loaded, the card still sat
+# in P5 (810 MHz memory) ~80% of the time, jumping to P2 (6801 MHz) on bursts.
+# So the unit also holds a CUDA context open, which keeps GeForce cards in P2
+# (the driver's "CUDA - Force P2 State"): measured, that held 1470/6801 MHz
+# for the whole run, at ~45 W instead of ~18. Clock locks need root and NVML can't
 # delegate them, so the pin is a root unit the user may restart via polkit —
 # no sudo prompt for agents to get stuck on.
 #
@@ -40,6 +44,24 @@ let
   smi = "/run/booted-system/sw/bin/nvidia-smi";
   unit = "gpu-freq-pin.service";
 
+  # Opens a CUDA context and waits to be killed. libcuda comes from the booted
+  # system's driver, not this configuration's, for the same reason as smi:
+  # after a driver-updating switch the new one can't talk to the loaded module.
+  cudaHold = pkgs.writeText "gpu-freq-pin-cuda-hold.py" ''
+    import ctypes, re, signal, sys
+
+    conf = open("/run/booted-system/etc/tmpfiles.d/graphics-driver.conf").read()
+    driver = re.search(r"/nix/store/[^ ']*-graphics-drivers", conf).group(0)
+    cu = ctypes.CDLL(driver + "/lib/libcuda.so.1")
+    dev, ctx = ctypes.c_int(), ctypes.c_void_p()
+    for step, rc in [("cuInit", lambda: cu.cuInit(0)),
+                     ("cuDeviceGet", lambda: cu.cuDeviceGet(ctypes.byref(dev), 0)),
+                     ("cuCtxCreate", lambda: cu.cuCtxCreate_v2(ctypes.byref(ctx), 0, dev))]:
+        if (err := rc()) != 0:
+            sys.exit(f"gpu-freq-pin: {step} failed ({err}); memory clock won't be held")
+    signal.pause()
+  '';
+
   # Where every run's processes live. No dashes: in a slice name they mean
   # nesting.
   slice = "gpufreqpin.slice";
@@ -61,10 +83,11 @@ let
 
       # There's no way to read an active lock back, and coming out of idle the
       # clock takes the best part of a second to land (NVIDIA's 200–500 ms
-      # isn't enough here), so wait until it reads right, then show what the
-      # card is doing.
+      # isn't enough here), nor does the CUDA context come up instantly. So
+      # wait until the card reads right — pinned clock, in P2 — then show what
+      # it's doing, whichever way that went.
       for _ in {1..30}; do
-        [ "$(${smi} --query-gpu=clocks.gr --format=csv,noheader,nounits)" = ${clockMHz} ] && break
+        [ "$(${smi} --query-gpu=clocks.gr,pstate --format=csv,noheader,nounits)" = "${clockMHz}, P2" ] && break
         sleep 0.1
       done
       echo "gpu-freq-pin: $(${smi} --query-gpu=pstate,clocks.gr,clocks.mem,power.draw --format=csv,noheader)" >&2
@@ -139,6 +162,11 @@ in
     restartIfChanged = false;
     path = [ pkgs.coreutils pkgs.gnugrep ];
     script = ''
+      # Hold memory at full speed for the run (see the top of this file).
+      # Best effort: without it the graphics pin still stands. It exits with
+      # the unit — systemd kills the whole cgroup before ExecStopPost resets.
+      ${pkgs.python3}/bin/python3 ${cudaHold} &
+
       uid=$(id -u ${username})
       # Missing once systemd has cleaned up the empty slice: also done.
       events="/sys/fs/cgroup/user.slice/user-$uid.slice/user@$uid.service/${slice}/cgroup.events"
