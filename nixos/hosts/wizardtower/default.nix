@@ -3,9 +3,13 @@
 {
   networking.hostName = "wizardtower";
 
-  # GCE administration for cloud dev boxes such as fairycastle. Authentication
-  # remains per-user state under ~/.config/gcloud.
-  environment.systemPackages = [ pkgs.google-cloud-sdk ];
+  environment.systemPackages = [
+    # GCE administration for cloud dev boxes such as fairycastle.
+    # Authentication remains per-user state under ~/.config/gcloud.
+    pkgs.google-cloud-sdk
+    # `sensors` — see Hardware monitoring below.
+    pkgs.lm_sensors
+  ];
 
   # No real monitor — drives a Ugreen HDMI dummy plug for Sunshine streaming.
   # Disables the whole idle/lock stack, not just monitor power-off: swayidle
@@ -126,6 +130,16 @@
   # CPU hotplug and resume without a separate hook.
   boot.kernel.sysfs.devices.system.cpu.cpufreq."policy[0-9]*"
     .energy_performance_preference = "performance";
+
+  # ── Hardware monitoring ──────────────────────────────────────────
+  # CPU/chassis fan tach and PWM live on the board's Nuvoton NCT6798D Super
+  # I/O, which isn't autoloaded — without nct6775 the only fan visible to
+  # Linux is the VRM heatsink one via asus_ec_sensors. Read-only use: the
+  # BIOS Q-Fan curve stays in charge (pwm*_enable=5, Smart Fan IV). Note that
+  # curve tracks "PECI Agent 0 Calibration" (temp8), which reads ~11°C under
+  # k10temp's Tctl, so 100% duty only kicks in around Tctl ≈ 81°C.
+  # AUXTIN0/AUXTIN3 read ~80°C but are floating inputs, not real sensors.
+  boot.kernelModules = [ "nct6775" ];
 
   # ── Sunshine (remote desktop streaming) ──────────────────────────
   # Streams the desktop to Moonlight clients. NvENC for hardware-accelerated
