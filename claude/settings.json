@@ -11,6 +11,11 @@
       "mcp__linear-server__get_issue"
     ]
   },
+  "disabledMcpjsonServers": [
+    "figma",
+    "linear",
+    "neon"
+  ],
   "hooks": {
     "Notification": [
       {
