@@ -26,6 +26,7 @@ in
 {
   imports = [
     ../../modules/home.nix
+    ../../modules/opener-bridged.nix
     inputs.voxtype.homeManagerModules.default
   ];
 

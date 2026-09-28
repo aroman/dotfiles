@@ -64,13 +64,13 @@ in
   ] ++ lib.optionals desktop desktopPackageSegments.afterRcm ++ [
     # opener-bridged: when SSH'd in, `xdg-open URL` hands the URL to the Mac,
     # which opens it in the local browser — Velja then routes it just like
-    # handlr-regex does here.  At the console the shim falls through to real
-    # xdg-open → handlr → Chrome.
+    # handlr-regex does here — or to moonbinder, whichever was touched last.
+    # At the console the shim falls through to real xdg-open → handlr → Chrome.
     #
-    # 127.0.0.1:47831 is the mouth of a tunnel back to the Mac's opener-bridged
-    # daemon (an opener-tunnel launchd job on the Mac holds it open).  One
-    # line each way:
+    # 127.0.0.1:47831 and :47832 are the mouths of tunnels back to the Mac's
+    # and moonbinder's opener-bridged daemons.  One line each way:
     #
+    #   -> idle                       <- ok <seconds since last input there>
     #   -> open <origin> <url>        <- ok <final-url>  |  err <message>
     #
     # The origin is load-bearing: `localhost:PORT` names a port on *this* box,
@@ -99,12 +99,24 @@ in
     # callers printed "✓ Opened" forever while nothing happened.
     (writeShellScriptBin "xdg-open" ''
       if [ -z "$WAYLAND_DISPLAY" ] && [ -z "$DISPLAY" ]; then
-        resp=$(printf 'open %s %s\n' "${osConfig.networking.hostName}" "$1" \
-          | ${netcat-openbsd}/bin/nc -N -w 10 127.0.0.1 47831 2>/dev/null)
+        ask() {
+          printf '%s\n' "$2" \
+            | ${netcat-openbsd}/bin/nc -N -w "$3" 127.0.0.1 "$1" 2>/dev/null
+        }
+        best= min=
+        for port in 47831 47832; do
+          # Short: a tunnel whose far end slept still accepts, then says nothing.
+          resp=$(ask "$port" idle 2)
+          case "$resp" in "ok "[0-9]*) ;; *) continue ;; esac
+          idle=''${resp#ok }
+          if [ -z "$min" ] || [ "$idle" -lt "$min" ]; then best=$port min=$idle; fi
+        done
+        [ -n "$best" ] || { echo "xdg-open: no opener bridge reachable" >&2; exit 1; }
+        resp=$(ask "$best" "open ${osConfig.networking.hostName} $1" 10)
         case "$resp" in
           "ok "*)  exit 0 ;;
           "err "*) echo "xdg-open: ''${resp#err }" >&2; exit 1 ;;
-          *)       echo "xdg-open: opener bridge unreachable (127.0.0.1:47831)" >&2
+          *)       echo "xdg-open: opener bridge unreachable (127.0.0.1:$best)" >&2
                    exit 1 ;;
         esac
       fi

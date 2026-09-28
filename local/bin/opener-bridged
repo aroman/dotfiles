@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Open URLs from NixOS hosts in this Mac's browser.
+"""Open URLs from NixOS hosts in this machine's browser.
 
     opener-bridged <host>...
 
@@ -9,6 +9,11 @@ xdg-open shim (nixos/modules/home.nix) speaks one line each way:
 
     -> open <origin> <url>\n      origin = short hostname where xdg-open ran
     <- ok <final-url>\n  |  err <message>\n
+
+    -> idle\n                    <- ok <seconds since the last input here>\n
+
+The Mac and moonbinder each run one, on their own port, and the shim sends
+each URL to whichever was touched most recently.
 
 Two jobs beyond handing the URL to open(1):
 
@@ -25,6 +30,7 @@ Replying (rather than firing and forgetting) is the point of the request /
 response shape: it is what lets the shim exit nonzero when nothing opened.
 """
 
+import glob
 import os
 import re
 import socket
@@ -35,7 +41,18 @@ import threading
 import time
 from urllib.parse import urlsplit, urlunsplit
 
-ADDR = ("127.0.0.1", 47831)
+DARWIN = sys.platform == "darwin"
+
+# The Mac's port, or moonbinder's; the shim polls both.
+ADDR = ("127.0.0.1", 47831 if DARWIN else 47832)
+
+# gio because it fails on a scheme nothing handles, where xdg-open and handlr
+# exit 0.  In its own scope so a cold-started browser is not part of this
+# unit's cgroup (as with Vicinae's launchPrefix); without systemd-run's
+# $-expansion, which would otherwise rewrite the URL.
+OPEN = ["/usr/bin/open"] if DARWIN else [
+    "systemd-run", "--user", "--scope", "--quiet", "--collect",
+    "--expand-environment=no", "--", "gio", "open"]
 
 # urlsplit().hostname lowercases and strips brackets from IPv6 literals.
 LOOPBACK = {"localhost", "::1", "0.0.0.0", "::"}
@@ -93,7 +110,7 @@ def tunnel_master(host):
 
 
 def hold_tunnel(host):
-    """Keep one ssh to `host` alive, carrying 47831 back here.  Runs forever.
+    """Keep one ssh to `host` alive, carrying our port back here.  Runs forever.
 
     ExitOnForwardFailure is the heart of it: a bind we cannot win (a stale
     session still holding the port after this Mac slept, say) is a nonzero
@@ -104,7 +121,7 @@ def hold_tunnel(host):
 
     ControlPersist=no matters: ssh/config sets 10m for these hosts, and a
     persisting master forks to the background the moment -N leaves it idle --
-    the child we supervise would exit 0 and the respawn would lose the 47831
+    the child we supervise would exit 0 and the respawn would lose the port's
     bind to the ghost it replaced.
     """
     ctl = tunnel_master(host)
@@ -117,7 +134,7 @@ def hold_tunnel(host):
             pass
         started = time.monotonic()
         p = subprocess.Popen(
-            ["/usr/bin/ssh", "-N", "-T",
+            ["ssh", "-N", "-T",
              "-o", "BatchMode=yes",
              "-o", "ExitOnForwardFailure=yes",
              "-o", "ConnectTimeout=10",
@@ -126,7 +143,7 @@ def hold_tunnel(host):
              "-o", "ControlMaster=yes",
              "-o", "ControlPath=%s" % ctl,
              "-o", "ControlPersist=no",
-             "-R", "127.0.0.1:47831:127.0.0.1:47831",
+             "-R", "127.0.0.1:%d:127.0.0.1:%d" % (ADDR[1], ADDR[1]),
              host],
             stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
         lines = []
@@ -203,7 +220,7 @@ def ssh_forward(origin, lport, rport):
     if not os.path.exists(tunnel):
         raise ValueError("no tunnel to %s" % origin)
     return subprocess.run(
-        ["/usr/bin/ssh", "-O", "forward",
+        ["ssh", "-O", "forward",
          "-L", "127.0.0.1:%d:localhost:%d" % (lport, rport),
          "-S", tunnel, origin],
         capture_output=True, text=True, timeout=10,
@@ -282,6 +299,41 @@ def localise(url, origin):
     raise ValueError("forward failed: %s" % detail)
 
 
+# Linux's HIDIdleTime: when any /dev/input device last sent an event (needs
+# the `input` group).  Not swayidle: 1.9 honours idle inhibitors, so a video
+# playing in a background tab would count as someone being here.
+LAST_INPUT = 0.0  # monotonic() counts from boot, so: idle since boot
+WATCHED = set()
+
+
+def watch(path):
+    global LAST_INPUT
+    try:
+        with open(path, "rb", buffering=0) as f:
+            while f.read(4096):
+                LAST_INPUT = time.monotonic()
+                time.sleep(1)  # the kernel queues the rest; 1s is precise enough
+    except OSError:
+        pass  # unplugged, or not readable yet
+    WATCHED.discard(path)
+
+
+def watch_input():
+    while True:
+        for path in set(glob.glob("/dev/input/event*")) - WATCHED:
+            WATCHED.add(path)
+            threading.Thread(target=watch, args=(path,), daemon=True).start()
+        time.sleep(5)
+
+
+def idle_seconds():
+    if not DARWIN:
+        return int(time.monotonic() - LAST_INPUT)
+    out = subprocess.run(["ioreg", "-c", "IOHIDSystem"],
+                         capture_output=True, text=True, timeout=5).stdout
+    return int(re.search(r'"HIDIdleTime" = (\d+)', out)[1]) // 10**9
+
+
 class Handler(socketserver.StreamRequestHandler):
     timeout = 10
 
@@ -321,9 +373,12 @@ class Handler(socketserver.StreamRequestHandler):
             pass
 
     def dispatch(self, line):
+        if line == "idle":
+            return str(idle_seconds())
+
         fields = line.split(" ", 2)
         if len(fields) != 3 or fields[0] != "open":
-            raise ValueError("expected: open <origin> <url>")
+            raise ValueError("expected: open <origin> <url> | idle")
         _, origin, url = fields
 
         if not ORIGIN_RE.match(origin):
@@ -335,8 +390,11 @@ class Handler(socketserver.StreamRequestHandler):
             url, _ = localise(url, origin)
 
         try:
-            r = subprocess.run(["/usr/bin/open", url],
-                               capture_output=True, text=True, timeout=15)
+            # Not captured on Linux: whatever gio launches inherits these
+            # pipes, and a cold-started app would hold the reply open until
+            # it quit.  They go to the unit's journal instead.
+            r = subprocess.run(OPEN + [url], capture_output=DARWIN,
+                               text=True, timeout=15)
         except subprocess.TimeoutExpired:
             # Wedged LaunchServices.  Say so now rather than let the caller's
             # own timeout expire and have open(1) fire minutes later.
@@ -367,6 +425,8 @@ def main():
         server = Server(ADDR, Handler)
     except OSError as e:
         sys.exit("opener-bridged: cannot bind %s:%d: %s" % (ADDR[0], ADDR[1], e))
+    if not DARWIN:
+        threading.Thread(target=watch_input, daemon=True).start()
     for host in hosts:
         threading.Thread(target=hold_tunnel, args=(host,), daemon=True).start()
     log("listening on %s:%d, tunnels: %s" % (ADDR[0], ADDR[1], " ".join(hosts)))
