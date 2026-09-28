@@ -135,6 +135,10 @@ in
     difftastic
     fd
     jq
+    # Table stakes, and herdr's Claude and Codex hooks silently no-op without
+    # it: they record the session ids herdr resumes agent panes from after a
+    # restart.
+    python3
     # nixpkgs wraps gh to default GH_TELEMETRY, so os.Executable() sees the
     # versioned /nix/store/.../bin/.gh-wrapped implementation. Without this
     # override, `gh auth setup-git` persists that GC-vulnerable path in the
