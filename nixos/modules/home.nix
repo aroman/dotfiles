@@ -157,7 +157,11 @@ in
     git-lfs
     gnupg
     cloudflared
-    btop
+    # btop dlopen()s libnvidia-ml.so for its GPU panel, which lives in
+    # /run/opengl-driver/lib; cudaSupport adds that to its RUNPATH.
+    (btop.override {
+      cudaSupport = lib.elem "nvidia" osConfig.services.xserver.videoDrivers;
+    })
   ] ++ lib.optionals desktop desktopPackageSegments.afterBtop ++ [
     tokei
     unzip
