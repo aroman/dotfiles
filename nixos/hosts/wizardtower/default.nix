@@ -1,6 +1,10 @@
 { config, pkgs, lib, ... }:
 
 {
+  imports = [
+    ./gpu-freq-pin.nix
+  ];
+
   networking.hostName = "wizardtower";
 
   environment.systemPackages = [
