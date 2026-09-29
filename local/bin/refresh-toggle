@@ -15,7 +15,7 @@
 # host-moonbinder.kdl deliberately has no `mode` line on this output, so a
 # reload has no mode to re-apply and clobber it. (If you ever add one, this
 # script's changes will start getting reset by niri-dwt-toggle, which edits
-# config.kdl on every focus change.) It does reset to 165 Hz when niri
+# main.kdl on every focus change.) It does reset to 165 Hz when niri
 # restarts, which is intended: a fresh session starts at full rate.
 #
 # Usage: refresh-toggle [60|165|status]

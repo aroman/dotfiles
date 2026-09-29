@@ -10,7 +10,10 @@ window-padding-x = 4
 # Use P3 color space to match iTerm2
 window-colorspace = display-p3
 
-# Theme — swap between: "OneDark Custom", "Everblush", "TokyoNight"
+# Theme — swap between: "OneDark Custom", "Everblush", "TokyoNight".
+# On Linux, noctalia overrides its colors via themes/noctalia (loaded last,
+# below). This applies only where that file doesn't exist (macOS, or before
+# noctalia's first render); once rendered it persists after noctalia exits.
 theme = Everblush
 
 # Cursor
@@ -43,5 +46,10 @@ undo-timeout = 30s
 #   Linux → home-manager symlinks it (and `macos` is omitted there)
 config-file = ?macos
 config-file = ?linux
+
+# Colors rendered by a noctalia user template (nixos/noctalia.nix). Not the
+# built-in ghostty template: that one rewrites any `theme =` line above to
+# `theme = noctalia`, leaving no fallback when the file doesn't exist.
+config-file = ?themes/noctalia
 
 keybind = performable:super+c=copy_to_clipboard

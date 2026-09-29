@@ -25,7 +25,7 @@
       # Sign-in hands the token back via granola://.
       xdg.mimeApps.defaultApplications."x-scheme-handler/granola" = "granola.desktop";
 
-      # config/niri/config.kdl includes this path with optional=true, so hosts
+      # config/niri/main.kdl includes this path with optional=true, so hosts
       # without this module simply skip it.
       xdg.configFile."niri-nix/granola.kdl".source = link "niri.kdl";
 

@@ -1,5 +1,5 @@
 // Wizardtower-specific niri config (desktop, Nvidia GPU).
-// Included from config.kdl via `include "host-wizardtower.kdl" optional=true`.
+// Included from main.kdl via `include "host-wizardtower.kdl" optional=true`.
 // On other hosts, this file is loaded but its outputs simply don't exist, so the stanzas are no-ops.
 
 // HDMI dummy plug for Moonlight streaming. Locked to a single mode + scale.

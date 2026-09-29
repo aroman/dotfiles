@@ -10,9 +10,9 @@
 # the should_disable_dwt() function below.
 #
 # Managed by systemd user service (niri-dwt-toggle.service in home.nix).
-# See also: ~/.config/niri/config.kdl (the `dwt` line in touchpad {})
+# See also: ~/.config/niri/main.kdl (the `dwt` line in touchpad {})
 
-CONFIG="$HOME/.config/niri/config.kdl"
+CONFIG="$HOME/.config/niri/main.kdl"
 dwt_off=false
 
 enable_dwt() {

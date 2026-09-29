@@ -1,5 +1,12 @@
 result
 config/niri/*.backup*
+# Rendered by noctalia's theme templates (nixos/noctalia.nix); the configs
+# that load them fall back to their own colors when they're absent.
+config/niri/noctalia.kdl
+# Stub niri loads; noctalia's niri template hooks rewrite it. The tracked
+# config is main.kdl. Recreated by home-desktop.nix.
+config/niri/config.kdl
+config/ghostty/themes/noctalia
 config/fish/fish_variables
 config/fish/completions/bud.fish
 config/fish/conf.d/secrets.fish

@@ -2,7 +2,7 @@
 # Toggle niri's center-focused-column between "always" and "never".
 # Niri auto-reloads the config on change.
 
-CONFIG="$HOME/.config/niri/config.kdl"
+CONFIG="$HOME/.config/niri/main.kdl"
 
 if grep -q 'center-focused-column "always"' "$CONFIG"; then
   sed -i 's/center-focused-column "always"/center-focused-column "never"/' "$CONFIG"

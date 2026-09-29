@@ -31,6 +31,31 @@ in
     "xdg-terminals.list".text = "com.mitchellh.ghostty.desktop\n";
   };
 
+  # niri loads ~/.config/niri/config.kdl, but that's an untracked stub in the
+  # repo (the directory is linked above): noctalia's niri template hooks
+  # rewrite it when niri theming is toggled, so the tracked config lives in
+  # main.kdl. tmpfiles' C seeds the stub only if it doesn't exist (on switch
+  # and at login). The path is the repo's, not ~/.config/niri: tmpfiles
+  # refuses to follow that link ("unsafe path transition") because it
+  # resolves through the root-owned store. 0644 because the store copy is
+  # 0444 and the hooks need to write it.
+  systemd.user.tmpfiles.rules = let
+    stub = pkgs.writeText "niri-config.kdl" ''
+      // niri reads this file; the real config is main.kdl.
+      //
+      // Untracked on purpose (see .gitignore). noctalia's built-in niri template
+      // hooks edit this file when niri theming is toggled: turning it off deletes
+      // the noctalia.kdl include below along with noctalia.kdl itself (so main.kdl's
+      // colors apply); turning it back on re-appends the include. Keeping that churn
+      // here means it never touches main.kdl or git. home-desktop.nix recreates this
+      // file (via systemd-tmpfiles) if it's missing.
+      include "main.kdl"
+
+      // Colors from noctalia's niri template. Last so they win over main.kdl's.
+      include "noctalia.kdl" optional=true
+    '';
+  in [ "C ${dotfiles}/config/niri/config.kdl 0644 - - - ${stub}" ];
+
   xdg.desktopEntries."dev.zed.Zed" = {
     name = "Zed";
     genericName = "Text Editor";

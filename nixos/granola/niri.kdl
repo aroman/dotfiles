@@ -1,4 +1,4 @@
-// Included from config/niri/config.kdl via nixos/granola.nix.
+// Included from config/niri/main.kdl via nixos/granola.nix.
 
 // Granola's own open-at-login is a no-op on Linux; it needs to be running
 // to pop meeting reminders.

@@ -1,3 +1,6 @@
+// The niri config proper. niri loads config.kdl, an untracked stub that
+// includes this file and then noctalia.kdl; see the comment there for why.
+
 // This config is in the KDL format: https://kdl.dev
 // "/-" comments out the following node.
 // Check the wiki for a full description of the configuration:

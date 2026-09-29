@@ -152,6 +152,34 @@
           mode = "dark";
           source = "custom";
           custom_palette = "Everblush";
+
+          # Render the palette into other apps. Each app's own config keeps
+          # its colors as the fallback for when the rendered file is absent.
+          # Rendered files persist after noctalia exits, so "absent" means
+          # never rendered (e.g. macOS, which shares the ghostty config) or
+          # removed by a built-in template's undo hook.
+          templates = {
+            # niri's built-in template writes ~/.config/niri/noctalia.kdl,
+            # which the untracked config.kdl stub includes after main.kdl.
+            # Dropping "niri" here (or in the settings UI) runs its undo
+            # hook, which deletes noctalia.kdl and so restores main.kdl's
+            # colors. Its hooks edit only the stub, never main.kdl.
+            builtin_ids = [ "btop" "gtk4" "niri" ];
+            # Not the built-in ghostty template: it rewrites the config's
+            # `theme = …` line to `theme = noctalia`, so a missing theme file
+            # leaves no fallback. This renders the same colors to a file the
+            # config loads with `config-file = ?themes/noctalia`, on top of
+            # its `theme = Everblush`. User templates have no undo hook:
+            # removing this leaves the last render in place until the file
+            # is deleted by hand.
+            user.ghostty = let
+              upstream = "${pkgs.noctalia}/share/noctalia/assets/templates/ghostty";
+            in {
+              input_path = "${upstream}/ghostty";
+              output_path = "$XDG_CONFIG_HOME/ghostty/themes/noctalia";
+              post_hook = "bash ${upstream}/reload.sh";
+            };
+          };
         };
 
         bar.main = {
