@@ -53,8 +53,10 @@
     # which is always newer than niri-flake's pin and always a source build.
     niri.url = "github:sodiboo/niri-flake";
 
+    # Only the home-manager module comes from here; the binary is
+    # hosts/moonbinder/voxtype-bin.nix. Keep this tag at the same version.
     voxtype = {
-      url = "github:peteonrails/voxtype";
+      url = "github:peteonrails/voxtype/v1.1.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

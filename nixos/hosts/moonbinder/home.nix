@@ -1,28 +1,5 @@
 { config, pkgs, lib, inputs, ... }:
 
-let
-  # Patch voxtype to add dotool to the paste keystroke fallback chain so
-  # GTK4 apps receive Ctrl+Shift+V (their GtkShortcutController ignores
-  # wtype's virtual keyboard events; eitype would help but needs libeis,
-  # which niri doesn't yet provide — see niri-wm/niri#1966).
-  voxtypePatched = let
-    unwrapped = inputs.voxtype.packages.x86_64-linux.voxtype-vulkan-unwrapped.overrideAttrs (prev: {
-      patches = (prev.patches or []) ++ [
-        ../../patches/voxtype-paste-dotool-fallback.patch
-      ];
-    });
-    runtimeDeps = with pkgs; [ dotool wtype wl-clipboard libnotify ];
-  in pkgs.symlinkJoin {
-    name = "${unwrapped.pname}-wrapped-${unwrapped.version}";
-    paths = [ unwrapped ];
-    buildInputs = [ pkgs.makeWrapper ];
-    postBuild = ''
-      wrapProgram $out/bin/voxtype \
-        --prefix PATH : ${pkgs.lib.makeBinPath runtimeDeps}
-    '';
-    inherit (unwrapped) meta;
-  };
-in
 {
   imports = [
     ../../modules/home.nix
@@ -39,13 +16,7 @@ in
     figma-agent  # serves local fonts to Figma web (needs Windows user-agent)
     discord
     slack
-  ]) ++ [
-    # OSD frontend for voxtype. The main `voxtype` package ships a
-    # launcher (`voxtype-osd`) that execs into this. Picked `native`
-    # over `gtk4` to stay off the GTK4 stack (see the dotool patch
-    # above for why GTK4 + virtual keyboards is painful).
-    inputs.voxtype.packages.x86_64-linux.osd-native
-  ];
+  ]);
 
   # ── Figma ──────────────────────────────────────────────────────
 
@@ -141,7 +112,7 @@ in
 
   programs.voxtype = {
     enable = true;
-    package = voxtypePatched;
+    package = pkgs.callPackage ./voxtype-bin.nix { };
     model.name = "small.en";
     service.enable = true;
     settings = {
@@ -157,16 +128,15 @@ in
         theme = "${config.home.homeDirectory}/.local/share/voxtype/sounds/wispr";
         volume = 0.7;
       };
-      # Paste mode: voxtype puts the transcript on the clipboard and sends
-      # Ctrl+Shift+V (via the dotool patch, so GTK4 shortcut controllers fire),
-      # dumping the whole transcript instantly. Type mode (wtype/dotool) types
-      # char-by-char — too slow for dictation, so we stay on paste. This needs
-      # the clipboard to outlive voxtype's cgroup-reaped wl-copy child, so
-      # wl-clip-persist is back (modules/home.nix) — now hardened with
-      # --ignore-event-on-error so it stops corrupting Chrome copies.
+      # Paste mode: copy the transcript, then send Shift+Insert (type mode is
+      # char-by-char, too slow). Shift+Insert is the one paste key terminals
+      # and GUI apps share — Ctrl+Shift+V misses Nautilus, Ctrl+V misses
+      # terminals. Ghostty is rebound to paste the clipboard on it
+      # (config/ghostty/config). The clipboard outlives voxtype's wl-copy via
+      # wl-clip-persist (modules/home-desktop.nix).
       output = {
         mode = "paste";
-        paste_keys = "ctrl+shift+v";
+        paste_keys = "shift+insert";
       };
       output.notification.on_transcription = false;
       text.spoken_punctuation = true;

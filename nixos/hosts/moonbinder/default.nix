@@ -200,14 +200,8 @@ in
   # explicit authorization. This udev rule auto-authorizes any Thunderbolt device,
   # but only when IOMMU DMA protection is active — which means the hardware itself
   # prevents unauthorized memory access, making the software security level redundant.
-  # Load uinput at early boot so /dev/uinput exists with the udev rule
-  # applied before user services (vicinae, voxtype) start — otherwise
-  # they race the on-demand module load and silently disable paste.
-  boot.kernelModules = [ "uinput" ];
-
   services.udev.extraRules = ''
     ACTION=="add", SUBSYSTEM=="thunderbolt", ATTRS{iommu_dma_protection}=="1", ATTR{authorized}=="0", ATTR{authorized}="1"
-    KERNEL=="uinput", SUBSYSTEM=="misc", GROUP="input", MODE="0660"
 
     # NVIDIA dGPU: enable PCI runtime PM so the GPU powers down when no driver is bound.
     # The kernel module blacklist above prevents nvidia/nouveau from loading, but without
@@ -419,7 +413,6 @@ in
   # capture = "wlr": uses zwlr_screencopy_manager_v1, which niri implements.
   # KMS capture (used on wizardtower) returns 0x0 plane resolution against
   # niri's atomic modesetting on AMD, so wlr is the working path here.
-  # uinput rule + input group are already configured above / in common.nix.
   # Disabled 2026-07-25: never actually used remotely from this host (the
   # openFirewall note below said as much), and it's a permanently-listening
   # service holding CAP_SYS_ADMIN for no benefit. Costs no battery — it burned

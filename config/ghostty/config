@@ -53,3 +53,7 @@ config-file = ?linux
 config-file = ?themes/noctalia
 
 keybind = performable:super+c=copy_to_clipboard
+
+# Voxtype dictation pastes with Shift+Insert (nixos/hosts/moonbinder/home.nix),
+# which Ghostty otherwise binds to the primary selection.
+keybind = shift+insert=paste_from_clipboard
