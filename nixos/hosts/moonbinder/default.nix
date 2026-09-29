@@ -11,6 +11,7 @@ in
   imports = [
     ../../fw16-speaker-dsp.nix
     ../../granola.nix
+    inputs.tether.nixosModules.default
   ];
 
   networking.hostName = "moonbinder";
@@ -434,6 +435,53 @@ in
       encoder = "vaapi";
       capture = "wlr";
       origin_web_ui_allowed = "wan"; # allow access from Tailscale IPs
+    };
+  };
+
+  # Tether: iPhone bridge (https://github.com/zackb/tether). WiFi carries
+  # clipboard + file transfer (iOS app, mTLS on 5134/tcp); Bluetooth carries
+  # SMS/iMessage (MAP), contacts (PBAP) and notifications (ANCS). The module
+  # sets BlueZ Experimental = true (needed for ANCS's LE bearer, and must be
+  # active BEFORE pairing) and a oneshot that sets the adapter's Class of
+  # Device to Hands-Free, without which iOS never offers the
+  # "Show Message Notifications" / "Sync Contacts" toggles.
+  # Also depends on hfp_hf being absent from bluez5.roles (desktop.nix).
+  programs.tether = {
+    enable = true;
+    wifi = {
+      enable = true;
+      openFirewall = true;
+    };
+    bluetooth = {
+      enable = true;
+      adapters = [ "hci0" ];
+    };
+    # Registers the native messaging host for /etc/opt/chrome (Google Chrome).
+    extensions = [ "chromium" ];
+  };
+
+  # The module installs tetherd but doesn't start it; the package ships a
+  # user unit, so pull it in and enable it at login.
+  systemd.packages = [ config.programs.tether.package ];
+  systemd.user.services.tetherd.wantedBy = [ "default.target" ];
+
+  # Chrome: the extension isn't on the Chrome Web Store, and the zip has no
+  # "key", so an unpacked load gets a path-derived ID that the package's
+  # manifest (which only allows hchjggllicigneeoiiklokpoealgaglc) rejects.
+  # Re-issue the manifest allowing both. egojjg... is the unpacked copy at
+  # ~/.local/share/tether/chrome-extension (unzipped from
+  # share/tether/extensions/tether-chromium-extension.zip) — moving that
+  # directory changes the ID.
+  environment.etc."opt/chrome/native-messaging-hosts/com.tether.extension.json" = lib.mkForce {
+    text = builtins.toJSON {
+      name = "com.tether.extension";
+      description = "Tether Native Messaging Host";
+      path = "${config.programs.tether.package}/bin/tether-native-host";
+      type = "stdio";
+      allowed_origins = [
+        "chrome-extension://hchjggllicigneeoiiklokpoealgaglc/"
+        "chrome-extension://egojjgejnfaegfdaclebghllhkldjiaj/"
+      ];
     };
   };
 }

@@ -152,9 +152,14 @@
             # HSP/HFP headset profiles and never negotiate A2DP high-quality audio.
             #
             # a2dp_source — send high-quality audio TO BT headphones/speakers
-            # hfp_ag/hf   — two-way call audio (lower quality, with mic)
+            # hfp_ag      — two-way call audio with a headset's mic (lower quality)
             #               WirePlumber auto-switches between A2DP and HFP when apps request a mic.
-            "bluez5.roles" = [ "a2dp_source" "hfp_ag" "hfp_hf" ];
+            #
+            # Deliberately NO hfp_hf / a2dp_sink: those make this machine a
+            # headset/speaker FOR A PHONE, so a bonded iPhone routes its calls
+            # and audio here, and PipeWire (not BlueZ) owns hands-free, which
+            # breaks tether's call control. Headsets only ever need hfp_ag.
+            "bluez5.roles" = [ "a2dp_source" "hfp_ag" ];
             "bluez5.enable-sbc-xq" = true;   # better quality SBC codec variant
             "bluez5.enable-msbc" = true;      # wideband voice for HFP calls
             "bluez5.enable-hw-volume" = true;  # sync volume to device hardware

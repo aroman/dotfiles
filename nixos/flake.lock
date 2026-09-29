@@ -294,6 +294,7 @@
         "nixpkgs": "nixpkgs_3",
         "nixpkgs-kernel": "nixpkgs-kernel",
         "noctalia": "noctalia",
+        "tether": "tether",
         "vicinae": "vicinae",
         "voxtype": "voxtype"
       }
@@ -347,6 +348,26 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
+        "type": "github"
+      }
+    },
+    "tether": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1790646827,
+        "narHash": "sha256-s9bjjSGTuQ7xevAaSZ3y3/V/UQmhsFnqhEneLFCKSy4=",
+        "owner": "zackb",
+        "repo": "tether",
+        "rev": "a5ad39a0e8903f87384c257cd55daef91313b0f6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "zackb",
+        "repo": "tether",
         "type": "github"
       }
     },

@@ -67,6 +67,14 @@
     # if that happens, re-run after a fresh tag is cut, or temporarily pin
     # a tag via `?ref=vX.Y.Z`.
     vicinae.url = "github:vicinaehq/vicinae";
+
+    # iPhone continuity: clipboard, files, SMS/iMessage, notifications.
+    # Used for its NixOS module (hosts/moonbinder); the package is a C++
+    # source build (not on any cache), small enough not to matter.
+    tether = {
+      url = "github:zackb/tether";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs@{ self, nixpkgs, home-manager, nixos-hardware, niri, disko, ... }:
