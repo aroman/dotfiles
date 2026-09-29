@@ -310,10 +310,6 @@ overview {
 // Apps need to be restarted after changing this.
 prefer-no-csd
 
-// Screenshots save to ~/Pictures/Screenshots. The screenshot script (local/bin/screenshot)
-// shows a notification with an "Open in Gradia" action button.
-screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
-
 // Allow apps to steal focus (e.g. clicking a link in ghostty opens and focuses Firefox)
 debug {
     honor-xdg-activation-with-invalid-serial
@@ -424,9 +420,10 @@ window-rule {
     open-maximized true
 }
 
+// screenie's annotation editor (editor.mode: window) should float, not tile.
 window-rule {
-    match app-id=r#"^be\.alexandervanhee\.gradia$"#
-    default-column-width { proportion 1.0; }
+    match app-id=r#"^dev\.johnpyp\.Screenie$"#
+    open-floating true
 }
 
 window-rule {
@@ -753,11 +750,13 @@ binds {
     // Mod+Space       { switch-layout "next"; }
     // Mod+Shift+Space { switch-layout "prev"; }
 
-    Print { spawn "sh" "-c" "~/.local/bin/screenshot region"; }
-    Mod+Shift+4 { spawn "sh" "-c" "~/.local/bin/screenshot region"; }
-    Ctrl+Print { spawn "sh" "-c" "~/.local/bin/screenshot output"; }
-    Alt+Print { spawn "sh" "-c" "~/.local/bin/screenshot window"; }
-    Mod+Print hotkey-overlay-title="Screen Record" { spawn "sh" "-c" "~/.local/bin/screen-record"; }
+    // screenie: CleanShot-style capture with a preview card and annotation editor.
+    Print { spawn "screenie" "shot"; }
+    Mod+Shift+4 { spawn "screenie" "shot"; }
+    Mod+Shift+5 hotkey-overlay-title="Screen Record (screenie)" { spawn "screenie" "record"; }
+    Ctrl+Print { spawn "screenie" "shot" "screen"; }
+    Alt+Print { spawn "screenie" "shot" "window"; }
+    Mod+Print hotkey-overlay-title="Screen Record (screenie)" { spawn "screenie" "record"; }
 
     // Applications such as remote-desktop clients and software KVM switches may
     // request that niri stops processing the keyboard shortcuts defined here

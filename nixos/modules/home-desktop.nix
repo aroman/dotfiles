@@ -252,12 +252,6 @@ in
     socat # IPC with niri socket (used by swap-monitors script)
     fuzzel       # Wayland dmenu/rofi — used for worktree picker etc.
     xdg-terminal-exec # XDG default terminal launcher — used by batman-picker
-    slurp        # area selection for screen recording
-    # ammen99/wf-recorder#350 is still open (0.6.0 reads AVCodec.sample_fmts,
-    # which ffmpeg 9.0 dropped), but nixpkgs now takes `ffmpeg_8` as
-    # wf-recorder's own argument, so the local override is gone — `ffmpeg` is
-    # no longer a parameter and passing it fails evaluation outright.
-    wf-recorder  # Wayland screen recorder
     libnotify    # notify-send for desktop notifications
 
     # Media & audio
@@ -284,10 +278,10 @@ in
     celluloid
     video-trimmer
     newsflash
-    # Same story as wf-recorder above: 6.1.0 reads AVCodec.pix_fmts, dropped in
+    # moonlight-qt 6.1.0 reads AVCodec.pix_fmts, dropped in
     # ffmpeg 9.0, and the fix (moonlight-stream/moonlight-qt#1964) is merged but
     # unreleased.  nixpkgs pins `ffmpeg_8` as moonlight-qt's own argument now,
-    # so no override here either.
+    # so no local override is needed.
     # Sunshine client — pairs with wizardtower/moonbinder sunshine hosts
     moonlight-qt
 
@@ -302,7 +296,6 @@ in
     })
 
     # Design
-    gradia
     texturepacker
     tiled
     adw-gtk3 # libadwaita look for GTK3 apps (Nemo, Thunar, etc.)
