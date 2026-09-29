@@ -402,6 +402,9 @@
   # Removable media (udisks2 + gvfs so Nautilus can detect/mount USB drives)
   services.udisks2.enable = true;
   services.gvfs.enable = true;
+  # Spacebar quick-preview in Nautilus (images, video, text). A system option
+  # rather than a package: Nautilus reaches Sushi over its D-Bus service.
+  services.gnome.sushi.enable = true;
   # Drop the wsdd backend (Windows network discovery). gvfs ships wsdd.mount
   # but not the `wsdd` helper, so Nautilus' network browser spams
   # "Failed to spawn the wsdd daemon" every time it enumerates mounts.

@@ -298,7 +298,6 @@ in
 
     # Design
     texturepacker
-    tiled
     adw-gtk3 # libadwaita look for GTK3 apps (Nemo, Thunar, etc.)
 
     nautilus

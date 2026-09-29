@@ -426,6 +426,19 @@ window-rule {
     open-floating true
 }
 
+// Sushi (Nautilus spacebar preview) is a transient peek, not a column —
+// float it so it doesn't reflow the strip every time a file is previewed.
+// Sushi's own default is a small, thumbnail-ish window; ~60×70% of the
+// working area is big enough to actually read a PDF page or watch a clip,
+// while leaving Nautilus visible around it for context.
+window-rule {
+    match app-id=r#"^org\.gnome\.NautilusPreviewer$"#
+    open-floating true
+    open-focused true
+    default-column-width { proportion 0.6; }
+    default-window-height { proportion 0.7; }
+}
+
 window-rule {
     match app-id=r#"^org\.quickshell$"# title="^Noctalia$"
     open-floating true
