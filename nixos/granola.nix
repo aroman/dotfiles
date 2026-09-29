@@ -5,7 +5,7 @@
 #   granola/package.nix       macOS bundle on nixpkgs' Electron (bump notes inside)
 #   granola/patch_app.py      the Linux patches to Granola's JS
 #   granola/niri.kdl          autostart, popup and screen-share window rules
-#   granola/noctalia-plugin/  bar widget for the next meeting
+#   granola/noctalia-plugin/  bar widget + panel: next meeting, join link, dismiss
 { lib, username, ... }:
 {
   # As pkgs.granola, so `nix build .#nixosConfigurations.<host>.pkgs.granola`

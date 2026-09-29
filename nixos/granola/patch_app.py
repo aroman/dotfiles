@@ -41,12 +41,16 @@ class Bundle:
             raise SystemExit(f"error: expected one file matching {pattern!r}, found {found}")
         return found[0]
 
-    def name(self, path: str, pattern: str, what: str) -> str:
-        """Group 1 of the single match of `pattern`: a minified name to call."""
-        found = re.findall(pattern, self.read(path))
+    def names(self, path: str, pattern: str, what: str) -> tuple[str, ...]:
+        """The groups of the single match of `pattern`: minified names to call."""
+        found = list(re.finditer(pattern, self.read(path)))
         if len(found) != 1:
             raise SystemExit(f"error: expected one {what} in {path}, found {len(found)}")
-        return found[0] if isinstance(found[0], str) else found[0][0]
+        return found[0].groups()
+
+    def name(self, path: str, pattern: str, what: str) -> str:
+        """Group 1 of the single match of `pattern`: a minified name to call."""
+        return self.names(path, pattern, what)[0]
 
     def require(self, path: str, needle: str, why: str) -> None:
         if needle not in self.read(path):
@@ -63,15 +67,17 @@ class Bundle:
         print(f"patched: {label} ({path})")
 
 
-# Written for the bar widget in noctalia-plugin/. Plain data with epoch-ms
-# times (Luau has no date parser); the widget does its own formatting and
-# treats a file whose updatedAt is more than a few minutes old as "Granola
-# isn't running". Uses no minified names, so it can't silently break on a bump.
-NEXT_MEETING_WRITER = r"""function granolaLinuxNextMeeting(n,e){try{
+# Read by the noctalia plugin in noctalia-plugin/ (service.luau). Plain data
+# with epoch-ms times (Luau has no date parser); `pid` lets the plugin tell
+# that Granola is still running, and `id` keys dismissals. title:null means
+# nothing is coming up or the menu-bar toggle is off. Uses no minified names,
+# so it can't silently break on a bump; the join link `j` is resolved by the
+# caller (see "next meeting file").
+NEXT_MEETING_WRITER = r"""function granolaLinuxNextMeeting(n,e,j){try{
 let f=require(`node:fs`),p=require(`node:path`),
 d=p.join(process.env.XDG_RUNTIME_DIR||require(`node:os`).tmpdir(),`granola`),o=p.join(d,`next-meeting.json`);
 f.mkdirSync(d,{recursive:!0});
-f.writeFileSync(o+`.tmp`,JSON.stringify(n?{title:n.summary||`Meeting`,startMs:Date.parse(n.start?.dateTime)||null,endMs:Date.parse(n.end?.dateTime)||null,updatedAt:e.getTime()}:{title:null,updatedAt:e.getTime()}));
+f.writeFileSync(o+`.tmp`,JSON.stringify(n?{id:n.id??null,title:n.summary||`Meeting`,startMs:Date.parse(n.start?.dateTime)||null,endMs:Date.parse(n.end?.dateTime)||null,joinURI:j?.joinURI??null,joinApp:j?.conferenceSolutionName??null,pid:process.pid,updatedAt:e.getTime()}:{title:null,pid:process.pid,updatedAt:e.getTime()}));
 f.renameSync(o+`.tmp`,o)}catch(t){console.error(`granola: next-meeting write failed`,t)}}
 """.replace("\n", "")
 
@@ -173,13 +179,18 @@ def patch_granola(app: Bundle, macos_version: str) -> None:
         r"\1\2",
         label="menu-bar meeting start off macOS",
     )
+    # Granola's own join-link resolver (conferenceData video entry, else a
+    # Zoom/Meet/Teams/… URL in the description or location), as its tray menu
+    # calls it: resolver(event, icons, userEmail).
+    join_link, join_icons = app.names(main, rf"\?({ID})\({ID},({ID}),{ID}\)\?\?void 0:void 0", "join-link resolver")
     app.patch(
         main,
         rf"function ({ID})\(e=new Date\)\{{if\(!({ID})\|\|process\.platform!==`darwin`\)return;"
         rf"if\(!({ID})\(\)\)\{{\2\.setTitle\(``\);return\}}let\{{userEmail:t\}}=({ID})\(\),n=({ID})\(({ID}),e,({ID})\(t\)\);",
         lambda m: NEXT_MEETING_WRITER
         + f"function {m[1]}(e=new Date){{if(!{m[2]})return;"
-        f"if(process.platform!==`darwin`)return granolaLinuxNextMeeting({m[3]}()?{m[5]}({m[6]},e,{m[7]}({m[4]}().userEmail)):null,e);"
+        f"if(process.platform!==`darwin`){{let t={m[4]}().userEmail,n={m[3]}()?{m[5]}({m[6]},e,{m[7]}(t)):null;"
+        f"return granolaLinuxNextMeeting(n,e,n?{join_link}(n,{join_icons},t):null)}}"
         f"if(!{m[3]}()){{{m[2]}.setTitle(``);return}}let{{userEmail:t}}={m[4]}(),n={m[5]}({m[6]},e,{m[7]}(t));",
         label="next meeting file",
     )

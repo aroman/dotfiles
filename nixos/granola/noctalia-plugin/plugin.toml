@@ -1,6 +1,6 @@
 id = "aroman/granola"
 name = "Granola"
-version = "1.0.0"
+version = "1.4.2"
 plugin_api = 23
 author = "aroman"
 license = "MIT"
@@ -14,4 +14,24 @@ id = "next-meeting"
 entry = "widget.luau"
 
   [widget.actions]
-  left = "exec granola"
+  left = "panel-toggle aroman/granola:details"
+
+# Meeting details, with Join (when there is a call link), Open Granola and Dismiss.
+[[panel]]
+id = "details"
+entry = "panel.luau"
+width = 340
+# Plugin panels can't size to their content (noctalia 5.1.0: a fixed number,
+# or "fill" when floating). This is the two-line-title layout exactly: 14 px
+# host padding + 166 px of content + 14 px; a one-line title's slack goes to
+# the spacer above the buttons.
+height = 194
+placement = "attached"
+position = "auto"
+open_near_click = true
+
+# Polls Granola's next-meeting file and owns the state the widget and panel
+# watch (see service.luau).
+[[service]]
+id = "monitor"
+entry = "service.luau"
