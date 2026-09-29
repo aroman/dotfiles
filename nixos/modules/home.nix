@@ -37,6 +37,11 @@ in
     "bat".source = link "config/bat";
     "lazygit".source = link "config/lazygit";
     "starship.toml".source = link "config/starship.toml";
+    # Per file, not the directory: btop's first run creates ~/.config/btop/
+    # (and themes/), which home-manager can't replace, plus a regular
+    # btop.conf — hence force. btop saves settings back through the link.
+    "btop/btop.conf" = { source = link "config/btop/btop.conf"; force = true; };
+    "btop/themes/everblush.theme".source = link "config/btop/themes/everblush.theme";
   };
 
   # Home directory dotfiles (-> ~/.<name>)
