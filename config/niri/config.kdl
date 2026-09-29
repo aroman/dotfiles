@@ -10,6 +10,10 @@
 // without needing both files to exist.
 include "host-moonbinder.kdl" optional=true
 include "host-wizardtower.kdl" optional=true
+// Written by nixos/granola.nix, only on hosts that import it. It lives
+// outside ~/.config/niri because that directory is a link to this repo, where
+// home-manager can't add files.
+include "~/.config/niri-nix/granola.kdl" optional=true
 
 cursor {
     xcursor-theme "Adwaita"

@@ -1,0 +1,17 @@
+id = "aroman/granola"
+name = "Granola"
+version = "1.0.0"
+plugin_api = 23
+author = "aroman"
+license = "MIT"
+icon = "calendar-event"
+description = "Shows Granola's next meeting in the bar, like its macOS menu-bar item."
+dependencies = ["granola"]
+tags = ["bar", "calendar", "meetings"]
+
+[[widget]]
+id = "next-meeting"
+entry = "widget.luau"
+
+  [widget.actions]
+  left = "exec granola"

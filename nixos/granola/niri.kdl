@@ -1,0 +1,27 @@
+// Included from config/niri/config.kdl via nixos/granola.nix.
+
+// Granola's own open-at-login is a no-op on Linux; it needs to be running
+// to pop meeting reminders.
+spawn-at-startup "granola"
+
+// Meeting reminders, the recording pill and other popups are transparent
+// always-on-top macOS "panel" windows. Float them top-right without chrome
+// instead of tiling them. Titles come from each page's document.title
+// (reminders are pinned to "Notification" by patch_app.py); the main window
+// is exactly "Granola".
+window-rule {
+    match app-id=r#"^granola$"# title=r#"^(Nub( Banner)?|Notification|Reminder|Hermes|Dispatcher|Quick Chat|Active listening|Granola .+)$"#
+    open-floating true
+    open-focused false
+    default-floating-position x=16 y=16 relative-to="top-right"
+    border { off; }
+    focus-ring { off; }
+    shadow { off; }
+    draw-border-with-background false
+}
+
+// Keep meeting notes out of screen shares (still visible in screenshots).
+window-rule {
+    match app-id=r#"^granola$"#
+    block-out-from "screencast"
+}

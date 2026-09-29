@@ -10,6 +10,7 @@ in
 {
   imports = [
     ../../fw16-speaker-dsp.nix
+    ../../granola.nix
   ];
 
   networking.hostName = "moonbinder";

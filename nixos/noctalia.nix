@@ -175,6 +175,7 @@
           #                        change to plugins.enabled below.
           start = [ "hostname" "voxtype" "spacer" "media" ];
           center = [ "active-window" ];
+          # granola.nix prepends its next-meeting widget here.
           end = [
             "tray"
             "sysmon"
@@ -236,6 +237,8 @@
         # ~/.local/share/noctalia/plugins/ the same way it handles local/bin.
         # Adding a home.file block here would have both rcm and home-manager
         # claiming the same paths.  This list only decides which get loaded.
+        # Exception: granola.nix links and enables its own plugin, so the whole
+        # Granola integration stays one import.
         plugins = {
           enabled = [ "aroman/voxtype" ];
           # beta.9 turned this from a boolean into a scope (all|official|none).
