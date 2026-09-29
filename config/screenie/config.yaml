@@ -1,0 +1,10 @@
+# CleanShot X preset from screenie's README: cards bottom-right, copy on capture,
+# cards slide away after 60s.
+screenshot:
+  after_capture: { copy: true, save: false, preview: true, edit: false }
+preview:
+  position: bottom-right
+  timeout: 60
+editor:
+  mode: window
+  exit_on_copy: true

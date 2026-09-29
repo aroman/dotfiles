@@ -25,6 +25,7 @@ in
     "niri".source = link "config/niri";
     "zed".source = link "config/zed";
     "fuzzel".source = link "config/fuzzel";
+    "screenie".source = link "config/screenie";
     "ghostty/config".source = link "config/ghostty/config";
     "ghostty/themes".source = link "config/ghostty/themes";
     "ghostty/linux".source = link "config/ghostty/linux";
