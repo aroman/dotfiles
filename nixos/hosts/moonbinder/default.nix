@@ -448,6 +448,29 @@ in
   # Also depends on hfp_hf being absent from bluez5.roles (desktop.nix).
   programs.tether = {
     enable = true;
+    # Two local OTP-autofill fixes (verified against a Partiful SMS code):
+    #
+    # 1. tetherd: an SMS's ANCS notification is scanned as title + body, and
+    #    the title is the sender. "+1 (844) 946-0698" / "281583 is your
+    #    Partiful verification code" scored 0698 and 281583 equally (both
+    #    within 30 chars of "verification") and the first match won, so the
+    #    ANCS copy replaced MAP's correct code with the sender's last 4
+    #    digits. Try the body alone first.
+    # 2. Extension: an <input inputmode="numeric" maxlength="6"> with no id,
+    #    name, autocomplete or <label> scored 0 and was never offered the
+    #    code. Accept numeric inputs with a 4-8 maxlength outright. The
+    #    unpacked copy in ~/.local/share/tether/chrome-extension must be
+    #    re-unzipped from this package's share/tether/extensions after a bake.
+    package = (pkgs.callPackage "${inputs.tether}/nix/package.nix" { }).overrideAttrs (old: {
+      postPatch = old.postPatch + ''
+        substituteInPlace src/daemon/main.cpp --replace-fail \
+          'otp = tether::otp_extract(notification.title + "\n"' \
+          'otp = !tether::otp_extract(notification.body).empty() ? tether::otp_extract(notification.body) : tether::otp_extract(notification.title + "\n"'
+        substituteInPlace extension/src/content/autofill.js --replace-fail \
+          "if (input.inputMode === 'numeric') return scoreInput(input) > 5;" \
+          "if (input.inputMode === 'numeric') return scoreInput(input) > 5 || (input.maxLength >= 4 && input.maxLength <= 8);"
+      '';
+    });
     wifi = {
       enable = true;
       openFirewall = true;
@@ -463,7 +486,12 @@ in
   # The module installs tetherd but doesn't start it; the package ships a
   # user unit, so pull it in and enable it at login.
   systemd.packages = [ config.programs.tether.package ];
-  systemd.user.services.tetherd.wantedBy = [ "default.target" ];
+  systemd.user.services.tetherd = {
+    wantedBy = [ "default.target" ];
+    # Probes the adapter with `btmgmt info` (a bare PATH lookup) every minute;
+    # the user manager's PATH has no bluez, so it just logged ENOENT.
+    path = [ pkgs.bluez ];
+  };
 
   # Chrome: the extension isn't on the Chrome Web Store, and the zip has no
   # "key", so an unpacked load gets a path-derived ID that the package's
