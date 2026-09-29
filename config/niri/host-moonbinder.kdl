@@ -52,11 +52,12 @@ output "LG Electronics 27GN950 203NTCZC4835" {
     position x=1707 y=0
 }
 
-// External: LG UltraGear+ 5K — to the LEFT of the internal panel. 5120x2880 @
-// 2x = 2560x1440 logical, so x=-2560 butts its right edge against the
-// internal's left edge at x=0 without moving the internal off the origin.
+// External: LG UltraGear+ dual-mode — to the LEFT of the internal panel.
+// No mode or scale on purpose: the dual-mode toggle swaps the EDID between
+// 5K and 1440p, and niri's DPI-based auto-scale picks 2 for 5K and 1 for
+// 1440p. Both are 2560x1440 logical, so x=-2560 butts its right edge against
+// the internal's left edge at x=0 without moving the internal off the origin.
 output "LG Electronics LG ULTRAGEAR+ 605NTLEND928" {
-    scale 2
     backdrop-color "#1D2029"
     position x=-2560 y=0
 }
