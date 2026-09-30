@@ -1,0 +1,200 @@
+diff --git a/src/core/include/tether/bluetooth/pbap_session.hpp b/src/core/include/tether/bluetooth/pbap_session.hpp
+index ddb1ad8..1213fa0 100644
+--- a/src/core/include/tether/bluetooth/pbap_session.hpp
++++ b/src/core/include/tether/bluetooth/pbap_session.hpp
+@@ -11,7 +11,7 @@ namespace tether::bluetooth {
+ 
+     // Pulling a large phonebook is a real OBEX transfer.
+     inline constexpr int PBAP_CALL_TIMEOUT_MS = 60000;
+-    inline constexpr int PBAP_TRANSFER_TIMEOUT_SECONDS = 60;
++    inline constexpr int PBAP_TRANSFER_TIMEOUT_SECONDS = 180;
+     inline constexpr int PBAP_FILE_GRACE_SECONDS = 3;
+     inline constexpr int PBAP_MAX_CONTACTS = 5000;
+ 
+diff --git a/src/core/include/tether/bluetooth/vcard.hpp b/src/core/include/tether/bluetooth/vcard.hpp
+index 30b8eb1..656fd1f 100644
+--- a/src/core/include/tether/bluetooth/vcard.hpp
++++ b/src/core/include/tether/bluetooth/vcard.hpp
+@@ -1,5 +1,6 @@
+ #pragma once
+ 
++#include <filesystem>
+ #include <string>
+ #include <vector>
+ 
+@@ -12,10 +13,21 @@ namespace tether::bluetooth {
+         std::string name;
+         std::vector<std::string> tels;
+         std::vector<std::string> emails;
++        // Decoded PHOTO bytes (JPEG or PNG), empty when the card has none.
++        std::string photo;
+ 
+         bool empty() const { return name.empty() && tels.empty() && emails.empty(); }
+     };
+ 
++    // Contact photos are cached one file per phone number, keyed by its last ten
++    // digits, so a notification can find one from a MAP thread key alone.
++    std::filesystem::path contact_photo_dir();
++    std::string contact_photo_key(const std::string& tel_or_thread_key);
++    // Replaces the cache with the photos on these cards.
++    void write_contact_photos(const std::vector<VCard>& cards);
++    // The cached photo for a thread key such as "tel:+15551234567", or "".
++    std::string contact_photo_for(const std::string& thread_key);
++
+     // Parses a vCard 3.0 document containing any number of cards.
+     std::vector<VCard> parse_vcards(const std::string& text);
+ 
+diff --git a/src/core/src/bluetooth/pbap_session.cpp b/src/core/src/bluetooth/pbap_session.cpp
+index 8a07c4d..6d6bfed 100644
+--- a/src/core/src/bluetooth/pbap_session.cpp
++++ b/src/core/src/bluetooth/pbap_session.cpp
+@@ -91,7 +91,7 @@ namespace tether::bluetooth {
+         // MaxCount, not MAP's MaxListCount.
+         g_variant_builder_add(&filter, "{sv}", "MaxCount", g_variant_new_uint16(static_cast<guint16>(max)));
+         // only what parse_vcards reads. kill PHOTO
+-        g_variant_builder_add(&filter, "{sv}", "Fields", g_variant_new_parsed("['N','FN','TEL','EMAIL']"));
++        g_variant_builder_add(&filter, "{sv}", "Fields", g_variant_new_parsed("['N','FN','TEL','EMAIL','PHOTO']"));
+ 
+         GError* error = nullptr;
+         GVariant* reply = g_dbus_connection_call_sync(state_->bus,
+@@ -151,6 +151,9 @@ namespace tether::bluetooth {
+         }
+ 
+         contacts = parse_vcards(text);
++        write_contact_photos(contacts);
++        for (auto& card : contacts)
++            std::string().swap(card.photo);
+         return contacts;
+     }
+ 
+diff --git a/src/core/src/bluetooth/vcard.cpp b/src/core/src/bluetooth/vcard.cpp
+index 8a360e7..47b8900 100644
+--- a/src/core/src/bluetooth/vcard.cpp
++++ b/src/core/src/bluetooth/vcard.cpp
+@@ -1,5 +1,8 @@
+ #include "tether/bluetooth/vcard.hpp"
+ 
++#include <fstream>
++#include <glib.h>
++
+ #include <algorithm>
+ #include <cctype>
+ 
+@@ -158,6 +161,13 @@ namespace tether::bluetooth {
+                 current.name = vcard_unescape(value);
+             else if (name == "N")
+                 structured_name = vcard_name_from_n(vcard_unescape(value));
++            else if (name == "PHOTO" && value.find("://") == std::string::npos) {
++                gsize len = 0;
++                guchar* bytes = g_base64_decode(value.c_str(), &len);
++                if (bytes && len > 0)
++                    current.photo.assign(reinterpret_cast<const char*>(bytes), len);
++                g_free(bytes);
++            }
+         }
+ 
+         if (in_card)
+@@ -165,4 +175,53 @@ namespace tether::bluetooth {
+         return cards;
+     }
+ 
++    std::filesystem::path contact_photo_dir() {
++        return std::filesystem::path(g_get_user_cache_dir()) / "tether" / "contact-photos";
++    }
++
++    std::string contact_photo_key(const std::string& tel_or_thread_key) {
++        std::string digits;
++        for (char c : tel_or_thread_key)
++            if (c >= '0' && c <= '9')
++                digits.push_back(c);
++        return digits.size() > 10 ? digits.substr(digits.size() - 10) : digits;
++    }
++
++    void write_contact_photos(const std::vector<VCard>& cards) {
++        const std::filesystem::path dir = contact_photo_dir();
++        std::error_code ec;
++        std::filesystem::remove_all(dir, ec);
++        std::filesystem::create_directories(dir, ec);
++        if (ec)
++            return;
++        std::filesystem::permissions(dir, std::filesystem::perms::owner_all, ec);
++        for (const auto& card : cards) {
++            if (card.photo.size() < 4)
++                continue;
++            const bool png = static_cast<unsigned char>(card.photo[0]) == 0x89 && card.photo[1] == 'P';
++            for (const auto& tel : card.tels) {
++                const std::string key = contact_photo_key(tel);
++                if (key.size() < 7)
++                    continue;
++                std::ofstream out(dir / (key + (png ? ".png" : ".jpg")), std::ios::binary | std::ios::trunc);
++                out.write(card.photo.data(), static_cast<std::streamsize>(card.photo.size()));
++            }
++        }
++    }
++
++    std::string contact_photo_for(const std::string& thread_key) {
++        if (thread_key.rfind("tel:", 0) != 0)
++            return {};
++        const std::string key = contact_photo_key(thread_key);
++        if (key.size() < 7)
++            return {};
++        std::error_code ec;
++        for (const char* ext : {".jpg", ".png"}) {
++            const std::filesystem::path p = contact_photo_dir() / (key + ext);
++            if (std::filesystem::exists(p, ec))
++                return p.string();
++        }
++        return {};
++    }
++
+ } // namespace tether::bluetooth
+diff --git a/src/daemon/main.cpp b/src/daemon/main.cpp
+index a9ff3a4..07de67c 100644
+--- a/src/daemon/main.cpp
++++ b/src/daemon/main.cpp
+@@ -14,6 +14,7 @@
+ #include <tether/bluetooth/contacts.hpp>
+ #include <tether/bluetooth/monitor.hpp>
+ #include <tether/bluetooth/pairing.hpp>
++#include <tether/bluetooth/vcard.hpp>
+ #include <tether/core.hpp>
+ #include <tether/crypto.hpp>
+ #include <tether/discovery.hpp>
+@@ -254,10 +255,14 @@ int main(int argc, char** argv) {
+             std::string reply_error;
+             const bool repliable =
+                 tether::bluetooth::recipient_from_thread_key(message.thread_key, recipient, reply_error);
++            std::vector<std::string> icons{tether::bluetooth::contact_photo_for(message.thread_key),
++                                           "@messages_icon@"};
++            for (auto& name : tether::bluetooth::ancs::icon_candidates(as_notification))
++                icons.push_back(std::move(name));
+             notifier.notify({_("Messages"),
+                              who.empty() ? "iPhone" : who,
+                              message.body,
+-                             tether::bluetooth::ancs::icon_candidates(as_notification),
++                             icons,
+                              false,
+                              repliable ? message.thread_key : std::string{},
+                              otp,
+diff --git a/src/daemon/notification.cpp b/src/daemon/notification.cpp
+index 0b66c78..bf2f735 100644
+--- a/src/daemon/notification.cpp
++++ b/src/daemon/notification.cpp
+@@ -7,6 +7,7 @@
+ #include <glib.h>
+ #include <libnotify/notify.h>
+ 
++#include <filesystem>
+ #include <functional>
+ #include <mutex>
+ #include <string>
+@@ -80,6 +81,9 @@ namespace tether {
+         std::string resolve_icon(const std::vector<std::string>& candidates) {
+             const auto& installed = installed_icons();
+             for (const auto& name : candidates) {
++                std::error_code ec;
++                if (!name.empty() && name.front() == '/' && std::filesystem::exists(name, ec))
++                    return name;
+                 if (installed.count(name))
+                     return name;
+             }

@@ -461,8 +461,19 @@ in
     #    code. Accept numeric inputs with a 4-8 maxlength outright. The
     #    unpacked copy in ~/.local/share/tether/chrome-extension must be
     #    re-unzipped from this package's share/tether/extensions after a bake.
+    #
+    # 3. patches/tether-contact-photos.patch: SMS popups show the sender's
+    #    contact photo (PBAP now pulls PHOTO; cached per number under
+    #    ~/.cache/tether/contact-photos), else the Messages icon
+    #    (../../imessage.svg, Wikimedia Commons, public domain). Upstream
+    #    only offered themed names ("internet-chat") no installed theme has,
+    #    so noctalia fell back to Tether's own icon.
     package = (pkgs.callPackage "${inputs.tether}/nix/package.nix" { }).overrideAttrs (old: {
+      patches = (old.patches or [ ]) ++ [ ../../patches/tether-contact-photos.patch ];
       postPatch = old.postPatch + ''
+        substituteInPlace src/daemon/main.cpp \
+          --replace-fail "@messages_icon@" "${../../imessage.svg}"
+
         substituteInPlace src/daemon/main.cpp --replace-fail \
           'otp = tether::otp_extract(notification.title + "\n"' \
           'otp = !tether::otp_extract(notification.body).empty() ? tether::otp_extract(notification.body) : tether::otp_extract(notification.title + "\n"'
