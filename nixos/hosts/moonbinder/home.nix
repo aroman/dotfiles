@@ -16,7 +16,27 @@
     figma-agent  # serves local fonts to Figma web (needs Windows user-agent)
     discord
     slack
-  ]);
+  ]) ++ [
+    # FHS variant: gives Cowork the QEMU/OVMF/virtiofsd it probes for at
+    # /usr paths, and MCP servers a normal node/uv/docker.
+    #
+    # Electron picks its keyring from XDG_CURRENT_DESKTOP and doesn't know
+    # "niri", so it refuses to persist sign-in ("Install and unlock a system
+    # keyring"). CLAUDE_PASSWORD_STORE is the package's hook for
+    # --password-store. The .desktop Exec is PATH-relative, so launchers
+    # pick up this wrapper without rewriting it.
+    (pkgs.symlinkJoin {
+      name = "claude-desktop-fhs-libsecret";
+      paths = [ pkgs.claude-desktop-fhs ];
+      nativeBuildInputs = [ pkgs.makeWrapper ];
+      postBuild = ''
+        rm $out/bin/claude-desktop
+        makeWrapper ${pkgs.claude-desktop-fhs}/bin/claude-desktop $out/bin/claude-desktop \
+          --set-default CLAUDE_PASSWORD_STORE gnome-libsecret
+      '';
+    })
+    (pkgs.callPackage ./chatgpt-bin.nix { })
+  ];
 
   # ── Figma ──────────────────────────────────────────────────────
 
@@ -34,6 +54,9 @@
 
   xdg.mimeApps.defaultApplications = {
     "x-scheme-handler/figma" = "figma.desktop";
+    # Claude Desktop tries to claim this itself on every launch, but
+    # mimeapps.list is read-only here. Needed for sign-in callbacks.
+    "x-scheme-handler/claude" = "com.anthropic.Claude.desktop";
   };
 
   # Add figma-open handler to handlr URL dispatcher.

@@ -75,6 +75,17 @@
       url = "github:zackb/tether";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Claude Desktop: Anthropic's official Linux .deb, repackaged for Nix.
+    # Their launcher script (--doctor, CLAUDE_USE_WAYLAND) is deb/rpm-only;
+    # the Nix build runs Electron directly, which picks Wayland on niri by
+    # itself. Only the overlay is used (hosts/moonbinder), built against our
+    # nixpkgs. Upstream auto-bumps the .deb; pull with
+    # `nix flake update claude-desktop`.
+    claude-desktop = {
+      url = "github:aaddrick/claude-desktop-debian";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs@{ self, nixpkgs, home-manager, nixos-hardware, niri, disko, ... }:

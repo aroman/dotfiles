@@ -16,6 +16,26 @@ in
 
   networking.hostName = "moonbinder";
 
+  # pkgs.claude-desktop{,-fhs}; installed in ./home.nix.
+  nixpkgs.overlays = [
+    inputs.claude-desktop.overlays.default
+    # Drop Electron's titleBarOverlay (drawn min/max/close) on the main
+    # window; niri doesn't need them. Equal-length edit so the asar header
+    # stays valid. claude-desktop-fhs wraps final.claude-desktop, so it
+    # inherits this.
+    (final: prev: {
+      claude-desktop = prev.claude-desktop.overrideAttrs (old: {
+        nativeBuildInputs = old.nativeBuildInputs ++ [ final.perl ];
+        postInstall = old.postInstall + ''
+          perl -0777 -i -pe '
+            $n = s/titleBarStyle:"hidden",titleBarOverlay:!0/titleBarStyle:"hidden",titleBarOverlay:!1/g;
+            die "claude-desktop: titleBarOverlay pattern not found\n" unless $n;
+          ' $out/lib/claude-desktop/resources/app.asar
+        '';
+      });
+    })
+  ];
+
   # TODO: Remove when fixes land upstream. Still NOT upstream as of 7.1.4 AND
   # mainline master (verified 2026-07-27 by reading mt7925/{mac,main,pci}.c
   # directly, not the list archives: mt7925_mlo_pm_iter still takes the mutex
