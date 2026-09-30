@@ -7,6 +7,8 @@ config/niri/noctalia.kdl
 # config is main.kdl. Recreated by home-desktop.nix.
 config/niri/config.kdl
 config/ghostty/themes/noctalia
+# noctalia community template (enabled in noctalia settings, not in nix)
+config/zed/themes/noctalia.json
 config/fish/fish_variables
 config/fish/completions/bud.fish
 config/fish/conf.d/secrets.fish

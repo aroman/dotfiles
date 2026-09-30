@@ -108,7 +108,14 @@
 	},
 	"base_keymap": "VSCode",
 	"linux": {
-		"window_decorations": "server"
+		"window_decorations": "server",
+		// noctalia renders these into themes/noctalia.json; elsewhere the
+		// top-level "theme" below applies.
+		"theme": {
+			"mode": "system",
+			"light": "Noctalia Light",
+			"dark": "Noctalia Dark"
+		}
 	},
 	"vim_mode": true,
 	"icon_theme": "Colored Zed Icons Theme Dark",
