@@ -1,3 +1,10 @@
+# screenie is a `nix profile` install, currently from our fork
+# (github:aroman/screenie/gpui-forget-removed-outputs): upstream's GPUI ignores
+# removed monitors, so after the LG sleeps the selector skips it. Submitted as
+# https://github.com/johnpyp/screenie/pull/2; once merged, go back to upstream:
+#   nix profile remove screenie && nix profile add github:johnpyp/screenie
+#   screenie quit
+#
 # CleanShot X preset from screenie's README: cards bottom-right, copy on capture,
 # cards slide away after 60s.
 screenshot:
