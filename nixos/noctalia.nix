@@ -245,6 +245,14 @@
           display = "text_only";
         };
 
+        # Date alongside the time ("Tue Sep 29 16:15").  The format is a
+        # std::format chrono spec, not raw strftime — it must stay wrapped in
+        # `{:...}`, and glibc's `%-d` flag likely isn't accepted, hence `%e`.
+        widget.clock = {
+          type = "clock";
+          format = "{:%a %b %e %H:%M}";
+        };
+
         # v4 CustomButton.  Note the label is static: v4 re-ran
         # `refresh-toggle status` every 30s to show the current rate, and v5's
         # custom_button has no command-polling equivalent (the text widget is
