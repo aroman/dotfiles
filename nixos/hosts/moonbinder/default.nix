@@ -488,11 +488,14 @@ in
     #    (../../imessage.svg, Wikimedia Commons, public domain). Upstream
     #    only offered themed names ("internet-chat") no installed theme has,
     #    so noctalia fell back to Tether's own icon.
+    #    Missed/incoming call popups (ANCS, com.apple.mobilephone) get the
+    #    caller's photo too, else the Phone icon (../../phone.svg, same source).
     package = (pkgs.callPackage "${inputs.tether}/nix/package.nix" { }).overrideAttrs (old: {
       patches = (old.patches or [ ]) ++ [ ../../patches/tether-contact-photos.patch ];
       postPatch = old.postPatch + ''
         substituteInPlace src/daemon/main.cpp \
-          --replace-fail "@messages_icon@" "${../../imessage.svg}"
+          --replace-fail "@messages_icon@" "${../../imessage.svg}" \
+          --replace-fail "@phone_icon@" "${../../phone.svg}"
 
         substituteInPlace src/daemon/main.cpp --replace-fail \
           'otp = tether::otp_extract(notification.title + "\n"' \

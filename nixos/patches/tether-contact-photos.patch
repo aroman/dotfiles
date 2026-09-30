@@ -149,7 +149,7 @@ index 8a360e7..47b8900 100644
 +
  } // namespace tether::bluetooth
 diff --git a/src/daemon/main.cpp b/src/daemon/main.cpp
-index a9ff3a4..07de67c 100644
+index a9ff3a4..16d903b 100644
 --- a/src/daemon/main.cpp
 +++ b/src/daemon/main.cpp
 @@ -14,6 +14,7 @@
@@ -176,6 +176,41 @@ index a9ff3a4..07de67c 100644
                               false,
                               repliable ? message.thread_key : std::string{},
                               otp,
+@@ -665,10 +670,33 @@ int main(int argc, char** argv) {
+                     const std::string title = notification.title.empty() ? notification.app_name : notification.title;
+                     // Some apps put the whole notification in the subtitle and leave the message empty.
+                     const std::string body = notification.body.empty() ? notification.subtitle : notification.body;
++                    std::vector<std::string> icons;
++                    if (notification.app_id == "com.apple.mobilephone") {
++                        // The title is the caller: a number, or a contact name.
++                        std::string photo;
++                        size_t digits = 0;
++                        for (char c : notification.title)
++                            digits += (c >= '0' && c <= '9');
++                        if (digits >= 7) {
++                            photo = tether::bluetooth::contact_photo_for("tel:" + notification.title);
++                        } else if (!notification.title.empty()) {
++                            std::vector<std::string> addresses;
++                            {
++                                std::lock_guard<std::mutex> lock(tether::bluetooth::message_store_mutex());
++                                addresses = tether::bluetooth::contact_store().addresses_for_name(notification.title);
++                            }
++                            for (const auto& address : addresses)
++                                if (photo.empty())
++                                    photo = tether::bluetooth::contact_photo_for(address);
++                        }
++                        icons = {photo, "@phone_icon@"};
++                    }
++                    for (auto& name : tether::bluetooth::ancs::icon_candidates(notification))
++                        icons.push_back(std::move(name));
+                     notifier.notify({notification.app_name,
+                                      title.empty() ? "iPhone" : title,
+                                      body,
+-                                     tether::bluetooth::ancs::icon_candidates(notification),
++                                     icons,
+                                      notification.silent,
+                                      "",
+                                      otp,
 diff --git a/src/daemon/notification.cpp b/src/daemon/notification.cpp
 index 0b66c78..bf2f735 100644
 --- a/src/daemon/notification.cpp
