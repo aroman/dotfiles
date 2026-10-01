@@ -4,6 +4,24 @@
   # Networking
   networking.networkmanager.enable = true;
 
+  # Encrypt DNS in resolved, not per browser: Chrome's own "secure DNS" sends
+  # lookups straight to its provider, bypassing resolved, so MagicDNS names
+  # (*.ts.net) come back NXDOMAIN. "~." routes every lookup to these servers
+  # instead of the DHCP-provided router; tailscale0's longer routing domains
+  # still win for tailnet names. Opportunistic rather than strict so captive
+  # portals that hijack port 53 still work, at the cost of a downgradable
+  # connection on hostile networks.
+  services.resolved.settings.Resolve = {
+    DNS = [
+      "1.1.1.1#cloudflare-dns.com"
+      "1.0.0.1#cloudflare-dns.com"
+      "2606:4700:4700::1111#cloudflare-dns.com"
+      "2606:4700:4700::1001#cloudflare-dns.com"
+    ];
+    DNSOverTLS = "opportunistic";
+    Domains = [ "~." ];
+  };
+
   # iPhone USB tethering — runs usbmuxd + libimobiledevice and installs udev
   # rules so the ipheth kernel driver exposes the phone as a USB Ethernet
   # interface that NetworkManager can DHCP on. More stable than Wi-Fi hotspot
