@@ -33,7 +33,7 @@
   programs.niri.package = pkgs.niri-unstable;
 
   # niri.service ExecStop drop-in is installed via home-manager (see
-  # modules/home.nix).  We can't use NixOS's systemd.user.services.niri
+  # modules/home-desktop.nix).  We can't use NixOS's systemd.user.services.niri
   # here because it injects a narrow Environment=PATH= that masks the user
   # manager's PATH and breaks spawn-at-startup; and environment.etc can't
   # write under /etc/systemd/user/ without colliding with NixOS unit mgmt.

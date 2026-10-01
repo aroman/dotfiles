@@ -60,7 +60,7 @@
   };
 
   # Add figma-open handler to handlr URL dispatcher.
-  # The base handlr.toml is in modules/home.nix; this prepends the Figma rule.
+  # The base handlr.toml is in modules/home-desktop.nix; this prepends the Figma rule.
   xdg.configFile."handlr/handlr.toml".text = lib.mkForce (let
     chrome = "google-chrome-stable";
   in ''

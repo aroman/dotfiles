@@ -2,7 +2,7 @@
 
 Managed with [rcm](https://github.com/thoughtbot/rcm) (macOS) and [NixOS](https://nixos.org/) + [home-manager](https://github.com/nix-community/home-manager) (Linux).
 
-Most macOS packages are in the [Brewfile](https://github.com/aroman/dotfiles/blob/master/Brewfile). NixOS packages are declared in `nixos/modules/home.nix`.
+Most macOS packages are in the [Brewfile](https://github.com/aroman/dotfiles/blob/master/Brewfile). NixOS packages are declared in `nixos/modules/home.nix` and `nixos/modules/home-desktop.nix`.
 
 ### What's in here
 
@@ -263,7 +263,7 @@ any app
 ```
 
 **Key files:**
-- `nixos/modules/home.nix` -- handlr-regex package, `.desktop` entries, TOML config, MIME associations
+- `nixos/modules/home-desktop.nix` -- handlr-regex package, `.desktop` entries, TOML config, MIME associations
 - `local/bin/figma-open` -- Figma URL handler script
 - `~/.config/handlr/handlr.toml` -- generated regex routing rules
 
@@ -320,7 +320,7 @@ matching on the `app_id` prefix `chrome-www.figma.com`.
 
 #### Adding a new domain rule
 
-Edit the `handlr.toml` section in `nixos/modules/home.nix`. Rules are matched top-down,
+Edit the `handlr.toml` section in `nixos/modules/home-desktop.nix`. Rules are matched top-down,
 first match wins:
 
 ```toml

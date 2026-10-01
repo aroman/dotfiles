@@ -63,10 +63,8 @@ in
     })
   ];
 
-  # Latest stable kernel — 7.1.4 as of 2026-07-27.
-  #
-  # Historical floors, both long since cleared, kept so the reason for tracking
-  # `latest` rather than the LTS is on record:
+  # Formerly tracked latest stable directly; historical floors kept so the
+  # reason for tracking newer kernels rather than the LTS is on record:
   #   - 6.19.2  s0ix deep sleep started working on this platform
   #   - 6.19.11 MES hang fix (TLB fence rework) backported to stable, which is
   #             what let us drop the downstream patch we used to carry

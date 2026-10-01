@@ -4,7 +4,7 @@
 #
 # Stopping niri.service (rather than calling `niri msg action quit`) routes
 # the exit through systemd's stop logic, which runs niri.service's ExecStop=
-# hook while niri is still alive — see nixos/modules/home.nix for the
+# hook while niri is still alive — see nixos/modules/home-desktop.nix for the
 # ExecStop drop-in that tears down graphical-session.target cleanly.
 #
 # Bound to Mod+Shift+E and Ctrl+Alt+Delete in niri config.
