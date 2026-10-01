@@ -183,6 +183,17 @@
             "bluez5.enable-hw-volume" = true;  # sync volume to device hardware
           };
         };
+        # Kanto ORA4's USB firmware advertises a bogus 0..+16 dB range on its
+        # PCM volume (raw 0..4096). PipeWire maps its volume curve onto that
+        # range, so anything below ~-16 dB (≈50% on the OSD's cubic scale)
+        # pins the hardware control to raw 0 — effectively mute. Use software
+        # volume instead and leave the hardware control alone.
+        "51-kanto-ora4-soft-mixer" = {
+          "monitor.alsa.rules" = [{
+            matches = [{ "device.name" = "~alsa_card\\.usb-Kanto_Audio_ORA4.*"; }];
+            actions.update-props."api.alsa.soft-mixer" = true;
+          }];
+        };
       };
     };
   };
