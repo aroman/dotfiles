@@ -250,7 +250,7 @@
         # `{:...}`, and glibc's `%-d` flag likely isn't accepted, hence `%e`.
         widget.clock = {
           type = "clock";
-          format = "{:%a %b %e %H:%M}";
+          format = "{:%H:%M %a %b %e}";
         };
 
         # v4 CustomButton.  Note the label is static: v4 re-ran
