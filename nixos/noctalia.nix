@@ -352,7 +352,7 @@
               show_media = true;
               show_session_buttons = true;
               show_unlock_hint = true;
-              show_weather = true;
+              show_weather = false;
             };
           };
         };
