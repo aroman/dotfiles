@@ -406,6 +406,9 @@ in
       cursor-size = 24;
       gtk-enable-primary-paste = false;
     };
+    "org/gtk/gtk4/settings/file-chooser" = {
+      sort-directories-first = false;
+    };
     "org/gnome/nautilus/preferences" = {
       default-sort-order = "mtime";
       default-sort-in-reverse-order = true;
