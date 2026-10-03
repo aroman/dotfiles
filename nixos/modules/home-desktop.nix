@@ -229,11 +229,31 @@ in
     # The .desktop file keeps its absolute Exec= into the real ghostty store
     # path (see the CLAUDE.md note on this) — harmless here, because we're
     # not wrapping the binary, only removing a share/ subtree.
+    #
+    # Also swaps the hicolor app icon for the "Xray" variant. Upstream only
+    # exposes its alternate icons on macOS (`macos-icon`); the art lives in
+    # the repo as a single 1024px PNG, so resize it into every size dir.
     (symlinkJoin {
       name = "ghostty-no-nautilus-ext";
       paths = [ ghostty ];
-      postBuild = ''
+      nativeBuildInputs = [ imagemagick ];
+      postBuild = let
+        xray = fetchurl {
+          url = "https://raw.githubusercontent.com/ghostty-org/ghostty/58ab66f094b8ab2bd04d7a74cd90f7beb600764a/macos/Assets.xcassets/Alternate%20Icons/XrayImage.imageset/macOS-AppIcon-1024px.png";
+          hash = "sha256-D7JEyDWRxoJwfCiT1hB8U49gv+WytGa5Cf60cCTIyUg=";
+        };
+      in ''
         rm -rf $out/share/nautilus-python
+
+        for dir in $out/share/icons/hicolor/*/; do
+          name=$(basename "$dir")        # e.g. 128x128 or 128x128@2
+          base=''${name%%x*}
+          scale=1
+          [[ $name == *@* ]] && scale=''${name##*@}
+          icon=$dir/apps/com.mitchellh.ghostty.png
+          rm "$icon"
+          magick ${xray} -resize $((base * scale))x$((base * scale)) "$icon"
+        done
       '';
       inherit (ghostty) meta;
     })
