@@ -19,6 +19,18 @@
 # reset, delete ~/.local/state/noctalia/settings.toml.
 { config, inputs, pkgs, ... }:
 {
+  # pkgs.noctalia comes from its own nixpkgs pin (see `nixpkgs-noctalia` in
+  # flake.nix) so the shell can be bumped without updating the whole system.
+  # An overlay rather than just programs.noctalia.package so the other
+  # ${pkgs.noctalia} references (swayidle lock in home-desktop.nix, the
+  # ghostty template below) get the same build.  home-manager uses global
+  # pkgs, so this reaches it too.
+  nixpkgs.overlays = [
+    (final: prev: {
+      noctalia = inputs.nixpkgs-noctalia.legacyPackages.${prev.stdenv.hostPlatform.system}.noctalia;
+    })
+  ];
+
   home-manager.users.aroman = {
     imports = [ inputs.noctalia.homeModules.default ];
 
@@ -28,7 +40,8 @@
       # Prebuilt from cache.nixos.org.  The noctalia flake input's own package
       # output is a from-source C++ build against our nixpkgs, which nothing
       # has cached; nixpkgs' by-name package is the same version and is on the
-      # binary cache.  Keep it pinned to the same tag as the flake input.
+      # binary cache.  Overlaid from `nixpkgs-noctalia` at the top of this
+      # file; keep that in lockstep with the flake input's tag.
       package = pkgs.noctalia;
 
       # v4 called these colorschemes and kept them under colorschemes/<name>/<name>.json;
@@ -246,7 +259,7 @@
           display = "text_only";
         };
 
-        # Date alongside the time ("Tue Sep 29 16:15").  The format is a
+        # Date alongside the time ("16:15 Tue Sep 29").  The format is a
         # std::format chrono spec, not raw strftime — it must stay wrapped in
         # `{:...}`, and glibc's `%-d` flag likely isn't accepted, hence `%e`.
         widget.clock = {

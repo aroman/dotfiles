@@ -29,14 +29,23 @@
     #
     # This input is used for its home-manager module ONLY, not its package.
     # Building nix/package.nix here would be a from-source C++ build; nixpkgs
-    # ships the identical 5.1.0 prebuilt on cache.nixos.org, so
-    # noctalia.nix overrides programs.noctalia.package with `pkgs.noctalia`.
-    # Keep this tag and the nixpkgs `version` in lockstep when bumping — the
-    # module and the package are versioned together upstream.
+    # ships the identical version prebuilt on cache.nixos.org, so noctalia.nix
+    # overlays pkgs.noctalia from `nixpkgs-noctalia` below.  Keep this tag and
+    # that nixpkgs' `version` in lockstep when bumping — the module and the
+    # package are versioned together upstream.
+    #
+    # To bump noctalia without moving the rest of the system:
+    #   1. set the tag here to the version nixos-unstable's noctalia has
+    #   2. nix flake update noctalia nixpkgs-noctalia --flake .../nixos
     noctalia = {
-      url = "github:noctalia-dev/noctalia/v5.1.0";
+      url = "github:noctalia-dev/noctalia/v5.2.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Separate nixpkgs used ONLY for pkgs.noctalia (overlaid in noctalia.nix),
+    # so the shell can move ahead of the system nixpkgs.  Prebuilt on
+    # cache.nixos.org; costs a second copy of noctalia's runtime libs.
+    nixpkgs-noctalia.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     # Niri: vanilla niri-unstable as pinned by niri-flake.  Deliberately NOT
     # overridden with a fork — sodiboo pushes niri-unstable builds to
