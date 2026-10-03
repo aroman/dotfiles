@@ -589,7 +589,8 @@ binds {
     Mod+Shift+Up    { focus-monitor-up; }
     Mod+Shift+Right { focus-monitor-right; }
     Mod+Shift+H     { focus-monitor-left; }
-    Mod+Shift+J     { focus-monitor-down; }
+    // Return to the previous window, e.g. after opening a notification.
+    Mod+Shift+J repeat=false hotkey-overlay-title="Focus Previous Window" { focus-window-previous; }
     Mod+Shift+K     { focus-monitor-up; }
     Mod+Shift+L     { focus-monitor-right; }
 
