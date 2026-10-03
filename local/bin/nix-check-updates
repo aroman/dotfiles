@@ -11,8 +11,10 @@ FLAKE="$(cd "$(dirname "$(readlink -f "$0")")/../.." && pwd)/nixos"
 HOST="moonbinder"
 LOCKFILE="$FLAKE/flake.lock"
 
-# Save current lock file
+# Save current lock file; restore it on any exit (a failed build used to
+# abort under set -e and leave the updated lock behind)
 cp "$LOCKFILE" "$LOCKFILE.bak"
+trap 'mv "$LOCKFILE.bak" "$LOCKFILE"; rm -f result' EXIT
 
 # Update inputs
 if [ $# -gt 0 ]; then
@@ -30,12 +32,6 @@ nixos-rebuild build --flake "$FLAKE#$HOST"
 # Show diff
 echo ""
 nix run nixpkgs#nvd -- diff /run/current-system ./result
-
-# Clean up build result
-rm -f result
-
-# Restore original lock file
-mv "$LOCKFILE.bak" "$LOCKFILE"
 
 echo ""
 echo "Lock file restored. Run 'nix flake update --flake $FLAKE' + rebuild to apply."
