@@ -489,7 +489,8 @@ binds {
     Mod+M hotkey-overlay-title="Chrome (Personal)" { spawn "google-chrome-stable" "--profile-directory=Default" "--new-window" "--hide-crash-restore-bubble"; }
     Mod+N hotkey-overlay-title="Chrome (Magic Circle)" { spawn "google-chrome-stable" "--profile-directory=Profile 1" "--new-window" "--hide-crash-restore-bubble"; }
     Mod+Shift+N hotkey-overlay-title="Open Latest Notification" { spawn "noctalia" "msg" "notification-invoke-latest"; }
-    Mod+Shift+M hotkey-overlay-title="MC Pull Requests" { spawn "google-chrome-stable" "--profile-directory=Profile 1" "--new-window" "--hide-crash-restore-bubble" "https://github.com/magic-circle-studio/magiccircle.gg/pulls"; }
+    // Return to the previous window, e.g. after opening a notification.
+    Mod+Shift+M repeat=false hotkey-overlay-title="Focus Previous Window" { focus-window-previous; }
 
     Mod+Shift+D hotkey-overlay-title="Toggle Streaming Res" { spawn "sh" "-c" "~/.local/bin/toggle-streaming-res"; }
     Mod+Shift+Semicolon hotkey-overlay-title="Toggle DSP" { spawn "sh" "-c" "~/.local/bin/dsp-toggle"; }
@@ -559,8 +560,8 @@ binds {
     Mod+Up    { focus-window-or-workspace-up; }
     Mod+Right { focus-column-right; }
     Mod+H     { focus-column-left; }
-    Mod+J     { focus-window-down; }
-    Mod+K     { focus-window-up; }
+    Mod+J     { focus-window-or-workspace-down; }
+    Mod+K     { focus-window-or-workspace-up; }
     Mod+L     { focus-column-right; }
 
     Mod+Ctrl+Left  { move-column-left; }
@@ -589,8 +590,6 @@ binds {
     Mod+Shift+Up    { focus-monitor-up; }
     Mod+Shift+Right { focus-monitor-right; }
     Mod+Shift+H     { focus-monitor-left; }
-    // Return to the previous window, e.g. after opening a notification.
-    Mod+Shift+J repeat=false hotkey-overlay-title="Focus Previous Window" { focus-window-previous; }
     Mod+Shift+K     { focus-monitor-up; }
     Mod+Shift+L     { focus-monitor-right; }
 
