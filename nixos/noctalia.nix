@@ -313,9 +313,13 @@
         # wallpaper panel browses and that automation picks from.
         wallpaper = {
           transition = [ "zoom" ];
+          transition_duration = 500;
           transition_on_startup = true;
           directory = "/home/aroman/Pictures/Wallpapers";
         };
+
+        lockscreen.transition = [ "zoom" ];
+        lockscreen.transition_duration = 500;
 
         lockscreen_widgets = {
           enabled = false;
