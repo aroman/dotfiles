@@ -198,6 +198,18 @@
     };
   };
 
+  # Kanto ORA4 (8888:17b6) never answers snd-usb-audio's read-back of the
+  # sample rate after setting it: two 5 s control timeouts ("cannot get freq
+  # at ep 0x2") during probe. It sits on the same TS4 hub as the mouse
+  # receiver and the keyboard's branch, and hub enumeration is serial, so
+  # every dock plug left mouse+kb dead for ~12-15 s. Skipping the read-back
+  # brought that to ~2-5 s.
+  # Testing at runtime via /sys/module/snd_usb_audio/parameters/quirk_flags:
+  # use printf, not echo — a trailing newline makes the flag name unknown.
+  boot.extraModprobeConfig = ''
+    options snd_usb_audio quirk_flags=8888:17b6:get_sample_rate
+  '';
+
   # Real-time scheduling for PipeWire (prevents audio pops/crackles).
   # rtkit is a fallback; the primary method is PAM rlimits for the @audio
   # group, which lets PipeWire use SCHED_FIFO directly without rtkit.
