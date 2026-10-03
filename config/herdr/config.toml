@@ -15,6 +15,10 @@ auto_switch = false
 [keys]
 # Prefix key to enter prefix mode (default: "ctrl+b")
 prefix = "ctrl+f"
+navigate_workspace_down = "j"
+navigate_workspace_up = "k"
+navigate_pane_down = "ctrl+j"
+navigate_pane_up = "ctrl+k"
 
 [experimental]
 switch_ascii_input_source_in_prefix = false
