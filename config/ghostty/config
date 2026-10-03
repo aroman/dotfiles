@@ -14,7 +14,7 @@ window-colorspace = display-p3
 # On Linux, noctalia overrides its colors via themes/noctalia (loaded last,
 # below). This applies only where that file doesn't exist (macOS, or before
 # noctalia's first render); once rendered it persists after noctalia exits.
-theme = Everblush
+theme = noctalia
 
 # Cursor
 cursor-style = bar
