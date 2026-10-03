@@ -11,6 +11,7 @@
       "mcp__linear-server__get_issue"
     ]
   },
+  "model": "sonnet",
   "disabledMcpjsonServers": [
     "figma",
     "linear",
@@ -84,6 +85,5 @@
   "skipDangerousModePermissionPrompt": true,
   "remoteControlAtStartup": true,
   "agentPushNotifEnabled": true,
-  "voiceEnabled": false,
-  "model": "opus"
+  "voiceEnabled": false
 }
