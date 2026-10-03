@@ -188,7 +188,8 @@
           margin_edge = 8;
           margin_ends = 8;
           widget_spacing = 8;
-          layer = "overlay";
+          # Fullscreen windows cover the top layer; overlay stays above them.
+          layer = "top";
           shadow = false;
 
           # Where the four v4 QML plugins ended up:
