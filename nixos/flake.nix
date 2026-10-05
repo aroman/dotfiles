@@ -4,6 +4,11 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
+    # Ghostty tip, prebuilt by upstream CI on ghostty.cachix.org.
+    # Keep its own nixpkgs pin so the package matches upstream's cache.
+    # Update with `nix flake update ghostty --flake ./nixos`.
+    ghostty.url = "github:ghostty-org/ghostty";
+
     # Kernel pin for moonbinder: the nixpkgs rev that shipped linux 7.2.6.
     # 7.2.8 (nixpkgs e158d9e, 2026-09-26) booted with WiFi never attempting
     # to associate. See

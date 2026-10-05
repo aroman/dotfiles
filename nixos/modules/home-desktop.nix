@@ -3,6 +3,7 @@
 let
   dotfiles = "${config.home.homeDirectory}/Projects/dotfiles";
   link = path: config.lib.file.mkOutOfStoreSymlink "${dotfiles}/${path}";
+  ghosttyTip = inputs.ghostty.packages.${pkgs.stdenv.hostPlatform.system}.default;
 in
 {
   systemd.user.sessionVariables = {
@@ -224,7 +225,7 @@ in
     #
     # symlinkJoin, not overrideAttrs: any overrideAttrs forces a from-source
     # Zig build of ghostty, and pruning one share/ subtree isn't worth that.
-    # This way ghostty itself comes straight off cache.nixos.org.
+    # This way Ghostty tip comes straight off upstream's Cachix cache.
     #
     # The .desktop file keeps its absolute Exec= into the real ghostty store
     # path (see the CLAUDE.md note on this) — harmless here, because we're
@@ -235,7 +236,7 @@ in
     # the repo as a single 1024px PNG, so resize it into every size dir.
     (symlinkJoin {
       name = "ghostty-no-nautilus-ext";
-      paths = [ ghostty ];
+      paths = [ ghosttyTip ];
       nativeBuildInputs = [ imagemagick ];
       postBuild = let
         xray = fetchurl {
@@ -255,7 +256,7 @@ in
           magick ${xray} -resize $((base * scale))x$((base * scale)) "$icon"
         done
       '';
-      inherit (ghostty) meta;
+      inherit (ghosttyTip) meta;
     })
     ];
     afterBtop = [
