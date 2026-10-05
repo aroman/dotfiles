@@ -56,6 +56,7 @@ abbr --add x "codex --yolo"
 # `xr` is a function (config/fish/functions/xr.fish): codex resume, but auto-opens
 # the session when it is the only one recorded for the current directory.
 abbr --add dotc "cd $DOTFILES_DIR && claude --dangerously-skip-permissions"
+abbr --add dotx "cd $DOTFILES_DIR && codex --yolo"
 abbr --add dr "cd $DOTFILES_DIR && claude --dangerously-skip-permissions --resume"
 # `bp` sends clipboard contents to `bud new -p` as a single argument — sidesteps
 # quote escaping for prompts with mixed single+double quotes. See bpe (function)
