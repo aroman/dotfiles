@@ -47,20 +47,11 @@
     # cache.nixos.org; costs a second copy of noctalia's runtime libs.
     nixpkgs-noctalia.url = "github:NixOS/nixpkgs/nixos-unstable";
 
-    # Niri: vanilla niri-unstable as pinned by niri-flake.  Deliberately NOT
-    # overridden with a fork — sodiboo pushes niri-unstable builds to
-    # niri.cachix.org (a substituter in modules/common.nix), so this stays a
-    # binary download.  Any `inputs.niri-unstable.follows` override points the
-    # flake at an uncached source tree and forces a ~10 min Rust build on every
-    # bump.  We ran Atan-D-RP4's feat/cursor-zoom branch (PR #3246) for that
-    # reason until 2026-08-16, and dropped it to get cache hits back.
-    #
-    # Cache hits require `niri/niri-unstable` in flake.lock to match the rev
-    # niri-flake itself pins — cachix only has what sodiboo's CI built.  Bump
-    # with `nix flake update niri`, which inherits that pin.  A bare
-    # `nix flake lock` resolves niri-unstable to YaLTeR/niri HEAD instead,
-    # which is always newer than niri-flake's pin and always a source build.
-    niri.url = "github:sodiboo/niri-flake";
+    # Vanilla niri-unstable from the maintained niri-flake packaging fork.
+    # Keep its upstream source pin intact to use the fork's binary cache
+    # (enabled by its NixOS module), rather than compiling a custom rev.
+    # Update with `nix flake update niri --flake ./nixos`.
+    niri.url = "github:epireyn/niri-flake";
 
     # Only the home-manager module comes from here; the binary is
     # hosts/moonbinder/voxtype-bin.nix. Keep this tag at the same version.
@@ -158,31 +149,11 @@
           {
             nixpkgs.overlays = [
               niri.overlays.niri
-              # nixpkgs removed `libdisplay-info_0_2` on 2026-08-04 ("unused
-              # in Nixpkgs"), leaving a throwing alias behind.  niri-flake's
-              # package still asks for it *and* asserts `version == "0.2.0"`,
-              # so evaluating `programs.niri.package` hits the throw.
-              #
-              # niri's libdisplay-info-sys 0.3.0 accepts any C library in
-              # `>= 0.1.0, < 0.4.0`, so 0.3 would do — but the assert only
-              # takes 0.2.0, and plain `libdisplay-info` is 0.4.0, out of
-              # range.  So reinstate 0.2.0 from the current recipe; it's a
-              # few seconds of meson.
-              #
-              # Drop this once niri-flake merges sodiboo/niri-flake#1853
-              # (picks the C library from each niri's Cargo.lock) and the
-              # niri input is bumped past it.
+              # Use the exact package built by the flake's CI. Rebuilding it
+              # against our system nixpkgs produces a different store path
+              # that isn't in the cache, even with the same niri source pin.
               (final: prev: {
-                libdisplay-info_0_2 = prev.libdisplay-info.overrideAttrs {
-                  version = "0.2.0";
-                  src = prev.fetchFromGitLab {
-                    domain = "gitlab.freedesktop.org";
-                    owner = "emersion";
-                    repo = "libdisplay-info";
-                    tag = "0.2.0";
-                    hash = "sha256-6xmWBrPHghjok43eIDGeshpUEQTuwWLXNHg7CnBUt3Q=";
-                  };
-                };
+                niri-unstable = inputs.niri.packages.${prev.stdenv.hostPlatform.system}.niri-unstable;
               })
               # tuigreet hardcodes "Authenticate into {hostname}" as the
               # main prompt title via a bundled fluent translation. Patch
