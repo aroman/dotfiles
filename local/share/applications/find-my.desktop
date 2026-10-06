@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Find My
+GenericName=Find Apple Devices
+Comment=Locate your Apple devices with iCloud Find Devices
+Exec=/home/aroman/.local/bin/find-my
+Icon=/home/aroman/.local/share/icons/hicolor/scalable/apps/find-my.svg
+Terminal=false
+Categories=Utility;Network;
+Keywords=Apple;iCloud;iPhone;iPad;Mac;AirPods;Find Devices;
+StartupNotify=true
+StartupWMClass=chrome-www.icloud.com__find_-Default

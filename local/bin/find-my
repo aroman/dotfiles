@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# iCloud Find Devices in a dedicated Chrome app window.
+# Cookies stay in this profile; Apple may still require signing in again.
+set -euo pipefail
+umask 077
+
+profile="${XDG_CONFIG_HOME:-$HOME/.config}/find-my-chrome"
+mkdir -p "$profile"
+
+exec google-chrome-stable \
+  --user-data-dir="$profile" \
+  --no-first-run \
+  --no-default-browser-check \
+  --hide-crash-restore-bubble \
+  --window-size=1200,850 \
+  --app=https://www.icloud.com/find/
