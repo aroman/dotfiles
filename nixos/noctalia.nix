@@ -148,6 +148,22 @@
       settings = {
         accessibility.ui_scale = 1.15;
 
+        notification = {
+          filter_order = [ "filter" "ten-seconds" ];
+          filter = {
+            # Preserve the existing Ghostty rule; the first matching rule wins.
+            filter = {
+              match = "ghostty";
+              save_history = false;
+              override_duration = 10000;
+            };
+            ten-seconds = {
+              match_content = ".*";
+              override_duration = 10000;
+            };
+          };
+        };
+
         shell = {
           font_family = "Inter";
           # Replaces nixos/badged.nix: v5 has a native polkit agent that drives
