@@ -219,8 +219,17 @@
     # nixpkgs, not `github:herdrdev/herdr/vX.Y.Z` — that flake declares no
     # substituters and so builds from source on every host. Upgrade all
     # machines together, since the wire protocol requires an exact
-    # client/server match, and move the running server with `herdr --remote
-    # <host> --handoff` once modules/herdr-server.nix is deployed.
+    # client/server match.
+    #
+    # Swapping the binary does not touch a running server. If the new client
+    # still speaks the old server's protocol, everything keeps working and
+    # `herdr status` just reports `server_binary_stale: yes`. `herdr --remote
+    # <host> --handoff` only kicks in when the protocols are incompatible —
+    # against a compatible server it attaches normally and does nothing — and
+    # `herdr update --handoff` is disabled for Nix installs. So the server
+    # only picks up a compatible release when it restarts (`systemctl --user
+    # restart herdr`, which ends pane processes; agents with resume hooks
+    # come back), and is handed off live only across a protocol bump.
     git
     lazygit
     lsof
