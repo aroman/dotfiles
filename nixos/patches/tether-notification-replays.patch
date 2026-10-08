@@ -1,0 +1,378 @@
+diff --git a/src/core/include/tether/bluetooth/ancs/notifications.hpp b/src/core/include/tether/bluetooth/ancs/notifications.hpp
+index e69c66b..f41b8d4 100644
+--- a/src/core/include/tether/bluetooth/ancs/notifications.hpp
++++ b/src/core/include/tether/bluetooth/ancs/notifications.hpp
+@@ -26,6 +26,9 @@ namespace tether::bluetooth::ancs {
+         bool has_negative_action = false;
+         // Already on the phone when the subscription came up.
+         bool pre_existing = false;
++        // An unchanged update or a replay still updates the list, but must not
++        // create another desktop popup.
++        bool popup_suppressed = false;
+         uint64_t session = 0;
+ 
+         bool operator==(const Notification&) const = default;
+@@ -42,8 +45,8 @@ namespace tether::bluetooth::ancs {
+     //
+     // iOS replays every existing notification whenever the subscription comes
+     // up, so the same notification arrives again after each reconnect. Dedupe is
+-    // on the notification UID, but a Modified event is a genuine update the user
+-    // should see, so it is never suppressed by having seen the UID before.
++    // on the notification UID. Modified events are always resolved to keep the
++    // list current; store() suppresses popups for unchanged content and backlog.
+     class NotificationRegistry {
+     public:
+         Decision classify(const SourceEvent& event) const;
+@@ -51,10 +54,13 @@ namespace tether::bluetooth::ancs {
+         void remember(const SourceEvent& event);
+         void forget(uint32_t uid);
+         void clear();
+-        void begin_session();
++        // Wall-clock subscription time, used when iOS omits PreExisting on a
++        // replay. Zero disables the date check for callers without a clock.
++        void begin_session(int64_t subscribed_at = 0);
+         uint64_t session() const { return session_; }
+ 
+-        void store(const Notification& notification);
++        // Returns the stored copy with backlog/replay delivery rules applied.
++        Notification store(Notification notification);
+         // Applies a display name resolved after the notifications were stored.
+         void rename_app(const std::string& app_id, const std::string& name);
+         const Notification* find(uint32_t uid) const;
+@@ -66,6 +72,7 @@ namespace tether::bluetooth::ancs {
+     private:
+         std::map<uint32_t, int64_t> seen_;
+         uint64_t session_ = 0;
++        int64_t subscribed_at_ = 0;
+         std::map<uint32_t, Notification> notifications_;
+         std::vector<uint32_t> order_;
+     };
+diff --git a/src/core/src/bluetooth/ancs/client.cpp b/src/core/src/bluetooth/ancs/client.cpp
+index 56379f3..e2e09d2 100644
+--- a/src/core/src/bluetooth/ancs/client.cpp
++++ b/src/core/src/bluetooth/ancs/client.cpp
+@@ -454,6 +454,8 @@ namespace tether::bluetooth::ancs {
+         case Decision::Ignore:
+             return;
+         case Decision::Withdraw:
++            // A response already in flight must not resurrect a removed call.
++            in_progress.erase(event.uid);
+             if (on_withdraw)
+                 on_withdraw(event.uid);
+             return;
+@@ -543,7 +545,7 @@ namespace tether::bluetooth::ancs {
+ 
+         {
+             std::lock_guard<std::mutex> lock(registry_mutex);
+-            registry.store(notification);
++            notification = registry.store(notification);
+         }
+         if (on_notification)
+             on_notification(notification);
+@@ -685,6 +687,7 @@ namespace tether::bluetooth::ancs {
+             if (now < s->next_subscribe)
+                 return;
+             s->next_subscribe = now + ANCS_RETRY_SECONDS;
++            const int64_t subscribed_at = static_cast<int64_t>(std::time(nullptr));
+             if (!s->subscribe()) {
+                 s->set_status(false, "Subscribing to the iPhone's notifications...");
+                 return;
+@@ -693,7 +696,7 @@ namespace tether::bluetooth::ancs {
+             uint64_t session = 0;
+             {
+                 std::lock_guard<std::mutex> lock(s->registry_mutex);
+-                s->registry.begin_session();
++                s->registry.begin_session(subscribed_at);
+                 session = s->registry.session();
+             }
+             debug::log(INFO, "ancs: notification session {} started", session);
+diff --git a/src/core/src/bluetooth/ancs/notifications.cpp b/src/core/src/bluetooth/ancs/notifications.cpp
+index 1a67881..cfbc4bf 100644
+--- a/src/core/src/bluetooth/ancs/notifications.cpp
++++ b/src/core/src/bluetooth/ancs/notifications.cpp
+@@ -8,6 +8,14 @@ namespace tether::bluetooth::ancs {
+ 
+     namespace {
+         constexpr size_t MAX_RETAINED = 200;
++        // Allow for clock skew and notifications already being delivered while
++        // StartNotify completes. Older first arrivals belong to the backlog.
++        constexpr int64_t DELIVERY_GRACE_SECONDS = 5;
++
++        bool same_content(const Notification& a, const Notification& b) {
++            return a.app_id == b.app_id && a.category == b.category && a.title == b.title &&
++                   a.subtitle == b.subtitle && a.body == b.body;
++        }
+ 
+         // Generic stand-ins for an app whose own logo is unknown or absent from
+         // the theme. Two per category, because Breeze and Adwaita disagree on
+@@ -61,23 +69,48 @@ namespace tether::bluetooth::ancs {
+         order_.erase(std::remove(order_.begin(), order_.end(), uid), order_.end());
+     }
+ 
+-    void NotificationRegistry::begin_session() {
++    void NotificationRegistry::begin_session(int64_t subscribed_at) {
+         seen_.clear();
++        subscribed_at_ = subscribed_at;
+         ++session_;
+     }
+ 
+     void NotificationRegistry::clear() {
+         seen_.clear();
++        subscribed_at_ = 0;
+         notifications_.clear();
+         order_.clear();
+     }
+ 
+-    void NotificationRegistry::store(const Notification& notification) {
++    Notification NotificationRegistry::store(Notification notification) {
++        notification.popup_suppressed = false;
++        const Notification* previous = find(notification.uid);
++        const bool known_in_session =
++            previous && previous->session == session_ && previous->app_id == notification.app_id;
++        if (known_in_session) {
++            // iOS can omit PreExisting on later Modified events. An old missed
++            // call must not become new just because its flags changed.
++            notification.pre_existing = notification.pre_existing ||
++                                        (previous->category == notification.category && previous->pre_existing);
++            notification.popup_suppressed = same_content(*previous, notification);
++        } else if (subscribed_at_ > 0 && notification.received > 0 &&
++                   notification.received < subscribed_at_ - DELIVERY_GRACE_SECONDS) {
++            // Wallet and other apps replay old notifications without setting
++            // PreExisting. This also works on a fresh daemon with no registry.
++            // Apply only on first arrival: an already ringing call can still
++            // become newly missed after subscribing, using its original date.
++            notification.pre_existing = true;
++        }
++
+         for (auto it = notifications_.begin(); it != notifications_.end();) {
+             const Notification& stored = it->second;
+-            if (stored.session != session_ && stored.app_id == notification.app_id &&
+-                stored.title == notification.title && stored.subtitle == notification.subtitle &&
+-                stored.body == notification.body && stored.received == notification.received) {
++            if (stored.session != session_ && same_content(stored, notification) &&
++                stored.received == notification.received) {
++                // UIDs restart on reconnect. Match the phone's delivery date
++                // as well as the content, so a later call from the same caller
++                // still alerts even when its text is identical.
++                notification.pre_existing = true;
++                notification.popup_suppressed = true;
+                 order_.erase(std::remove(order_.begin(), order_.end(), it->first), order_.end());
+                 it = notifications_.erase(it);
+             } else {
+@@ -95,6 +128,7 @@ namespace tether::bluetooth::ancs {
+             order_.erase(order_.begin());
+             notifications_.erase(oldest);
+         }
++        return notifications_.at(notification.uid);
+     }
+ 
+     const Notification* NotificationRegistry::find(uint32_t uid) const {
+@@ -138,7 +172,7 @@ namespace tether::bluetooth::ancs {
+     }
+ 
+     bool should_show_desktop_popup(const Notification& notification) {
+-        return !notification.pre_existing && notification.app_id != APP_ID_MESSAGES;
++        return !notification.pre_existing && !notification.popup_suppressed && notification.app_id != APP_ID_MESSAGES;
+     }
+ 
+     std::vector<std::string> icon_candidates(const Notification& notification) {
+diff --git a/test/test_ancs_notifications.cpp b/test/test_ancs_notifications.cpp
+index f21f558..dc7027d 100644
+--- a/test/test_ancs_notifications.cpp
++++ b/test/test_ancs_notifications.cpp
+@@ -182,6 +182,195 @@ TEST(AncsRegistry, RecentIsOrderedByDeliveryTime) {
+     EXPECT_EQ(registry.recent(2)[0].uid, 1u);
+ }
+ 
++TEST(AncsRegistry, UnchangedMissedCallUpdatesDoNotRepeatThePopup) {
++    NotificationRegistry registry;
++    Notification call = make(7, "com.apple.mobilephone");
++    call.category = CategoryId::MissedCall;
++    call.title = "Caller";
++    call.body = "Missed call";
++    call.received = 100;
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(call)));
++
++    // iOS updates flags and dates on existing missed calls when another call
++    // arrives. Resolve those updates without raising the old call again.
++    call.has_negative_action = true;
++    call.received = 200;
++    EXPECT_FALSE(should_show_desktop_popup(registry.store(call)));
++    EXPECT_FALSE(should_show_desktop_popup(registry.store(call)));
++    ASSERT_EQ(registry.size(), 1u);
++    EXPECT_TRUE(registry.find(7)->has_negative_action);
++    EXPECT_EQ(registry.find(7)->received, 200);
++}
++
++TEST(AncsRegistry, BacklogStaysQuietWhenAModificationDropsPreExisting) {
++    NotificationRegistry registry;
++    Notification call = make(7, "com.apple.mobilephone");
++    call.category = CategoryId::MissedCall;
++    call.pre_existing = true;
++    EXPECT_FALSE(should_show_desktop_popup(registry.store(call)));
++
++    call.pre_existing = false;
++    call.body = "Updated missed call details";
++    const Notification updated = registry.store(call);
++    EXPECT_TRUE(updated.pre_existing);
++    EXPECT_FALSE(should_show_desktop_popup(updated));
++}
++
++TEST(AncsRegistry, ReconnectReplayStaysQuietEvenWithoutPreExisting) {
++    NotificationRegistry registry;
++    Notification call = make(7, "com.apple.mobilephone");
++    call.category = CategoryId::MissedCall;
++    call.title = "Caller";
++    call.received = 100;
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(call)));
++
++    registry.begin_session();
++    call.uid = 29;
++    const Notification replay = registry.store(call);
++    EXPECT_FALSE(should_show_desktop_popup(replay));
++    EXPECT_TRUE(replay.pre_existing);
++    EXPECT_EQ(registry.find(7), nullptr);
++    EXPECT_EQ(registry.size(), 1u);
++
++    // Subsequent updates must inherit the replay's quiet delivery status.
++    call.body = "Updated missed call details";
++    EXPECT_FALSE(should_show_desktop_popup(registry.store(call)));
++}
++
++TEST(AncsRegistry, SeparateCallsWithIdenticalTextStillAlert) {
++    NotificationRegistry registry;
++    Notification call = make(7, "com.apple.mobilephone");
++    call.category = CategoryId::MissedCall;
++    call.title = "Caller";
++    call.received = 100;
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(call)));
++
++    call.uid = 8;
++    call.received = 200;
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(call)));
++
++    registry.begin_session();
++    call.uid = 7; // UIDs can be recycled on a new connection.
++    call.received = 300;
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(call)));
++}
++
++TEST(AncsRegistry, ACallBecomingMissedAlertsOnceForTheNewState) {
++    NotificationRegistry registry;
++    Notification call = make(7, "com.apple.mobilephone");
++    call.category = CategoryId::IncomingCall;
++    call.title = "Caller";
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(call)));
++
++    call.category = CategoryId::MissedCall;
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(call)));
++    EXPECT_FALSE(should_show_desktop_popup(registry.store(call)));
++}
++
++TEST(AncsRegistry, ChangedContentStillAlertsForALiveNotification) {
++    NotificationRegistry registry;
++    Notification notification = make(7, "com.example.chat");
++    notification.body = "First message";
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(notification)));
++
++    notification.body = "Edited message";
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(notification)));
++    EXPECT_FALSE(should_show_desktop_popup(registry.store(notification)));
++}
++
++TEST(AncsRegistry, ARingingCallFromBeforeReconnectCanBecomeANewMissedCall) {
++    NotificationRegistry registry;
++    Notification call = make(7, "com.apple.mobilephone");
++    call.category = CategoryId::IncomingCall;
++    call.pre_existing = true;
++    EXPECT_FALSE(should_show_desktop_popup(registry.store(call)));
++
++    call.pre_existing = false;
++    call.category = CategoryId::MissedCall;
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(call)));
++    EXPECT_FALSE(should_show_desktop_popup(registry.store(call)));
++}
++
++TEST(AncsRegistry, RemovedNotificationsDoNotSuppressLaterCalls) {
++    NotificationRegistry registry;
++    Notification call = make(7, "com.apple.mobilephone");
++    call.category = CategoryId::MissedCall;
++    registry.store(call);
++    registry.forget(call.uid);
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(call)));
++}
++
++TEST(AncsRegistry, FreshDaemonDoesNotPopupOldWalletBacklogWithoutPreExisting) {
++    NotificationRegistry registry;
++    registry.begin_session(100000);
++    Notification wallet = make(18, "com.apple.Passbook");
++    wallet.title = "Wallet notification";
++    wallet.received = 1000; // First arrival after restart, originally delivered days ago.
++    wallet.pre_existing = false; // Observed on the live phone's Wallet replay.
++    const Notification backlog = registry.store(wallet);
++    EXPECT_TRUE(backlog.pre_existing);
++    EXPECT_FALSE(should_show_desktop_popup(backlog));
++    EXPECT_EQ(registry.size(), 1u) << "the backlog must remain visible in the list";
++
++    wallet.uid = 19; // A second retained notification with the same text.
++    wallet.received = 2000;
++    EXPECT_FALSE(should_show_desktop_popup(registry.store(wallet)));
++
++    registry.begin_session(110000);
++    wallet.uid = 30;
++    EXPECT_FALSE(should_show_desktop_popup(registry.store(wallet)));
++}
++
++TEST(AncsRegistry, SubscriptionDateCheckAllowsNewNotificationsAndDeliveryGrace) {
++    NotificationRegistry registry;
++    registry.begin_session(1000);
++    Notification notification = make(1, "com.apple.Passbook");
++    notification.received = 995; // Arrived while StartNotify was completing.
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(notification)));
++
++    notification.uid = 2;
++    notification.received = 1000;
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(notification)));
++
++    notification.uid = 3;
++    notification.received = 1010;
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(notification)));
++
++    notification.uid = 4;
++    notification.received = 0; // An unknown date cannot establish that it is old.
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(notification)));
++}
++
++TEST(AncsRegistry, OldRingingCallCanBecomeNewlyMissedAfterSubscription) {
++    NotificationRegistry registry;
++    registry.begin_session(1000);
++    Notification call = make(1, "com.apple.mobilephone");
++    call.category = CategoryId::IncomingCall;
++    call.received = 900;
++    EXPECT_FALSE(should_show_desktop_popup(registry.store(call)));
++
++    call.category = CategoryId::MissedCall;
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(call)));
++    EXPECT_FALSE(should_show_desktop_popup(registry.store(call)));
++}
++
++TEST(AncsRegistry, RecycledUidAfterReconnectDoesNotExemptOldBacklogFromDateCheck) {
++    NotificationRegistry registry;
++    registry.begin_session(1000);
++    Notification notification = make(1, "com.apple.Passbook");
++    notification.received = 1000;
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(notification)));
++
++    registry.begin_session(2000);
++    notification.received = 500;
++    notification.body = "Another old notification under the recycled UID";
++    EXPECT_FALSE(should_show_desktop_popup(registry.store(notification)));
++
++    notification.uid = 2;
++    notification.received = 2000;
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(notification)));
++}
++
+ // Content mirroring was off with no way to turn it on, so a stored false from
+ // before the toggle existed must not pin the new default.
+ TEST(BluetoothConfig, UnversionedFileTakesTheContentDefault) {

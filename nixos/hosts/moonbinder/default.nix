@@ -490,8 +490,16 @@ in
     #    so noctalia fell back to Tether's own icon.
     #    Missed/incoming call popups (ANCS, com.apple.mobilephone) get the
     #    caller's photo too, else the Phone icon (../../phone.svg, same source).
+    #
+    # 4. patches/tether-notification-replays.patch: iOS sends Modified events
+    #    for old missed calls and replays Wallet notifications without the
+    #    PreExisting flag. Compare content and original delivery dates against
+    #    subscription time to keep unchanged updates and backlog popups quiet.
     package = (pkgs.callPackage "${inputs.tether}/nix/package.nix" { }).overrideAttrs (old: {
-      patches = (old.patches or [ ]) ++ [ ../../patches/tether-contact-photos.patch ];
+      patches = (old.patches or [ ]) ++ [
+        ../../patches/tether-contact-photos.patch
+        ../../patches/tether-notification-replays.patch
+      ];
       postPatch = old.postPatch + ''
         substituteInPlace src/daemon/main.cpp \
           --replace-fail "@messages_icon@" "${../../imessage.svg}" \
