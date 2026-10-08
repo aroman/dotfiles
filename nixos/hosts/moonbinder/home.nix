@@ -17,6 +17,7 @@
     discord
     slack
   ]) ++ [
+    inputs.spotifast.packages.${pkgs.stdenv.hostPlatform.system}.default
     # FHS variant: gives Cowork the QEMU/OVMF/virtiofsd it probes for at
     # /usr paths, and MCP servers a normal node/uv/docker.
     #

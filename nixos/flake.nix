@@ -9,6 +9,11 @@
     # Update with `nix flake update ghostty --flake ./nixos`.
     ghostty.url = "github:ghostty-org/ghostty";
 
+    spotifast = {
+      url = "github:crmne/spotifast";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Kernel-only package set for moonbinder: Linux 7.2.9 includes the TTM
     # hibernation use-after-free fix. Keep the rest of the system on its
     # existing nixpkgs lock; see hosts/moonbinder/default.nix for the iwd fix.

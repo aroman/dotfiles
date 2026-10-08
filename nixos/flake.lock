@@ -440,9 +440,31 @@
         "nixpkgs-kernel": "nixpkgs-kernel",
         "nixpkgs-noctalia": "nixpkgs-noctalia",
         "noctalia": "noctalia",
+        "spotifast": "spotifast",
         "tether": "tether",
         "vicinae": "vicinae",
         "voxtype": "voxtype"
+      }
+    },
+    "rust-overlay": {
+      "inputs": {
+        "nixpkgs": [
+          "spotifast",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1787834454,
+        "narHash": "sha256-jXSvqn04IOecJCvSvl8+g3PsbDVNP6qKs6dKUs/b16k=",
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "rev": "dc2fd1acc537f3583744e1373597a5731ff7a6e3",
+        "type": "github"
+      },
+      "original": {
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "type": "github"
       }
     },
     "soulver-cpp": {
@@ -464,6 +486,27 @@
       "original": {
         "owner": "vicinaehq",
         "repo": "soulver-cpp",
+        "type": "github"
+      }
+    },
+    "spotifast": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "rust-overlay": "rust-overlay"
+      },
+      "locked": {
+        "lastModified": 1791138721,
+        "narHash": "sha256-JGQKn6TAQH9bSzU9DFNWK1MYoWV7rZLOdbkgxVzWKIQ=",
+        "owner": "crmne",
+        "repo": "spotifast",
+        "rev": "7048219716fb8bbf2f1af0934f545801f52cb29b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "crmne",
+        "repo": "spotifast",
         "type": "github"
       }
     },
