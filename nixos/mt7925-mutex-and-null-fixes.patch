@@ -22,28 +22,17 @@ Derived from Zac Bowling's series (currently v7, not accepted upstream):
 Sean Wang's ROC-deadlock fix from the same effort landed in 7.0.10 and is
 NOT part of this patch.
 
-Rebased onto v7.1.4 on 2026-07-27. The previous revision was written against
-~6.19 context and had drifted far enough that GNU patch only applied it with
-fuzz 2 (its maximum) — upstream added a mt7925_regd_change() call directly
-into the trailing context of the mt7925_mac_reset_work() hunk. Verified with
-`git apply --check` against v7.1.4; regenerate the same way if it starts
-applying with fuzz again.
+Rebased onto v7.2.9 on 2026-10-07. The reset-path bss_conf NULL check is
+already upstream and has been dropped. Refreshed the remaining hunks against
+the current context, including the added mlo_pm_work cancellation on suspend.
+Verified with `git apply --check` against v7.2.9; the module derivation now
+rejects fuzzy patch application.
 
 diff --git a/drivers/net/wireless/mediatek/mt76/mt7925/mac.c b/drivers/net/wireless/mediatek/mt76/mt7925/mac.c
-index c47bd81..ca255c6 100644
+index b52b6783306042e5c11b4332d35d43b754c8ffa7..fa2af55293199798839c6c5b8200184347d51dc7 100644
 --- a/drivers/net/wireless/mediatek/mt76/mt7925/mac.c
 +++ b/drivers/net/wireless/mediatek/mt76/mt7925/mac.c
-@@ -1277,6 +1277,9 @@ mt7925_vif_connect_iter(void *priv, u8 *mac,
- 		bss_conf = mt792x_vif_to_bss_conf(vif, i);
- 		mconf = mt792x_vif_to_link(mvif, i);
- 
-+		if (!bss_conf)
-+			continue;
-+
- 		mt76_connac_mcu_uni_add_dev(&dev->mphy, bss_conf, &mconf->mt76,
- 					    &mvif->sta.deflink.wcid, true);
- 		mt7925_mcu_set_tx(dev, bss_conf);
-@@ -1332,9 +1335,11 @@ void mt7925_mac_reset_work(struct work_struct *work)
+@@ -1349,9 +1349,11 @@ void mt7925_mac_reset_work(struct work_struct *work)
  	dev->hw_full_reset = false;
  	pm->suspended = false;
  	ieee80211_wake_queues(hw);
@@ -56,10 +45,10 @@ index c47bd81..ca255c6 100644
  
  	mt7925_regd_change(&dev->phy, "00");
 diff --git a/drivers/net/wireless/mediatek/mt76/mt7925/main.c b/drivers/net/wireless/mediatek/mt76/mt7925/main.c
-index 9dc5ee5..d0c20c6 100644
+index 9f080da13341b3f265a98bd7e6ecb076b5305155..a5fd99541c6bcc8cb40e0e943adb5c3c3d85f45a 100644
 --- a/drivers/net/wireless/mediatek/mt76/mt7925/main.c
 +++ b/drivers/net/wireless/mediatek/mt76/mt7925/main.c
-@@ -763,9 +763,11 @@ void mt7925_set_runtime_pm(struct mt792x_dev *dev)
+@@ -797,9 +797,11 @@ void mt7925_set_runtime_pm(struct mt792x_dev *dev)
  	bool monitor = !!(hw->conf.flags & IEEE80211_CONF_MONITOR);
  
  	pm->enable = pm->enable_user && !monitor;
@@ -71,7 +60,7 @@ index 9dc5ee5..d0c20c6 100644
  	pm->ds_enable = pm->ds_enable_user && !monitor;
  	mt7925_mcu_set_deep_sleep(dev, pm->ds_enable);
  }
-@@ -1421,12 +1423,12 @@ mt7925_mlo_pm_iter(void *priv, u8 *mac, struct ieee80211_vif *vif)
+@@ -1458,12 +1460,12 @@ mt7925_mlo_pm_iter(void *priv, u8 *mac, struct ieee80211_vif *vif)
  	if (mvif->mlo_pm_state != MT792x_MLO_CHANGED_PS)
  		return;
  
@@ -86,7 +75,7 @@ index 9dc5ee5..d0c20c6 100644
  }
  
  void mt7925_mlo_pm_work(struct work_struct *work)
-@@ -1435,9 +1437,11 @@ void mt7925_mlo_pm_work(struct work_struct *work)
+@@ -1472,9 +1474,11 @@ void mt7925_mlo_pm_work(struct work_struct *work)
  					      mlo_pm_work.work);
  	struct ieee80211_hw *hw = mt76_hw(dev);
  
@@ -98,7 +87,7 @@ index 9dc5ee5..d0c20c6 100644
  }
  
  void mt7925_scan_work(struct work_struct *work)
-@@ -1760,6 +1764,8 @@ static void mt7925_ipv6_addr_change(struct ieee80211_hw *hw,
+@@ -1801,6 +1805,8 @@ static void mt7925_ipv6_addr_change(struct ieee80211_hw *hw,
  
  	for_each_set_bit(i, &valid, IEEE80211_MLD_MAX_NUM_LINKS) {
  		bss_conf = mt792x_vif_to_bss_conf(vif, i);
@@ -107,7 +96,7 @@ index 9dc5ee5..d0c20c6 100644
  		__mt7925_ipv6_addr_change(hw, bss_conf, idev);
  	}
  }
-@@ -2002,6 +2008,8 @@ static void mt7925_vif_cfg_changed(struct ieee80211_hw *hw,
+@@ -2049,6 +2055,8 @@ static void mt7925_vif_cfg_changed(struct ieee80211_hw *hw,
  	if (changed & BSS_CHANGED_ARP_FILTER) {
  		for_each_set_bit(i, &valid, IEEE80211_MLD_MAX_NUM_LINKS) {
  			bss_conf = mt792x_vif_to_bss_conf(vif, i);
@@ -117,11 +106,11 @@ index 9dc5ee5..d0c20c6 100644
  		}
  	}
 diff --git a/drivers/net/wireless/mediatek/mt76/mt7925/pci.c b/drivers/net/wireless/mediatek/mt76/mt7925/pci.c
-index c416175..e9d62c6 100644
+index 084baadfa1833612f2bf2f68babb4ef7cf5964eb..8a8ed27eda724efa566b24058b3204aa39161afb 100644
 --- a/drivers/net/wireless/mediatek/mt76/mt7925/pci.c
 +++ b/drivers/net/wireless/mediatek/mt76/mt7925/pci.c
-@@ -455,7 +455,9 @@ static int mt7925_pci_suspend(struct device *device)
- 	cancel_delayed_work_sync(&pm->ps_work);
+@@ -521,7 +521,9 @@ static int mt7925_pci_suspend(struct device *device)
+ 	cancel_delayed_work_sync(&dev->mlo_pm_work);
  	cancel_work_sync(&pm->wake_work);
  
 +	mt792x_mutex_acquire(dev);

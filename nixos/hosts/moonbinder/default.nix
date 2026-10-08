@@ -1,10 +1,8 @@
 { config, pkgs, lib, inputs, ... }:
 
 let
-  # Kernel pinned to 7.2.6 via the `nixpkgs-kernel` flake input (see the
-  # boot.kernelPackages comment). The patched mt7925 module is built from the
-  # same package set so both are the exact store paths from generation 522 —
-  # no kernel or module rebuild.
+  # Use the same package set for the kernel and patched mt7925 module.
+  # Updating this input advances the kernel without updating all userland.
   kernelPkgs = inputs.nixpkgs-kernel.legacyPackages.${pkgs.stdenv.hostPlatform.system};
 in
 {
@@ -36,10 +34,10 @@ in
     })
   ];
 
-  # TODO: Remove when fixes land upstream. Still NOT upstream as of 7.1.4 AND
-  # mainline master (verified 2026-07-27 by reading mt7925/{mac,main,pci}.c
-  # directly, not the list archives: mt7925_mlo_pm_iter still takes the mutex
-  # itself, mt7925_mlo_pm_work still doesn't, no bss_conf NULL checks anywhere).
+  # TODO: Remove the remaining fixes when they land upstream. Checked against
+  # 7.2.9 on 2026-10-07: mt7925_mlo_pm_iter still takes the mutex itself,
+  # mt7925_mlo_pm_work still doesn't, and several MLO iterations lack NULL
+  # checks. The reset-path NULL check is upstream and no longer in our patch.
   # zbowling's series is parked at v7 and the repo has had no commit since
   # 2026-01-29; the locking slice we carry is contested — maintainers want the
   # root fix in mac80211 core, not driver-local NULL checks. ROC-deadlock half
@@ -69,20 +67,17 @@ in
   #   - 6.19.11 MES hang fix (TLB fence rework) backported to stable, which is
   #             what let us drop the downstream patch we used to carry
   #
-  # PINNED to 7.2.6 on 2026-09-27. On 7.2.8 (nixpkgs e158d9e) WiFi never
-  # attempted to associate: firmware loaded, iwd saw wlan0, but zero
-  # authenticate lines in dmesg. Same userland on 7.2.6 connects in seconds.
-  # The mt7925 patch applies identically to both, and 7.2.7/7.2.8 touch no
-  # mt7925 code — but 7.2.8 carries ~57 mac80211/cfg80211 patches.
+  # Linux 7.2.9 includes the TTM bulk_move use-after-free fix from 7.2.8.
+  # On 2026-10-07, six minutes after hibernate resume, 7.2.6 faulted in
+  # ttm_lru_bulk_move_tail and left all graphics users spinning on lru_lock.
+  # Fix: 1169fe8c11ca ("drm/ttm: fix swapped-out resources never leaving
+  # their bulk_move range").
   #
-  # Not this kernel's fault, despite showing up in the same boot: the LG 5K
-  # flapping connect/disconnect over USB-C (DPCD link-training failures,
-  # UCSI_GET_PDOS errors, cage crashing on connector teardown). That also
-  # happened on 7.2.6 and was the Apple TBT4 active cable failing USB-PD with
-  # the LG — the LG's own cable fixed it. To unpin: set this back to
-  # pkgs.linuxPackages_latest, switch the mt7925 callPackage back to pkgs,
-  # and drop the nixpkgs-kernel input; confirm WiFi + external display on
-  # the new kernel before committing.
+  # The 2026-09-27 rollback from 7.2.8 was prompted by WiFi never attempting
+  # association. Its log matches the known NM+iwd startup race: "No default
+  # interface for wiphy 0", then wlan0 arrives. The same iwd binary connected
+  # on 7.2.6 when the interface was ready sooner. Apply the iwd startup fix
+  # below and verify cold boot plus hibernate/resume on this kernel.
   boot.kernelPackages = kernelPkgs.linuxPackages_latest;
 
   # Seamless ethernet↔WiFi failover (like macOS):
@@ -142,6 +137,13 @@ in
   # across the switch. No reconfig needed.
   networking.wireless.iwd.enable = true;
   networking.networkmanager.wifi.backend = "iwd";
+
+  # Let NetworkManager start iwd through D-Bus once the device exists.
+  # Starting it eagerly at multi-user.target races wlan0 creation with the
+  # DefaultInterface quirk; iwd never recovers after "No default interface".
+  # Remove when the NixOS module incorporates this fix:
+  # https://github.com/NixOS/nixpkgs/pull/563952
+  systemd.services.iwd.wantedBy = lib.mkForce [ ];
 
   # Per-connection tweaks NOT captured declaratively (NM stores these in
   # /etc/NetworkManager/system-connections/, which survives rebuilds but not

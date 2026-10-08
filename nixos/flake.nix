@@ -9,11 +9,10 @@
     # Update with `nix flake update ghostty --flake ./nixos`.
     ghostty.url = "github:ghostty-org/ghostty";
 
-    # Kernel pin for moonbinder: the nixpkgs rev that shipped linux 7.2.6.
-    # 7.2.8 (nixpkgs e158d9e, 2026-09-26) booted with WiFi never attempting
-    # to associate. See
-    # hosts/moonbinder/default.nix. Delete this input once unpinned.
-    nixpkgs-kernel.url = "github:NixOS/nixpkgs/e554fab72f81915600f3f449b786fd9af40439a5";
+    # Kernel-only package set for moonbinder: Linux 7.2.9 includes the TTM
+    # hibernation use-after-free fix. Keep the rest of the system on its
+    # existing nixpkgs lock; see hosts/moonbinder/default.nix for the iwd fix.
+    nixpkgs-kernel.url = "github:NixOS/nixpkgs/151fa4e8ddfdd8dd25d945ad94ed54a13de9f6e4";
 
     home-manager = {
       url = "github:nix-community/home-manager";

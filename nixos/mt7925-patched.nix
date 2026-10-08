@@ -5,11 +5,9 @@
 # dropped here on 2026-05-25. The remaining patch:
 #   - zbowling: mutex protection in reset/suspend/PM + NULL checks
 #
-# Rebased onto 7.1.4 on 2026-07-27 — it had drifted to the point where GNU
-# patch only applied it with fuzz 2 (its maximum), which nixpkgs does silently.
-# `patches` here runs through `patch -p1`, so fuzz never fails the build; it
-# just quietly places hunks by guesswork. If the kernel bumps and this still
-# builds, that is not proof the patch still applies cleanly — check with:
+# Rebased onto 7.2.9 on 2026-10-07, dropping the reset-path NULL check that
+# is now upstream. Reject fuzzy application so kernel updates cannot silently
+# place hunks using stale context. Also check a new source tree with:
 #
 #   git -C <kernel-src> apply --check nixos/mt7925-mutex-and-null-fixes.patch
 #
@@ -30,6 +28,7 @@ pkgs.stdenv.mkDerivation {
   patches = [
     ./mt7925-mutex-and-null-fixes.patch
   ];
+  patchFlags = [ "-p1" "--fuzz=0" ];
 
   kernel_dev = kernel.dev;
   kernelVersion = kernel.modDirVersion;
