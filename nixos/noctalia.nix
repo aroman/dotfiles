@@ -32,6 +32,10 @@
   ];
 
   home-manager.users.aroman = {
+    # Home Manager moved its bundled module from programs/noctalia.nix to
+    # programs/noctalia. The pinned upstream module only disables the old
+    # path, so disable the new one here to avoid duplicate option declarations.
+    disabledModules = [ "programs/noctalia" ];
     imports = [ inputs.noctalia.homeModules.default ];
 
     programs.noctalia = {

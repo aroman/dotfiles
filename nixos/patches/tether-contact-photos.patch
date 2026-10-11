@@ -1,8 +1,8 @@
 diff --git a/src/core/include/tether/bluetooth/pbap_session.hpp b/src/core/include/tether/bluetooth/pbap_session.hpp
-index ddb1ad8..1213fa0 100644
+index 17952aa..a620dc6 100644
 --- a/src/core/include/tether/bluetooth/pbap_session.hpp
 +++ b/src/core/include/tether/bluetooth/pbap_session.hpp
-@@ -11,7 +11,7 @@ namespace tether::bluetooth {
+@@ -11,12 +11,12 @@ namespace tether::bluetooth {
  
      // Pulling a large phonebook is a real OBEX transfer.
      inline constexpr int PBAP_CALL_TIMEOUT_MS = 60000;
@@ -10,9 +10,15 @@ index ddb1ad8..1213fa0 100644
 +    inline constexpr int PBAP_TRANSFER_TIMEOUT_SECONDS = 180;
      inline constexpr int PBAP_FILE_GRACE_SECONDS = 3;
      inline constexpr int PBAP_MAX_CONTACTS = 5000;
+     inline constexpr int PBAP_MAX_CALLS = 100;
  
+-    inline constexpr const char* PBAP_CONTACT_FIELDS = "['N','FN','TEL','EMAIL']";
++    inline constexpr const char* PBAP_CONTACT_FIELDS = "['N','FN','TEL','EMAIL','PHOTO']";
+     inline constexpr const char* PBAP_CALL_FIELDS = "['N','FN','TEL','X-IRMC-CALL-DATETIME']";
+ 
+     struct PbapSessionState;
 diff --git a/src/core/include/tether/bluetooth/vcard.hpp b/src/core/include/tether/bluetooth/vcard.hpp
-index 30b8eb1..656fd1f 100644
+index 424d7cf..9441205 100644
 --- a/src/core/include/tether/bluetooth/vcard.hpp
 +++ b/src/core/include/tether/bluetooth/vcard.hpp
 @@ -1,5 +1,6 @@
@@ -22,14 +28,17 @@ index 30b8eb1..656fd1f 100644
  #include <string>
  #include <vector>
  
-@@ -12,10 +13,21 @@ namespace tether::bluetooth {
+@@ -12,6 +13,8 @@ namespace tether::bluetooth {
          std::string name;
          std::vector<std::string> tels;
          std::vector<std::string> emails;
 +        // Decoded PHOTO bytes (JPEG or PNG), empty when the card has none.
 +        std::string photo;
- 
-         bool empty() const { return name.empty() && tels.empty() && emails.empty(); }
+         // Call history only (X-IRMC-CALL-DATETIME): MISSED, RECEIVED or DIALED,
+         // and the phone's local time as "YYYYMMDDTHHMMSS".
+         std::string call_type;
+@@ -22,6 +25,15 @@ namespace tether::bluetooth {
+         bool empty() const { return name.empty() && tels.empty() && emails.empty() && call_time.empty(); }
      };
  
 +    // Contact photos are cached one file per phone number, keyed by its last ten
@@ -44,31 +53,37 @@ index 30b8eb1..656fd1f 100644
      // Parses a vCard 3.0 document containing any number of cards.
      std::vector<VCard> parse_vcards(const std::string& text);
  
-diff --git a/src/core/src/bluetooth/pbap_session.cpp b/src/core/src/bluetooth/pbap_session.cpp
-index 8a07c4d..6d6bfed 100644
---- a/src/core/src/bluetooth/pbap_session.cpp
-+++ b/src/core/src/bluetooth/pbap_session.cpp
-@@ -91,7 +91,7 @@ namespace tether::bluetooth {
-         // MaxCount, not MAP's MaxListCount.
-         g_variant_builder_add(&filter, "{sv}", "MaxCount", g_variant_new_uint16(static_cast<guint16>(max)));
-         // only what parse_vcards reads. kill PHOTO
--        g_variant_builder_add(&filter, "{sv}", "Fields", g_variant_new_parsed("['N','FN','TEL','EMAIL']"));
-+        g_variant_builder_add(&filter, "{sv}", "Fields", g_variant_new_parsed("['N','FN','TEL','EMAIL','PHOTO']"));
- 
-         GError* error = nullptr;
-         GVariant* reply = g_dbus_connection_call_sync(state_->bus,
-@@ -151,6 +151,9 @@ namespace tether::bluetooth {
+diff --git a/src/core/src/bluetooth/connection.cpp b/src/core/src/bluetooth/connection.cpp
+index d47a645..c0d8a94 100644
+--- a/src/core/src/bluetooth/connection.cpp
++++ b/src/core/src/bluetooth/connection.cpp
+@@ -1090,6 +1090,11 @@ namespace tether::bluetooth {
+             return;
          }
  
-         contacts = parse_vcards(text);
++        // Replace photos only from the full phonebook, never favorites or call history.
 +        write_contact_photos(contacts);
 +        for (auto& card : contacts)
 +            std::string().swap(card.photo);
-         return contacts;
-     }
++
+         // The phone refuses fav when its "Phone Favorites" sync toggle is off.
+         std::vector<VCard> favorites;
+         if (session.select_phonebook(err, "int", "fav"))
+diff --git a/src/core/src/bluetooth/pbap_session.cpp b/src/core/src/bluetooth/pbap_session.cpp
+index 2cbf992..3b3857e 100644
+--- a/src/core/src/bluetooth/pbap_session.cpp
++++ b/src/core/src/bluetooth/pbap_session.cpp
+@@ -90,7 +90,7 @@ namespace tether::bluetooth {
+         g_variant_builder_add(&filter, "{sv}", "Format", g_variant_new_string("vcard30"));
+         // MaxCount, not MAP's MaxListCount.
+         g_variant_builder_add(&filter, "{sv}", "MaxCount", g_variant_new_uint16(static_cast<guint16>(max)));
+-        // only what parse_vcards reads. kill PHOTO
++        // Contacts include photos; call history requests only its own fields.
+         g_variant_builder_add(&filter, "{sv}", "Fields", g_variant_new_parsed(fields));
  
+         GError* error = nullptr;
 diff --git a/src/core/src/bluetooth/vcard.cpp b/src/core/src/bluetooth/vcard.cpp
-index 8a360e7..47b8900 100644
+index 007cc9b..2144d61 100644
 --- a/src/core/src/bluetooth/vcard.cpp
 +++ b/src/core/src/bluetooth/vcard.cpp
 @@ -1,5 +1,8 @@
@@ -91,10 +106,10 @@ index 8a360e7..47b8900 100644
 +                    current.photo.assign(reinterpret_cast<const char*>(bytes), len);
 +                g_free(bytes);
 +            }
-         }
- 
-         if (in_card)
-@@ -165,4 +175,53 @@ namespace tether::bluetooth {
+             else if (name == "X-IRMC-CALL-DATETIME") {
+                 // The call type is the parameter: ";MISSED:" (iOS) or ";TYPE=MISSED:".
+                 const std::string head = token.substr(0, token.find(':'));
+@@ -175,4 +185,53 @@ namespace tether::bluetooth {
          return cards;
      }
  
@@ -149,7 +164,7 @@ index 8a360e7..47b8900 100644
 +
  } // namespace tether::bluetooth
 diff --git a/src/daemon/main.cpp b/src/daemon/main.cpp
-index a9ff3a4..16d903b 100644
+index 491f299..4ab2c2a 100644
 --- a/src/daemon/main.cpp
 +++ b/src/daemon/main.cpp
 @@ -14,6 +14,7 @@
@@ -160,7 +175,7 @@ index a9ff3a4..16d903b 100644
  #include <tether/core.hpp>
  #include <tether/crypto.hpp>
  #include <tether/discovery.hpp>
-@@ -254,10 +255,14 @@ int main(int argc, char** argv) {
+@@ -252,10 +253,14 @@ int main(int argc, char** argv) {
              std::string reply_error;
              const bool repliable =
                  tether::bluetooth::recipient_from_thread_key(message.thread_key, recipient, reply_error);
@@ -170,13 +185,13 @@ index a9ff3a4..16d903b 100644
 +                icons.push_back(std::move(name));
              notifier.notify({_("Messages"),
                               who.empty() ? "iPhone" : who,
-                              message.body,
+                              tether::popup_previews_enabled() ? message.body : std::string{},
 -                             tether::bluetooth::ancs::icon_candidates(as_notification),
 +                             icons,
                               false,
                               repliable ? message.thread_key : std::string{},
                               otp,
-@@ -665,10 +670,33 @@ int main(int argc, char** argv) {
+@@ -664,10 +669,33 @@ int main(int argc, char** argv) {
                      const std::string title = notification.title.empty() ? notification.app_name : notification.title;
                      // Some apps put the whole notification in the subtitle and leave the message empty.
                      const std::string body = notification.body.empty() ? notification.subtitle : notification.body;
@@ -205,7 +220,7 @@ index a9ff3a4..16d903b 100644
 +                        icons.push_back(std::move(name));
                      notifier.notify({notification.app_name,
                                       title.empty() ? "iPhone" : title,
-                                      body,
+                                      tether::popup_previews_enabled() ? body : std::string{},
 -                                     tether::bluetooth::ancs::icon_candidates(notification),
 +                                     icons,
                                       notification.silent,
@@ -233,3 +248,32 @@ index 0b66c78..bf2f735 100644
                  if (installed.count(name))
                      return name;
              }
+diff --git a/test/test_vcard.cpp b/test/test_vcard.cpp
+index 2756a5f..aa2e97d 100644
+--- a/test/test_vcard.cpp
++++ b/test/test_vcard.cpp
+@@ -460,3 +460,24 @@ TEST(ContactStore, FavoriteSurvivesJsonRoundTrip) {
+     ScopedStore scope("favorite-roundtrip");
+     ASSERT_TRUE(deserialize_contacts(serialize_contacts(store)).contacts().at(0).favorite);
+ }
++
++TEST(VCard, PhotoDecodingPreservesCallHistoryFields) {
++    auto cards = parse_vcards("BEGIN:VCARD\r\n"
++                              "FN:Caller\r\n"
++                              "TEL:+15551234567\r\n"
++                              "PHOTO;ENCODING=b;TYPE=JPEG:/9j/\r\n"
++                              " 2Q==\r\n"
++                              "X-IRMC-CALL-DATETIME;MISSED:20261010T120000\r\n"
++                              "END:VCARD\r\n");
++    ASSERT_EQ(cards.size(), 1u);
++    EXPECT_EQ(cards[0].photo, std::string("\xff\xd8\xff\xd9", 4));
++    EXPECT_EQ(cards[0].call_type, "MISSED");
++    EXPECT_EQ(cards[0].call_time, "20261010T120000");
++}
++
++TEST(VCard, RemotePhotoIsNotDecodedAsBase64) {
++    auto cards = parse_vcards("BEGIN:VCARD\nFN:Caller\n"
++                              "PHOTO;VALUE=URI:https://example.com/photo.jpg\nEND:VCARD\n");
++    ASSERT_EQ(cards.size(), 1u);
++    EXPECT_TRUE(cards[0].photo.empty());
++}

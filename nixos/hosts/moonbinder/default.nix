@@ -497,7 +497,13 @@ in
     #    subscription time to keep unchanged updates and backlog popups quiet.
     package = (pkgs.callPackage "${inputs.tether}/nix/package.nix" { }).overrideAttrs (old: {
       patches = (old.patches or [ ]) ++ [
-        ../../patches/tether-contact-photos.patch
+        # The update preview restores flake.lock afterward, so retain support
+        # for the older PBAP API too. Tether's package version stayed at 0.2.18
+        # across this API change; inspect the source rather than the version.
+        (if lib.hasInfix "PBAP_CONTACT_FIELDS"
+          (builtins.readFile "${inputs.tether}/src/core/include/tether/bluetooth/pbap_session.hpp")
+        then ../../patches/tether-contact-photos.patch
+        else ../../patches/tether-contact-photos-legacy.patch)
         ../../patches/tether-notification-replays.patch
       ];
       postPatch = old.postPatch + ''
