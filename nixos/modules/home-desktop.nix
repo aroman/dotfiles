@@ -385,6 +385,7 @@ in
     enable = true;
     settings.providers.applications.preferences.launchPrefix =
       "systemd-run --user --scope --quiet --collect --";
+    settings.providers.files.preferences.excludedIndexingPaths = [ "/home/aroman/Projects" ];
     systemd = {
       enable = true;
       autoStart = true;
