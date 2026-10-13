@@ -82,6 +82,78 @@ f.renameSync(o+`.tmp`,o)}catch(t){console.error(`granola: next-meeting write fai
 """.replace("\n", "")
 
 
+def patch_storage(app: Bundle, main: str) -> None:
+    """Fail closed on Linux: upstream's error recovery deletes keys and data."""
+    electron = app.name(main, rf"=>({ID})\.safeStorage\.decryptStringAsync\(e\)", "safeStorage module")
+    filesystem = app.name(
+        main,
+        rf"async function {ID}\(\)\{{let e={ID}\(\);if\(!\(0,({ID})\.existsSync\)\(e\)\)",
+        "encrypted-key filesystem module",
+    )
+    helpers = r"""
+var granolaLinuxStorageFailing=!1;
+function granolaLinuxStorageFatal(stage){
+if(granolaLinuxStorageFailing)process.exit(78);granolaLinuxStorageFailing=!0;
+try{console.error(`granola: encrypted storage startup failed`,stage);
+ELECTRON.dialog.showErrorBox(`Granola could not open local data`,
+`Granola could not safely open its local data. Your encrypted files have been preserved. If your desktop keyring is locked, unlock it and reopen Granola. If this repeats, check the startup logs before changing any stored data.`)}
+finally{try{ELECTRON.app.exit(78)}finally{process.exit(78)}}}
+function granolaLinuxStorageWait(p){
+if(process.platform!==`linux`)return p;
+let t=setTimeout(()=>granolaLinuxStorageFatal(`key-access-timeout`),90000);
+return p.finally(()=>clearTimeout(t))}
+function granolaLinuxCheckMissingKey(p){
+if(process.platform!==`linux`)return;
+try{if(FILESYSTEM.readdirSync(require(`node:path`).dirname(p)).some(n=>n.endsWith(`.enc`)||n.endsWith(`.enc.tmp`)||/^granola\.db(?:-wal|-shm)?$/.test(n)||n.startsWith(`storage.dek.tmp-`)))granolaLinuxStorageFatal(`missing-key`)}
+catch{granolaLinuxStorageFatal(`key-directory-read-failed`)}}
+function granolaLinuxWriteKey(p,b){
+let f=FILESYSTEM,t=p+`.tmp-${process.pid}`,fd,owned=!1;
+try{fd=f.openSync(t,`wx`,0o600);owned=!0;f.writeFileSync(fd,b);f.fsyncSync(fd);f.closeSync(fd);fd=void 0;f.renameSync(t,p)}
+catch{if(fd!==void 0)try{f.closeSync(fd)}catch{}if(owned)try{f.unlinkSync(t)}catch{}granolaLinuxStorageFatal(`key-write-failed`)}}
+""".replace("ELECTRON", electron).replace("FILESYSTEM", filesystem).replace("\n", "")
+    app.patch(
+        main,
+        rf"(async function {ID}\(\)\{{if\(({ID})\)return \2;if\(({ID})\)return \3;"
+        rf"\3=process\.platform===`darwin`&&{ID}\.app\.isPackaged\?{ID}\(\):{ID}\(\);try\{{return \2=await )\3(,\2\}}finally\{{\3=null\}}\}})",
+        lambda m: helpers + m[1] + f"granolaLinuxStorageWait({m[3]})" + m[4],
+        label="bounded encrypted-storage startup",
+    )
+    app.patch(
+        main,
+        rf"(async function {ID}\(\)\{{let ({ID})={ID}\(\);if\(!\(0,{ID}\.existsSync\)\(\2\)\))return ({ID}\(\));try\{{let",
+        r"\1{granolaLinuxCheckMissingKey(\2);return \3}try{let",
+        label="preserve encrypted files when the key is missing",
+    )
+    # Re-encryption rotates the wrapping provider, not the data key. Never
+    # truncate the sole wrapped key in place if writing or renaming fails.
+    for event in ("dek-created", "dek-reencrypted"):
+        app.patch(
+            main,
+            rf"(\(0,{ID}\.writeFileSync\)\(([^,;]+),({ID})\))(?=,{ID}\(`info`,`{event}`,)",
+            r"(process.platform===`linux`?granolaLinuxWriteKey(\2,\3):\1)",
+            label=f"atomic key write on {event}",
+        )
+    # Guard before the original log/catch body: those bodies unlink storage.dek
+    # or *.enc and then initialize empty storage. A timeout must exit directly,
+    # never reject into those destructive catches. Log fixed stages only; error
+    # messages from JSON parsing can contain fragments of private notes.
+    for event in (
+        "dek-creation-failed",
+        "dek-decryption-failed",
+        "dek-invalid-length",
+        "dek-read-failed",
+        "encrypted-storage-dek-unavailable",
+        "encrypted-storage-read-failed",
+        "storage-read-failed",
+    ):
+        app.patch(
+            main,
+            rf"(?<![\w$])({ID}\(`error`,`{event}`,)",
+            rf"process.platform===`linux`&&granolaLinuxStorageFatal(`{event}`),\1",
+            label=f"preserve storage on {event}",
+        )
+
+
 def patch_granola(app: Bundle, macos_version: str) -> None:
     preload = "dist-electron/preload/preload.js"
     main = "dist-electron/main/index.js"
@@ -90,6 +162,7 @@ def patch_granola(app: Bundle, macos_version: str) -> None:
     # browser-capture branch and its all-outputs loopback handler.
     app.require(main, "process.platform===`linux`", "Linux browser-audio branch is gone")
     app.require(main, "id:`loopbackAllDevices`", "Linux loopback handler is gone")
+    patch_storage(app, main)
 
     app.patch(preload, r"platform:process\.platform", "platform:`darwin`", label="renderer platform identity")
     app.patch(
@@ -224,7 +297,6 @@ def patch_granola(app: Bundle, macos_version: str) -> None:
         r"\1.connect(\2).connect(\1.context.destination);\3",
         label="AudioWorklet keepalive",
     )
-
 
 
 def main() -> None:
