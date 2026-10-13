@@ -387,6 +387,9 @@ in
     settings.launcher_window.layer_shell.layer = "overlay";
     settings.providers.applications.preferences.launchPrefix =
       "systemd-run --user --scope --quiet --collect --";
+    settings.providers.files.preferences.excludedIndexingPaths = [
+      "${config.home.homeDirectory}/Projects"
+    ];
     systemd = {
       enable = true;
       autoStart = true;
