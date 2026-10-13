@@ -24,8 +24,8 @@
 #   status — print the current rate as bare Hz ("165"/"60"), for bar widgets
 #   (none) — toggle
 #
-# Bound to Mod+Shift+Period in niri config, and to the noctalia bar's
-# CustomButton widget (leftClickExec + textCommand).
+# Bound to Mod+Shift+Period in niri config. The bar uses the Niri Displays
+# plugin's display settings menu.
 
 set -euo pipefail
 
