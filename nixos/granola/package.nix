@@ -98,6 +98,7 @@ stdenv.mkDerivation (finalAttrs: {
     # files instead of editing the archive in place.
     asar extract Resources/app.asar app
     python3 ${./patch_app.py} app --macos-version "$macosVersion"
+    python3 ${./test_storage.py} app
 
     pushd app/node_modules/better-sqlite3-multiple-ciphers
     tar xzf ${sqliteBindingSrc} --strip-components=1 package/binding.gyp
@@ -140,7 +141,11 @@ stdenv.mkDerivation (finalAttrs: {
     sed "s|${electron.dist}/electron|$app/granola|" ${electron}/bin/electron > $app/granola-env
     chmod +x $app/granola-env
     grep -q "$app/granola" $app/granola-env  # fail if the sed target moved
+    # niri isn't recognised by Electron's synchronous keyring selection.
+    # Select GNOME Keyring for the direct Secret Service backend while
+    # leaving the async Secret portal provider enabled.
     makeWrapper $app/granola-env $out/bin/granola \
+      --add-flags "--password-store=gnome-libsecret" \
       --add-flags "--ozone-platform-hint=auto" \
       --add-flags "--enable-features=WebRTCPipeWireCapturer"
 

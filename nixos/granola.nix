@@ -4,7 +4,7 @@
 #
 #   granola/package.nix       macOS bundle on nixpkgs' Electron (bump notes inside)
 #   granola/patch_app.py      the Linux patches to Granola's JS
-#   granola/niri.kdl          autostart, popup and screen-share window rules
+#   granola/niri.kdl          popup and screen-share window rules
 #   granola/noctalia-plugin/  bar widget + panel: next meeting, join link, dismiss
 { lib, username, ... }:
 {
@@ -18,9 +18,34 @@
     let
       link = path: config.lib.file.mkOutOfStoreSymlink
         "${config.home.homeDirectory}/Projects/dotfiles/nixos/granola/${path}";
+      startupDependencies = [
+        "niri-wayland-env-gate.service"
+        "xdg-desktop-portal.service"
+      ] ++ lib.optional (config.systemd.user.services ? gcr-prompter) "gcr-prompter.service";
     in
     {
       home.packages = [ pkgs.granola ];
+
+      # Keep autostart logs and order startup after the portal and keyring
+      # prompt UI. Their readiness does not guarantee storage is unlocked;
+      # patch_app.py handles failed or stalled encrypted-storage startup.
+      systemd.user.services.granola = {
+        Unit = {
+          Description = "Granola meeting notes";
+          Wants = startupDependencies;
+          After = [ "graphical-session.target" ] ++ startupDependencies;
+          PartOf = [ "graphical-session.target" ];
+        };
+        Service = {
+          Type = "exec";
+          ExecStart = "${pkgs.granola}/bin/granola";
+          Restart = "on-failure";
+          # Storage failure needs user attention, not repeated unlock dialogs.
+          RestartPreventExitStatus = [ 78 ];
+          RestartSec = 3;
+        };
+        Install.WantedBy = [ "graphical-session.target" ];
+      };
 
       # Sign-in hands the token back via granola://.
       xdg.mimeApps.defaultApplications."x-scheme-handler/granola" = "granola.desktop";

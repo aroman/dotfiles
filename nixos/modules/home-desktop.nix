@@ -383,9 +383,13 @@ in
   # Ref: https://github.com/vicinaehq/vicinae/issues/1235
   programs.vicinae = {
     enable = true;
+    # Niri renders fullscreen windows above the top layer; overlay stays visible.
+    settings.launcher_window.layer_shell.layer = "overlay";
     settings.providers.applications.preferences.launchPrefix =
       "systemd-run --user --scope --quiet --collect --";
-    settings.providers.files.preferences.excludedIndexingPaths = [ "/home/aroman/Projects" ];
+    settings.providers.files.preferences.excludedIndexingPaths = [
+      "${config.home.homeDirectory}/Projects"
+    ];
     systemd = {
       enable = true;
       autoStart = true;

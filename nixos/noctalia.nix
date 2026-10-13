@@ -244,7 +244,7 @@
             "volume"
             "network"
             "bluetooth"
-            "refresh-toggle"
+            "displays"
             "battery"
             "notifications"
             "clock"
@@ -287,21 +287,18 @@
           format = "{:%H:%M %a %b %e}";
         };
 
-        # v4 CustomButton.  Note the label is static: v4 re-ran
-        # `refresh-toggle status` every 30s to show the current rate, and v5's
-        # custom_button has no command-polling equivalent (the text widget is
-        # fixed-string only).  Recovering the live readout means a Luau plugin.
-        widget.refresh-toggle = {
-          type = "custom_button";
-          glyph = "device-desktop";
-          tooltip = "Toggle refresh rate (165/60 Hz)";
-          actions.left = "exec /home/aroman/.local/bin/refresh-toggle";
+        # Niri Displays opens native controls for every connected monitor,
+        # including refresh-rate dropdowns. Keep the bar button compact.
+        widget.displays = {
+          type = "raycursive/niri-displays:bar";
+          show_resolution = false;
+          actions.left = "panel-toggle raycursive/niri-displays:panel";
         };
 
         dock.launcher_position = "start";
         desktop_widgets.enabled = false;
 
-        # The plugin *files* are delivered by rcm, not by this module:
+        # Local plugin *files* are delivered by rcm, not by this module:
         # local/share/noctalia/plugins/ is inside the rcm tree (~/.rcrc excludes
         # nixos and config, not local), so rcup symlinks them to
         # ~/.local/share/noctalia/plugins/ the same way it handles local/bin.
@@ -309,8 +306,9 @@
         # claiming the same paths.  This list only decides which get loaded.
         # Exception: granola.nix links and enables its own plugin, so the whole
         # Granola integration stays one import.
+        # Niri Displays is installed from Noctalia's community plugin source.
         plugins = {
-          enabled = [ "aroman/voxtype" ];
+          enabled = [ "aroman/voxtype" "raycursive/niri-displays" ];
           # beta.9 turned this from a boolean into a scope (all|official|none).
           # `false` still parses, but validate warns on it.
           auto_update = "none";
