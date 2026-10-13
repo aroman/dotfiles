@@ -177,7 +177,16 @@ in
     gcc # needed by tree-sitter to compile parsers
   ] ++ lib.optionals desktop desktopPackageSegments.afterGcc ++ [
     biome
-    typescript-language-server
+    # nixpkgs' 6.0.2 pnpm dependency hash is stale. Drop this workaround
+    # once upstream fixes it; only override the known-broken hash.
+    (typescript-language-server.overrideAttrs (old: lib.optionalAttrs (
+      old.version == "6.0.2"
+      && old.pnpmDeps.outputHash == "sha256-MUSxDMlbG21KSesGdEvqa2kEpuVfLlXRUX1qV/FGsSo="
+    ) {
+      pnpmDeps = old.pnpmDeps.overrideAttrs {
+        outputHash = "sha256-xR/EF60lVBsITKgH7wCM2wHM46PFQevD51KfCENSUH4=";
+      };
+    }))
   ] ++ lib.optionals desktop desktopPackageSegments.afterTypescript ++ [
     # Development
     nodejs_24
