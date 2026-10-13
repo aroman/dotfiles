@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Preview what packages would change if you update nixpkgs (or all inputs).
+# Preview this host's package changes if you update nixpkgs (or all inputs).
 # Usage:
 #   nix-check-updates           # update all inputs, show diff
 #   nix-check-updates nixpkgs   # update just nixpkgs, show diff
@@ -8,7 +8,7 @@ set -euo pipefail
 
 # Derive dotfiles root from this script's location (local/bin/ inside the repo)
 FLAKE="$(cd "$(dirname "$(readlink -f "$0")")/../.." && pwd)/nixos"
-HOST="moonbinder"
+HOST="$(hostname -s)"
 LOCKFILE="$FLAKE/flake.lock"
 
 # Save current lock file; restore it on any exit (a failed build used to
@@ -26,7 +26,7 @@ else
 fi
 
 # Build without switching
-echo "Building new system (not switching)..."
+echo "Building new system for $HOST (not switching)..."
 nixos-rebuild build --flake "$FLAKE#$HOST"
 
 # Show diff
