@@ -393,6 +393,7 @@ window-rule {
 
 window-rule {
     match app-id=r#"(?i)^spotify$"#
+    match app-id=r#"^spotifast$"#
     match app-id=r#"^figma-linux$"#
     // Chrome --app=figma gets its own app-id like "chrome-www.figma.com__-Profile_1"
     match app-id=r#"^chrome-www\.figma\.com"#
