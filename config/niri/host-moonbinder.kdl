@@ -64,6 +64,7 @@ output "LG Electronics LG ULTRAGEAR+ 605NTLEND928" {
 
 // External: Work monitor (Acer XV282K 4K) — to the right of the internal panel.
 output "Acer Technologies XV282K KV 13250DC7C4200" {
+    mode "3840x2160@144.004"
     scale 1.5
     backdrop-color "#1D2029"
     position x=1707 y=0
