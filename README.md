@@ -179,11 +179,13 @@ ssh-copy-id <hostname>
 
 ```bash
 git clone git@github.com:aroman/dotfiles.git ~/Projects/dotfiles
-sudo nixos-rebuild switch --flake ~/Projects/dotfiles/nixos
-rcup -K
+nh os switch --show-activation-logs ~/Projects/dotfiles/nixos && rcup -K
 ```
 
-Hosts are defined in `nixos/hosts/`. Rebuild alias: `bake`
+Hosts are defined in `nixos/hosts/`. Rebuild function: `bake`. It forwards
+arguments to `nh os switch`, shows activation logs, and runs `rcup -K` only
+after a successful switch. NH activates the system before making it the boot
+default, so a failed activation leaves the existing boot default in place.
 
 ### Backups (NixOS)
 

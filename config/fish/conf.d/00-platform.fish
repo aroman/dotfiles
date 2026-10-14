@@ -31,7 +31,11 @@ set -g nvm_default_version lts
 
 if test (uname) = Linux
     alias zed="zeditor"
-    alias bake="nh os switch && rcup -K"
+    function bake --wraps='nh os switch' --description 'Activate NixOS, then sync dotfiles'
+        nh os switch --show-activation-logs $argv
+        or return $status
+        rcup -K
+    end
     alias yt-dlp="nix run nixpkgs#yt-dlp --"
 end
 

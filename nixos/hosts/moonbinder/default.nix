@@ -4,6 +4,77 @@ let
   # Use the same package set for the kernel and patched mt7925 module.
   # Updating this input advances the kernel without updating all userland.
   kernelPkgs = inputs.nixpkgs-kernel.legacyPackages.${pkgs.stdenv.hostPlatform.system};
+  graphicsPkgs = inputs.vicinae.inputs.nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system};
+  desktopPackages = [
+    inputs.ghostty.packages.${pkgs.stdenv.hostPlatform.system}.default
+    inputs.vicinae.packages.${pkgs.stdenv.hostPlatform.system}.default
+    config.programs.niri.package
+    pkgs.noctalia
+  ];
+
+  # Run dlopen with each app's own ELF loader and startup libraries. A
+  # version comparison (or the build host's ldd) misses cached binaries'
+  # actual runtime. No GPU/display is needed to detect the ABI mismatch.
+  graphicsCompatibility = pkgs.runCommand "desktop-graphics-compatibility" {
+    nativeBuildInputs = [ pkgs.stdenv.cc pkgs.binutils pkgs.python3 ];
+  } ''
+    cat > probe.c <<'C'
+    #include <dlfcn.h>
+    #include <stdio.h>
+    int main(int argc, char **argv) {
+      if (argc != 2) return 2;
+      void *driver = dlopen(argv[1], RTLD_NOW | RTLD_LOCAL);
+      if (!driver) { fprintf(stderr, "%s\n", dlerror()); return 1; }
+      dlclose(driver);
+      return 0;
+    }
+    C
+    cc probe.c -o probe -ldl
+    python3 - ${config.hardware.graphics.package} ${lib.escapeShellArgs (map toString desktopPackages)} <<'PY'
+    import os
+    from pathlib import Path
+    import re
+    import subprocess
+    import sys
+
+    drivers = [Path(sys.argv[1]) / "lib" / name for name in
+               ["libEGL_mesa.so.0", "libGLX_mesa.so.0", "libvulkan_radeon.so"]]
+    checked = 0
+    for package in sys.argv[2:]:
+        executables = sorted(set(path.resolve() for directory in ["bin", "libexec"]
+                                 for path in (Path(package) / directory).rglob("*")
+                                 if path.is_file() and os.access(path, os.X_OK)))
+        package_checked = 0
+        for executable in executables:
+            with executable.open("rb") as file:
+                if file.read(4) != b"\x7fELF":
+                    continue
+            headers = subprocess.check_output(["readelf", "-l", executable], text=True)
+            match = re.search(r"Requesting program interpreter: (.*?)\]", headers)
+            if not match:
+                continue
+            loader = match[1]
+            startup = subprocess.run([loader, "--list", executable], text=True, capture_output=True)
+            if startup.returncode or startup.stderr or "not found" in startup.stdout:
+                sys.exit(f"Cannot resolve {executable}:\n{startup.stdout}\n{startup.stderr}")
+            libraries = re.findall(r"=> (/\S+)", startup.stdout)
+            directories = dict.fromkeys([str(Path(loader).parent)] +
+                                        [str(Path(library).parent) for library in libraries])
+            for driver in drivers:
+                result = subprocess.run([loader, "--library-path", ":".join(directories),
+                                         str(Path("probe").resolve()), str(driver)],
+                                        text=True, capture_output=True)
+                if result.returncode:
+                    sys.exit(f"Graphics driver is incompatible with {executable}:\n{result.stderr}")
+            package_checked += 1
+        if not package_checked:
+            sys.exit(f"No dynamic ELF executables checked in {package}")
+        checked += package_checked
+    print(f"Checked EGL, GLX and Radeon Vulkan loading for {checked} desktop executables")
+    PY
+    touch "$out"
+  '';
+
 in
 {
   imports = [
@@ -165,6 +236,19 @@ in
 
   # Graphics (AMD iGPU — Ryzen AI 300 series)
   hardware.graphics.enable = true;
+
+  # Cached GUI apps can use an older glibc than the system. Vicinae's
+  # glibc 2.42 cannot load the system Mesa 26.2.4: Gallium needs GLIBC_2.43
+  # and LLVM needs GLIBC_2.44. This broke OpenGL after the 2026-10-13 update.
+  # Use Mesa 26.2.3 from Vicinae's existing package set, which also works
+  # with newer applications. Recheck this when updating its nixpkgs pin.
+  hardware.graphics.package = graphicsPkgs.mesa;
+  hardware.graphics.package32 = graphicsPkgs.pkgsi686Linux.mesa;
+
+  # These are dependencies of every system build, including ordinary
+  # nixos-rebuild: an ABI-incompatible driver cannot produce a generation.
+  system.checks = [ graphicsCompatibility ];
+  system.build.desktopGraphicsCompatibility = graphicsCompatibility;
 
   # Disable the NVIDIA dGPU entirely — blacklist nouveau so only the AMD iGPU
   # is used. The NVIDIA GPU will power down automatically via PCIe ASPM/runtime PM
