@@ -38,7 +38,7 @@
         };
         Service = {
           Type = "exec";
-          ExecStart = "${pkgs.granola}/bin/granola";
+          ExecStart = "${pkgs.granola}/bin/granola --start-in-tray";
           Restart = "on-failure";
           # Storage failure needs user attention, not repeated unlock dialogs.
           RestartPreventExitStatus = [ 78 ];

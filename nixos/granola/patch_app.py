@@ -194,6 +194,17 @@ def patch_granola(app: Bundle, macos_version: str) -> None:
         label="macOS-style primary window chrome",
     )
 
+    # The login service passes this flag; ordinary launches still show the
+    # main window. Only suppress the initial show/focus, so tray clicks,
+    # second-instance launches, deep links and reminders keep working.
+    app.patch(
+        main,
+        rf"({ID}\(void 0,{ID},\{{)show:({ID}),focus:({ID})(\}}\),{ID}\(\),{ID}\.init\(\),)",
+        r"\1show:!process.argv.includes(`--start-in-tray`)&&\2,"
+        r"focus:!process.argv.includes(`--start-in-tray`)&&\3\4",
+        label="start in tray on login",
+    )
+
     # The quit / stop-transcribing confirmations are native dialogs made modal
     # to a never-shown, zero-opacity 1px helper window (a macOS centring
     # trick). On Wayland a GTK dialog transient for an unmapped parent draws
