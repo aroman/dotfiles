@@ -435,6 +435,14 @@ window-rule {
     open-floating true
 }
 
+// Keyring requests block the calling app until answered; show the prompt
+// immediately instead of leaving it hidden among tiled app windows.
+window-rule {
+    match app-id=r#"^gcr-prompter$"#
+    open-floating true
+    open-focused true
+}
+
 // Sushi (Nautilus spacebar preview) is a transient peek, not a column —
 // float it so it doesn't reflow the strip every time a file is previewed.
 // Sushi's own default is a small, thumbnail-ish window; ~60×70% of the

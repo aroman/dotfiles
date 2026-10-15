@@ -4,6 +4,14 @@ let
   dotfiles = "${config.home.homeDirectory}/Projects/dotfiles";
   link = path: config.lib.file.mkOutOfStoreSymlink "${dotfiles}/${path}";
   ghosttyTip = inputs.ghostty.packages.${pkgs.stdenv.hostPlatform.system}.default;
+  keyringPrompterActivation = name: lib.mkIf osConfig.services.gnome.gnome-keyring.enable {
+    text = ''
+      [D-BUS Service]
+      Name=org.gnome.keyring.${name}Prompter
+      Exec=${pkgs.gcr_3}/libexec/gcr-prompter
+      SystemdService=gcr-prompter.service
+    '';
+  };
 in
 {
   systemd.user.sessionVariables = {
@@ -558,6 +566,35 @@ in
     };
     Install.RequiredBy = [ "graphical-session.target" ];
   };
+
+  # Keep the keyring UI alive for the graphical session. Its default
+  # D-Bus activation exits after ten idle seconds, leaving prompt handling
+  # dependent on repeated activation. GCR_PERSIST disables that timeout;
+  # systemd restarts crashes and stops the helper when the session ends.
+  systemd.user.services.gcr-prompter = lib.mkIf osConfig.services.gnome.gnome-keyring.enable {
+    Unit = {
+      Description = "GNOME Keyring unlock dialogs";
+      # On-demand D-Bus requests must not pull in a desktop after logout.
+      # The active graphical target already guarantees Wayland env readiness.
+      Requisite = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+      PartOf = [ "graphical-session.target" ];
+    };
+    Service = {
+      Type = "dbus";
+      BusName = "org.gnome.keyring.SystemPrompter";
+      Environment = [ "GCR_PERSIST=1" ];
+      ExecStart = "${pkgs.gcr_3}/libexec/gcr-prompter";
+      Restart = "on-failure";
+      RestartSec = 1;
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
+  # Both names belong to the same helper. Route on-demand requests through
+  # its supervised unit as well, so D-Bus cannot spawn a competing process.
+  xdg.dataFile."dbus-1/services/org.gnome.keyring.SystemPrompter.service" = keyringPrompterActivation "System";
+  xdg.dataFile."dbus-1/services/org.gnome.keyring.PrivatePrompter.service" = keyringPrompterActivation "Private";
 
   # ── niri.service ExecStop drop-in ────────────────────────────────
   # Stop graphical-session.target *before* niri gets SIGTERM'd so PartOf=
