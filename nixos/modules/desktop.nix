@@ -45,6 +45,25 @@
   # manager's PATH and breaks spawn-at-startup; and environment.etc can't
   # write under /etc/systemd/user/ without colliding with NixOS unit mgmt.
 
+  # Cage 0.3.1 re-enables the previous output during -m last teardown, after
+  # the output layout has been freed. Backport the shutdown guard from:
+  # https://github.com/cage-kiosk/cage/pull/525
+  # Remove once nixpkgs' Cage includes this upstream commit.
+  nixpkgs.overlays = [
+    (_final: prev: {
+      cage = prev.cage.overrideAttrs (old: {
+        patches = (old.patches or []) ++ [
+          (prev.fetchpatch {
+            url = "https://github.com/cage-kiosk/cage/commit/e84cd4faae1ff0253d6dab82adcf9d2fac4c89b7.patch";
+            hash = "sha256-2U07HFHQ3pE7I+8mW4vm2yWQIS8Q2LqTb4d4C5keqdQ=";
+          })
+        ];
+        # Fail on context drift so package updates require reviewing the patch.
+        patchFlags = (old.patchFlags or [ "-p1" ]) ++ [ "--fuzz=0" ];
+      });
+    })
+  ];
+
   # Display manager — greetd, with tuigreet wrapped in foot under cage.
   # cage owns the DRM master and handles monitor hotplug as Wayland output
   # events, so plugging/unplugging displays no longer reflows the kernel
