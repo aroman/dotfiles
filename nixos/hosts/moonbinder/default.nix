@@ -1,4 +1,4 @@
-{ config, pkgs, lib, inputs, ... }:
+{ config, pkgs, lib, inputs, username, ... }:
 
 let
   # Use the same package set for the kernel and patched mt7925 module.
@@ -627,9 +627,11 @@ in
   };
 
   # The module installs tetherd but doesn't start it; the package ships a
-  # user unit, so pull it in and enable it at login.
+  # user unit, so pull it in for the configured user's manager.
   systemd.packages = [ config.programs.tether.package ];
   systemd.user.services.tetherd = {
+    # The greeter also has a user manager, but no writable home for Tether.
+    unitConfig.ConditionUser = username;
     wantedBy = [ "default.target" ];
     # Probes the adapter with `btmgmt info` (a bare PATH lookup) every minute;
     # the user manager's PATH has no bluez, so it just logged ENOENT.
