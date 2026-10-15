@@ -588,8 +588,12 @@ in
     # 5. patches/tether-app-icons.patch: ANCS provides bundle IDs but no icons.
     #    Resolve App Store artwork on a worker and cache it under
     #    ~/.cache/tether/app-icons; keep contact photos ahead of app icons.
+    #
+    # 6. patches/tether-obex-login.patch: a lingering user manager runs before
+    #    login, when obexd has no transport and fails initialization. Defer MAP
+    #    and PBAP session creation until BlueZ's active-local-login check passes.
     package = (pkgs.callPackage "${inputs.tether}/nix/package.nix" { }).overrideAttrs (old: {
-      buildInputs = old.buildInputs ++ [ pkgs.curl pkgs.gdk-pixbuf ];
+      buildInputs = old.buildInputs ++ [ pkgs.curl pkgs.gdk-pixbuf pkgs.systemd ];
       patches = (old.patches or [ ]) ++ [
         # The update preview restores flake.lock afterward, so retain support
         # for the older PBAP API too. Tether's package version stayed at 0.2.18
@@ -600,6 +604,7 @@ in
         else ../../patches/tether-contact-photos-legacy.patch)
         ../../patches/tether-notification-replays.patch
         ../../patches/tether-app-icons.patch
+        ../../patches/tether-obex-login.patch
       ];
       postPatch = old.postPatch + ''
         substituteInPlace src/daemon/main.cpp \

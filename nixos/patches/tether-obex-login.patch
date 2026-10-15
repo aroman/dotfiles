@@ -1,0 +1,190 @@
+diff --git a/src/core/CMakeLists.txt b/src/core/CMakeLists.txt
+--- a/src/core/CMakeLists.txt
++++ b/src/core/CMakeLists.txt
+@@ -49,6 +49,7 @@
+ )
+
+ pkg_check_modules(GLIB REQUIRED IMPORTED_TARGET glib-2.0 gio-2.0)
++pkg_check_modules(SYSTEMD REQUIRED IMPORTED_TARGET libsystemd)
+
+ target_include_directories(tether PUBLIC
+     include
+@@ -70,6 +71,7 @@
+     OpenSSL::Crypto
+     PkgConfig::AVAHI
+     PkgConfig::GLIB
++    PkgConfig::SYSTEMD
+     PkgConfig::SECRET
+     Intl::Intl
+ )
+diff --git a/src/core/include/tether/bluetooth/profile_supervisor.hpp b/src/core/include/tether/bluetooth/profile_supervisor.hpp
+--- a/src/core/include/tether/bluetooth/profile_supervisor.hpp
++++ b/src/core/include/tether/bluetooth/profile_supervisor.hpp
+@@ -38,10 +38,18 @@
+     // Advice for the user, phrased so it can be shown verbatim.
+     std::string obex_error_advice(ObexError error, const std::string& profile);
+
++    // Mirrors obexd's login policy. If login detection is unavailable, obexd
++    // disables that policy, so callers may continue without a local seat.
++    bool obex_login_ready();
++
+     // Session operations on obexd.
+     class ProfileOps {
+     public:
+         virtual ~ProfileOps() = default;
++
++        // Whether opening a session can activate obexd right now. A deferred
++        // attempt is not a phone/profile error and must not consume backoff.
++        virtual bool can_create_session() const { return true; }
+
+         // Returns the new session's object path, or an empty string with err set.
+         virtual std::string create_session(const std::string& target, std::string& err) = 0;
+diff --git a/src/core/src/bluetooth/profile_supervisor.cpp b/src/core/src/bluetooth/profile_supervisor.cpp
+--- a/src/core/src/bluetooth/profile_supervisor.cpp
++++ b/src/core/src/bluetooth/profile_supervisor.cpp
+@@ -4,6 +4,10 @@
+
+ #include <algorithm>
+ #include <cctype>
++#include <cstdlib>
++#include <cstring>
++#include <systemd/sd-login.h>
++#include <unistd.h>
+
+ namespace tether::bluetooth {
+
+@@ -21,6 +25,20 @@
+         }
+
+     } // namespace
++
++    bool obex_login_ready() {
++        char* state = nullptr;
++        if (sd_uid_get_state(getuid(), &state) < 0)
++            return true; // Like obexd, fall back when login detection is unavailable.
++        const bool active = state && std::strcmp(state, "active") == 0;
++        std::free(state);
++        if (!active)
++            return false;
++
++        // An active SSH session alone is insufficient: obexd also requires
++        // an active session on a local seat. Query failures disable its policy.
++        return sd_uid_get_seats(getuid(), 1, nullptr) != 0;
++    }
+
+     const char* to_string(ObexError error) {
+         switch (error) {
+@@ -185,6 +203,13 @@
+             return !(status_ == previous);
+         }
+
++        // A lingering user manager can run before login. BlueZ defers its
++        // transport then, and activating obexd makes server initialization fail.
++        if (!ops_.can_create_session()) {
++            status_.reason = _("Not connected yet.");
++            return !(status_ == previous);
++        }
++
+         if (now < next_attempt_)
+             return !(status_ == previous);
+
+diff --git a/src/core/src/bluetooth/connection.cpp b/src/core/src/bluetooth/connection.cpp
+--- a/src/core/src/bluetooth/connection.cpp
++++ b/src/core/src/bluetooth/connection.cpp
+@@ -581,6 +581,8 @@
+             explicit ObexProfileOps(std::string address) : address_(normalize_address(std::move(address))) {}
+
+             ~ObexProfileOps() override { g_clear_object(&conn_); }
++
++            bool can_create_session() const override { return obex_login_ready(); }
+
+             void set_address(const std::string& address) { address_ = normalize_address(address); }
+
+diff --git a/test/test_bluetooth_supervisor.cpp b/test/test_bluetooth_supervisor.cpp
+--- a/test/test_bluetooth_supervisor.cpp
++++ b/test/test_bluetooth_supervisor.cpp
+@@ -88,6 +88,8 @@
+
+     class FakeProfiles : public ProfileOps {
+     public:
++        bool login_ready = true;
++        bool can_create_session() const override { return login_ready; }
+         std::string map_error;
+         std::string pbap_error;
+         int map_attempts = 0;
+@@ -1139,3 +1141,75 @@
+     const BearerStatus gone = gone_bearer();
+     EXPECT_FALSE(should_lock_on_away(true, gone, false, REASON_TIMEOUT, 300, -1, 30));
+ }
++
++
++TEST(ProfileSupervisor, DefersObexActivationUntilLocalLogin) {
++    FakeProfiles ops;
++    ops.login_ready = false;
++    ProfileSupervisor sup(ops);
++
++    sup.tick(0, true);
++    sup.tick(60, true);
++    EXPECT_EQ(ops.map_attempts, 0);
++    EXPECT_EQ(ops.pbap_attempts, 0);
++    EXPECT_FALSE(sup.status().map_open);
++    EXPECT_FALSE(sup.status().pbap_open);
++    EXPECT_EQ(sup.status().map_error, ObexError::None);
++    EXPECT_EQ(sup.status().pbap_error, ObexError::None);
++
++    // Logging in opens both sessions on the next tick, without retry delay.
++    ops.login_ready = true;
++    sup.tick(61, true);
++    EXPECT_EQ(ops.map_attempts, 1);
++    EXPECT_EQ(ops.pbap_attempts, 1);
++    EXPECT_TRUE(sup.status().map_open);
++    EXPECT_TRUE(sup.status().pbap_open);
++}
++
++TEST(ProfileSupervisor, DeferredAttemptDoesNotConsumeInitialBackoff) {
++    FakeProfiles ops;
++    ops.login_ready = false;
++    ProfileSupervisor sup(ops);
++    sup.tick(0, true);
++
++    ops.login_ready = true;
++    sup.tick(1, true);
++    EXPECT_EQ(ops.map_attempts, 1);
++    EXPECT_EQ(ops.pbap_attempts, 1);
++}
++
++TEST(ProfileSupervisor, DoesNotRetryMissingProfileWithoutLocalLogin) {
++    FakeProfiles ops;
++    ops.pbap_error = "Connection refused (111)";
++    ProfileSupervisor sup(ops);
++    sup.tick(0, true);
++    ASSERT_TRUE(sup.status().map_open);
++    ASSERT_FALSE(sup.status().pbap_open);
++
++    ops.login_ready = false;
++    sup.tick(60, true);
++    EXPECT_EQ(ops.map_attempts, 1);
++    EXPECT_EQ(ops.pbap_attempts, 1);
++    EXPECT_TRUE(ops.removed.empty());
++
++    ops.login_ready = true;
++    ops.pbap_error.clear();
++    sup.tick(61, true);
++    EXPECT_EQ(ops.map_attempts, 1);
++    EXPECT_EQ(ops.pbap_attempts, 2);
++    EXPECT_TRUE(sup.status().pbap_open);
++}
++
++TEST(ProfileSupervisor, LoginGateDoesNotTearDownOpenSessions) {
++    FakeProfiles ops;
++    ProfileSupervisor sup(ops);
++    sup.tick(0, true);
++
++    ops.login_ready = false;
++    sup.tick(60, true);
++    EXPECT_TRUE(sup.status().map_open);
++    EXPECT_TRUE(sup.status().pbap_open);
++    EXPECT_EQ(ops.map_attempts, 1);
++    EXPECT_EQ(ops.pbap_attempts, 1);
++    EXPECT_TRUE(ops.removed.empty());
++}
