@@ -14,6 +14,38 @@
     (final: _: { granola = final.callPackage ./granola/package.nix { }; })
   ];
 
+  # Remove speaker audio from Granola's microphone track before capture,
+  # using the default output's monitor as the echo reference. Monitor mode
+  # leaves playback on the real speakers/headset.
+  # This is a general-purpose virtual mic, selectable by any app. Granola's
+  # wrapper opts in without changing the desktop's default microphone.
+  services.pipewire.extraConfig.pipewire."80-echo-cancel" = {
+    "context.modules" = [{
+      name = "libpipewire-module-echo-cancel";
+      args = {
+        "library.name" = "aec/libspa-aec-webrtc";
+        "monitor.mode" = true;
+        "audio.rate" = 48000;
+        "capture.props" = {
+          "node.name" = "echo_cancel_capture";
+          "audio.position" = [ "MONO" ];
+        };
+        "source.props" = {
+          "node.name" = "echo_cancel_source";
+          "node.description" = "Microphone (echo cancelled)";
+          "audio.position" = [ "MONO" ];
+          # Granola opts in through PULSE_SOURCE. Prefer physical mics for
+          # the desktop default and this filter's own capture.
+          "priority.session" = 0;
+        };
+        "sink.props" = {
+          "node.name" = "echo_cancel_reference";
+          "audio.position" = [ "FL" "FR" ];
+        };
+      };
+    }];
+  };
+
   home-manager.users.${username} = { config, pkgs, ... }:
     let
       link = path: config.lib.file.mkOutOfStoreSymlink

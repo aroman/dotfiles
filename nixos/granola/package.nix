@@ -145,6 +145,7 @@ stdenv.mkDerivation (finalAttrs: {
     # Select GNOME Keyring for the direct Secret Service backend while
     # leaving the async Secret portal provider enabled.
     makeWrapper $app/granola-env $out/bin/granola \
+      --set PULSE_SOURCE echo_cancel_source \
       --add-flags "--password-store=gnome-libsecret" \
       --add-flags "--ozone-platform-hint=auto" \
       --add-flags "--enable-features=WebRTCPipeWireCapturer"
