@@ -335,12 +335,14 @@
   # and, after an odd number of presses, `%tak` was read as `%TAK` and no
   # snippet ever matched.  Remapping here makes evdev itself emit KEY_ESC,
   # so niri, vicinae, kmscon and the TTY all agree.
-  # 70039 = HID Keyboard page (0x07) usage 0x39, Caps Lock; b0003 = USB
-  # (incl. the FW16 module), b0005 = Bluetooth.
-  services.udev.extraHwdb = ''
-    evdev:input:b0003*
-    evdev:input:b0005*
-      KEYBOARD_KEY_70039=esc
+  # 70039 = HID Keyboard page (0x07) usage 0x39, Caps Lock.
+  # Match keyboards after 60-input-id.rules classifies each interface. A
+  # bus-wide hwdb match also hits mice, speakers and consumer controls that
+  # reject this scancode and log EVIOCSKEYCODE errors.
+  services.udev.extraRules = ''
+    ACTION!="remove", SUBSYSTEM=="input", KERNEL=="event*", \
+      ENV{ID_INPUT_KEYBOARD}=="1", ENV{ID_BUS}=="usb|bluetooth", \
+      ENV{KEYBOARD_KEY_70039}="esc", RUN{builtin}+="keyboard"
   '';
   # Also set console keymap for TTY
   console.useXkbConfig = true;

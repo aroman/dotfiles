@@ -287,8 +287,10 @@ in
   # Disable the airplane mode key (FW16 keyboard wireless radio button).
   # It triggers rfkill at the kernel level and kills WiFi/Bluetooth with no undo UX.
   # Remap its HID scancode (Generic Desktop page 0x01, usage 0xC6) to nothing.
+  # Match the radio interface only; the main interface shares its USB IDs but
+  # rejects this scancode with EINVAL.
   services.udev.extraHwdb = ''
-    evdev:input:b0003v32ACp0012*
+    evdev:name:Framework Laptop 16 Keyboard Module - ANSI Wireless Radio Control:*
       KEYBOARD_KEY_100c6=reserved
   '';
 
