@@ -421,6 +421,14 @@ window-rule {
     open-maximized true
 }
 
+// Spotifast opens on the laptop display as a full-width tiled column.
+window-rule {
+    match app-id=r#"^spotifast$"#
+    open-on-output "eDP-1"
+    open-maximized true
+    open-fullscreen false
+}
+
 // screenie's annotation editor (editor.mode: window) should float, not tile.
 window-rule {
     match app-id=r#"^dev\.johnpyp\.Screenie$"#
