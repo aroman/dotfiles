@@ -160,36 +160,11 @@
     #   journalctl _TRANSPORT=kernel | grep dcn35_apply_idle_power_optimizations
     "amdgpu.dcdebugmask=0x2000"
 
-    # Disable the kernel TBT/USB4 host-router reset performed during driver
-    # probe. Default is `true` (added by AMD in 6.6.29 / 6.8.8 via Sanath S's
-    # quirk for Yellow Carp / Pink Sardine FCH lineage — Strix Point inherits
-    # the same firmware behavior). The reset throws away the BIOS's PCIe bus
-    # allocation for TBT downstream ports so the kernel can re-allocate with
-    # headroom for deep daisy chains; we don't daisy-chain (TS4 is the only
-    # TBT device), so we get none of the benefit and all of the regression
-    # risk: AMD + TBT4 docks routinely fail to re-create USB tunnels after
-    # the reset, and on this machine an xHCI HC death during a live TBT
-    # replug left the keyboard (which shares controller 0000:c5:00.0 with
-    # the TBT port) wedged until a manual `xhci_hcd` unbind/bind.
-    #
-    # Trade-off: with =0 we cap at the firmware's bus allocation (fine for
-    # single-device TBT use); we gain stability for the TS4 USB tunnel and
-    # the keyboard-survives-TBT-events case.
-    #
-    # Revert: remove this line. Verify current state with
-    #   cat /sys/module/thunderbolt/parameters/host_reset   # Y or N
-    #
-    # Upstream check 2026-07-27: drivers/thunderbolt/nhi.c in mainline still
-    # has `static bool host_reset = true;` — no default flip, no quirk for
-    # AMD/Strix, so this override is still doing work.
-    #
-    # Refs:
-    #   - Patch (AMD): https://lists.openwall.net/linux-kernel/2023/11/22/161
-    #   - Regression (Dell WD19TB, leading to the parameter):
-    #     https://www.spinics.net/lists/linux-usb/msg262200.html
-    #   - Framework workaround thread:
-    #     https://community.frame.work/t/workaround-xhci-host-controller-not-responding-at-resume-after-suspend/79119
-    "thunderbolt.host_reset=0"
+    # Keep the default USB4 host-router reset. The host_reset=0 workaround
+    # for an xHCI hang on dock replug (fccce34) breaks TS4 display tunneling
+    # at boot on Linux 7.2.9. Restoring the default fixes monitor detection;
+    # reboot and dock hotplug were verified. The PD firmware update alone
+    # did not fix monitor startup.
   ];
   boot.extraModulePackages = [ ];
 
