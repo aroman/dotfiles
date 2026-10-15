@@ -1,0 +1,724 @@
+diff --git a/src/daemon/CMakeLists.txt b/src/daemon/CMakeLists.txt
+index 27542ad..b6c8a1c 100644
+--- a/src/daemon/CMakeLists.txt
++++ b/src/daemon/CMakeLists.txt
+@@ -3,10 +3,16 @@ add_executable(tetherd
+     notification.cpp
+ )
+ 
+-pkg_check_modules(LIBNOTIFY REQUIRED IMPORTED_TARGET libnotify)
+-pkg_check_modules(GIO_UNIX REQUIRED IMPORTED_TARGET gio-unix-2.0)
++pkg_check_modules(LIBNOTIFY REQUIRED IMPORTED_TARGET GLOBAL libnotify)
++pkg_check_modules(GIO_UNIX REQUIRED IMPORTED_TARGET GLOBAL gio-unix-2.0)
++pkg_check_modules(LIBCURL REQUIRED IMPORTED_TARGET libcurl)
++pkg_check_modules(GDK_PIXBUF REQUIRED IMPORTED_TARGET GLOBAL gdk-pixbuf-2.0)
+ 
+-target_link_libraries(tetherd PRIVATE tether PkgConfig::LIBNOTIFY PkgConfig::GIO_UNIX)
++add_library(tether_app_icons STATIC app_icon.cpp)
++target_include_directories(tether_app_icons PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
++target_link_libraries(tether_app_icons PRIVATE nlohmann_json::nlohmann_json PkgConfig::LIBCURL PkgConfig::GDK_PIXBUF)
++
++target_link_libraries(tetherd PRIVATE tether tether_app_icons PkgConfig::LIBNOTIFY PkgConfig::GIO_UNIX)
+ 
+ # Output into root build dir instead of nested build/src/daemon
+ set_target_properties(tetherd PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+diff --git a/src/daemon/app_icon.cpp b/src/daemon/app_icon.cpp
+new file mode 100644
+index 0000000..c446c4f
+--- /dev/null
++++ b/src/daemon/app_icon.cpp
+@@ -0,0 +1,132 @@
++#include "app_icon.hpp"
++
++#include <curl/curl.h>
++#include <gdk-pixbuf/gdk-pixbuf.h>
++#include <glib.h>
++#include <nlohmann/json.hpp>
++
++#include <chrono>
++#include <filesystem>
++#include <memory>
++
++namespace tether {
++
++    namespace {
++
++        constexpr size_t MAX_DOWNLOAD_BYTES = 2 * 1024 * 1024;
++
++        std::filesystem::path icon_path(const std::string& app_id) {
++            // Bundle IDs become filenames, so reject path and URL separators.
++            if (app_id.empty() || app_id.size() > 200 ||
++                app_id.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-_") !=
++                    std::string::npos)
++                return {};
++            return std::filesystem::path(g_get_user_cache_dir()) / "tether/app-icons" / (app_id + ".png");
++        }
++
++        std::string download_icon_url(const std::string& url) {
++            static const auto curl_initialized = curl_global_init(CURL_GLOBAL_DEFAULT);
++            if (curl_initialized != CURLE_OK)
++                return {};
++            std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), curl_easy_cleanup);
++            if (!curl)
++                return {};
++
++            std::string data;
++            curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
++            curl_easy_setopt(curl.get(), CURLOPT_PROTOCOLS_STR, "https");
++            curl_easy_setopt(curl.get(), CURLOPT_REDIR_PROTOCOLS_STR, "https");
++            curl_easy_setopt(curl.get(), CURLOPT_FOLLOWLOCATION, 1L);
++            curl_easy_setopt(curl.get(), CURLOPT_MAXREDIRS, 3L);
++            curl_easy_setopt(curl.get(), CURLOPT_FAILONERROR, 1L);
++            curl_easy_setopt(curl.get(), CURLOPT_NOSIGNAL, 1L);
++            curl_easy_setopt(curl.get(), CURLOPT_CONNECTTIMEOUT_MS, 1000L);
++            curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT_MS, 2000L);
++            curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION,
++                             +[](char* bytes, size_t size, size_t count, void* output) -> size_t {
++                                 auto& body = *static_cast<std::string*>(output);
++                                 const size_t length = size * count;
++                                 if (length > MAX_DOWNLOAD_BYTES - body.size())
++                                     return 0;
++                                 body.append(bytes, length);
++                                 return length;
++                             });
++            curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &data);
++            if (curl_easy_perform(curl.get()) != CURLE_OK)
++                data.clear();
++            return data;
++        }
++
++        std::string artwork_url(const std::string& app_id, const std::string& response) {
++            const auto metadata = nlohmann::json::parse(response, nullptr, false);
++            if (!metadata.is_object() || !metadata.contains("results") || !metadata["results"].is_array())
++                return {};
++            std::string url;
++            for (const auto& result : metadata["results"]) {
++                if (!result.is_object() || !result.contains("bundleId") || result["bundleId"] != app_id)
++                    continue;
++                if (result.contains("artworkUrl512") && result["artworkUrl512"].is_string())
++                    url = result["artworkUrl512"].get<std::string>();
++                else if (result.contains("artworkUrl100") && result["artworkUrl100"].is_string())
++                    url = result["artworkUrl100"].get<std::string>();
++                break;
++            }
++            g_autoptr(GUri) uri = g_uri_parse(url.c_str(), G_URI_FLAGS_NONE, nullptr);
++            const std::string host = uri && g_uri_get_host(uri) ? g_uri_get_host(uri) : "";
++            const bool allowed = uri && g_uri_get_scheme(uri) && std::string(g_uri_get_scheme(uri)) == "https" &&
++                                 host.ends_with(".mzstatic.com");
++            return allowed ? url : std::string{};
++        }
++
++        bool cache_image(const std::filesystem::path& path, const std::string& bytes) {
++            // Decode and normalize the downloaded image before it enters the cache.
++            g_autoptr(GdkPixbufLoader) loader = gdk_pixbuf_loader_new();
++            gdk_pixbuf_loader_set_size(loader, 128, 128);
++            const bool written = gdk_pixbuf_loader_write(
++                loader, reinterpret_cast<const guchar*>(bytes.data()), bytes.size(), nullptr);
++            const bool closed = gdk_pixbuf_loader_close(loader, nullptr);
++            GdkPixbuf* pixbuf = written && closed ? gdk_pixbuf_loader_get_pixbuf(loader) : nullptr;
++            g_autofree gchar* png = nullptr;
++            gsize length = 0;
++            return pixbuf && gdk_pixbuf_save_to_buffer(pixbuf, &png, &length, "png", nullptr, nullptr) &&
++                   g_file_set_contents(path.c_str(), png, length, nullptr);
++        }
++
++    } // namespace
++
++    std::string cached_app_icon(const std::string& app_id) {
++        const auto icon = icon_path(app_id);
++        std::error_code ec;
++        return !icon.empty() && std::filesystem::is_regular_file(icon, ec) ? icon.string() : std::string{};
++    }
++
++    std::string app_icon_for(const std::string& app_id, IconDownload download) {
++        const auto icon = icon_path(app_id);
++        if (icon.empty())
++            return {};
++        const auto cached = cached_app_icon(app_id);
++        if (!cached.empty())
++            return cached;
++        auto miss = icon;
++        miss.replace_extension(".miss");
++        std::error_code ec;
++        const auto attempted = std::filesystem::last_write_time(miss, ec);
++        if (!ec && std::filesystem::file_time_type::clock::now() - attempted < std::chrono::hours(1))
++            return {};
++        ec.clear();
++        std::filesystem::create_directories(icon.parent_path(), ec);
++        if (ec || !g_file_set_contents(miss.c_str(), "", 0, nullptr))
++            return {};
++        if (!download)
++            download = download_icon_url;
++
++        // Only the bundle ID goes to Apple, never notification text or contacts.
++        const auto url = artwork_url(
++            app_id, download("https://itunes.apple.com/lookup?bundleId=" + app_id + "&entity=software"));
++        if (url.empty() || !cache_image(icon, download(url)))
++            return {};
++        std::filesystem::remove(miss, ec);
++        return icon.string();
++    }
++
++} // namespace tether
+diff --git a/src/daemon/app_icon.hpp b/src/daemon/app_icon.hpp
+new file mode 100644
+index 0000000..03fdec9
+--- /dev/null
++++ b/src/daemon/app_icon.hpp
+@@ -0,0 +1,16 @@
++#pragma once
++
++#include <functional>
++#include <string>
++
++namespace tether {
++
++    using IconDownload = std::function<std::string(const std::string& url)>;
++
++    // Returns an existing cached icon, or empty. Does no network I/O.
++    std::string cached_app_icon(const std::string& app_id);
++
++    // Blocking App Store lookup; call on a worker. Uses HTTPS by default.
++    std::string app_icon_for(const std::string& app_id, IconDownload download = {});
++
++} // namespace tether
+diff --git a/src/daemon/notification.cpp b/src/daemon/notification.cpp
+index bf2f735..524f44c 100644
+--- a/src/daemon/notification.cpp
++++ b/src/daemon/notification.cpp
+@@ -1,3 +1,4 @@
++#include "app_icon.hpp"
+ #include "notification.hpp"
+ 
+ #include <tether/i18n.hpp>
+@@ -15,6 +16,7 @@
+ #include <tether/log.hpp>
+ #include <tether/net.hpp>
+ #include <thread>
++#include <unordered_map>
+ #include <unordered_set>
+ 
+ namespace tether {
+@@ -288,53 +290,54 @@ namespace tether {
+             return G_SOURCE_REMOVE;
+         }
+ 
+-        gboolean show_spec_on_main(gpointer user_data) {
+-            std::unique_ptr<NotificationSpec> spec(static_cast<NotificationSpec*>(user_data));
++        void show_spec_on_main(const NotificationSpec& spec) {
++            if (!desktop_popups_enabled())
++                return;
+ 
+-            const std::string icon = resolve_icon(spec->icons);
++            const std::string icon = resolve_icon(spec.icons);
+             NotifyNotification* notification =
+-                notify_notification_new(spec->summary.c_str(),
+-                                        spec->body.empty() ? nullptr : spec->body.c_str(),
++                notify_notification_new(spec.summary.c_str(),
++                                        spec.body.empty() ? nullptr : spec.body.c_str(),
+                                         icon.empty() ? nullptr : icon.c_str());
+             if (!notification)
+-                return G_SOURCE_REMOVE;
++                return;
+ 
+-            set_identity(notification, spec->app_name);
+-            notify_notification_set_urgency(notification, spec->quiet ? NOTIFY_URGENCY_LOW : NOTIFY_URGENCY_NORMAL);
++            set_identity(notification, spec.app_name);
++            notify_notification_set_urgency(notification, spec.quiet ? NOTIFY_URGENCY_LOW : NOTIFY_URGENCY_NORMAL);
+ 
+-            const AppLauncher launcher = spec->app_id.empty() ? AppLauncher{} : resolve_launcher(spec->app_id);
++            const AppLauncher launcher = spec.app_id.empty() ? AppLauncher{} : resolve_launcher(spec.app_id);
+             const bool has_actions =
+-                !spec->reply_thread.empty() || !spec->otp_code.empty() || !launcher.payload.empty();
++                !spec.reply_thread.empty() || !spec.otp_code.empty() || !launcher.payload.empty();
+             if (has_actions)
+                 g_signal_connect(notification, "closed", G_CALLBACK(on_notification_closed), nullptr);
+ 
+-            if (!spec->reply_thread.empty()) {
++            if (!spec.reply_thread.empty()) {
+                 notify_notification_add_action(notification,
+                                                "default",
+                                                "default",
+                                                on_reply_action,
+-                                               new NotificationActionData{spec->reply_thread},
++                                               new NotificationActionData{spec.reply_thread},
+                                                free_action_data);
+                 notify_notification_add_action(notification,
+                                                "reply",
+                                                _("Reply"),
+                                                on_reply_action,
+-                                               new NotificationActionData{spec->reply_thread},
++                                               new NotificationActionData{spec.reply_thread},
+                                                free_action_data);
+             }
+ 
+-            if (!spec->otp_code.empty()) {
++            if (!spec.otp_code.empty()) {
+                 notify_notification_add_action(notification,
+                                                "copy-code",
+                                                _("Copy Code"),
+                                                on_copy_code_action,
+-                                               new NotificationActionData{spec->otp_code, spec->read_handle},
++                                               new NotificationActionData{spec.otp_code, spec.read_handle},
+                                                free_action_data);
+             }
+ 
+             if (!launcher.payload.empty()) {
+                 const std::string label =
+-                    tr_format(_("Open in {}"), launcher.name.empty() ? spec->app_name : launcher.name);
++                    tr_format(_("Open in {}"), launcher.name.empty() ? spec.app_name : launcher.name);
+                 notify_notification_add_action(notification,
+                                                "open-app",
+                                                label.c_str(),
+@@ -348,11 +351,10 @@ namespace tether {
+                 debug::log(ERR, "Failed to show notification: {}", error ? error->message : "unknown");
+                 g_clear_error(&error);
+                 g_object_unref(notification);
+-                return G_SOURCE_REMOVE;
++                return;
+             }
+             if (!has_actions)
+                 g_object_unref(notification);
+-            return G_SOURCE_REMOVE;
+         }
+ 
+     } // namespace
+@@ -360,8 +362,88 @@ namespace tether {
+     struct DesktopNotifier::Impl {
+         GMainContext* context = nullptr;
+         GMainLoop* loop = nullptr;
++        GCancellable* cancellable = nullptr;
+         std::thread thread;
+         bool initialized = false;
++        // Accessed only by the notifier loop. Keep same-app arrivals in order.
++        bool stopping = false;
++        std::unordered_map<std::string, std::vector<NotificationSpec>> pending;
++
++        struct Request {
++            Impl* owner;
++            NotificationSpec spec;
++        };
++
++        static void icon_ready(GObject*, GAsyncResult* result, gpointer user_data) {
++            auto* self = static_cast<Impl*>(user_data);
++            auto* task = G_TASK(result);
++            const auto& app_id = *static_cast<std::string*>(g_task_get_task_data(task));
++            std::unique_ptr<std::string> icon(static_cast<std::string*>(g_task_propagate_pointer(task, nullptr)));
++            auto notifications = std::move(self->pending.at(app_id));
++            self->pending.erase(app_id);
++            if (!self->stopping) {
++                for (auto& spec : notifications) {
++                    if (icon && !icon->empty())
++                        spec.icons.insert(spec.icons.begin(), *icon);
++                    show_spec_on_main(spec);
++                }
++            }
++            if (self->stopping && self->pending.empty())
++                g_main_loop_quit(self->loop);
++        }
++
++        static gboolean resolve_on_main(gpointer user_data) {
++            auto& request = *static_cast<Request*>(user_data);
++            auto* self = request.owner;
++            auto& spec = request.spec;
++            if (self->stopping || !desktop_popups_enabled())
++                return G_SOURCE_REMOVE;
++
++            // Preserve explicit images (contact photos and bundled Phone/Messages).
++            const auto existing = resolve_icon(spec.icons);
++            if (!existing.empty() && existing.front() == '/') {
++                show_spec_on_main(spec);
++                return G_SOURCE_REMOVE;
++            }
++            const auto waiting = self->pending.find(spec.app_id);
++            if (waiting != self->pending.end()) {
++                waiting->second.push_back(std::move(spec));
++                return G_SOURCE_REMOVE;
++            }
++            const auto cached = cached_app_icon(spec.app_id);
++            if (!cached.empty()) {
++                spec.icons.insert(spec.icons.begin(), cached);
++                show_spec_on_main(spec);
++                return G_SOURCE_REMOVE;
++            }
++
++            const auto entry = self->pending.try_emplace(spec.app_id).first;
++            entry->second.push_back(std::move(spec));
++
++            g_autoptr(GTask) task = g_task_new(nullptr, self->cancellable, icon_ready, self);
++            g_task_set_task_data(task, new std::string(entry->first), +[](gpointer data) {
++                delete static_cast<std::string*>(data);
++            });
++            g_task_run_in_thread(task, +[](GTask* task, gpointer, gpointer data, GCancellable*) {
++                if (g_task_return_error_if_cancelled(task))
++                    return;
++                const auto& app_id = *static_cast<std::string*>(data);
++                g_task_return_pointer(task, new std::string(app_icon_for(app_id)), +[](gpointer icon) {
++                    delete static_cast<std::string*>(icon);
++                });
++            });
++            return G_SOURCE_REMOVE;
++        }
++
++        static gboolean stop_on_main(gpointer user_data) {
++            auto* self = static_cast<Impl*>(user_data);
++            self->stopping = true;
++            g_cancellable_cancel(self->cancellable);
++            // GTask completion callbacks must drain before the context stops.
++            if (self->pending.empty())
++                g_main_loop_quit(self->loop);
++            return G_SOURCE_REMOVE;
++        }
+     };
+ 
+     DesktopNotifier::DesktopNotifier() : impl_(std::make_unique<Impl>()) {}
+@@ -371,19 +453,13 @@ namespace tether {
+             return;
+         }
+ 
+-        g_main_context_invoke(
+-            impl_->context,
+-            [](gpointer data) -> gboolean {
+-                auto* loop = static_cast<GMainLoop*>(data);
+-                g_main_loop_quit(loop);
+-                return G_SOURCE_REMOVE;
+-            },
+-            impl_->loop);
++        g_main_context_invoke(impl_->context, Impl::stop_on_main, impl_.get());
+ 
+         if (impl_->thread.joinable()) {
+             impl_->thread.join();
+         }
+ 
++        g_object_unref(impl_->cancellable);
+         g_main_loop_unref(impl_->loop);
+         g_main_context_unref(impl_->context);
+         notify_uninit();
+@@ -401,6 +477,7 @@ namespace tether {
+ 
+         impl_->context = g_main_context_new();
+         impl_->loop = g_main_loop_new(impl_->context, FALSE);
++        impl_->cancellable = g_cancellable_new();
+         impl_->thread = std::thread([ctx = impl_->context, loop = impl_->loop]() {
+             g_main_context_push_thread_default(ctx);
+             // Walking the icon themes takes long enough to be worth doing before
+@@ -425,8 +502,9 @@ namespace tether {
+ 
+         // Bluetooth delivers on its own thread; libnotify's proxy belongs to the
+         // notifier's loop.
+-        auto* copy = new NotificationSpec(spec);
+-        g_main_context_invoke_full(impl_->context, G_PRIORITY_DEFAULT, show_spec_on_main, copy, nullptr);
++        auto* request = new Impl::Request{impl_.get(), spec};
++        g_main_context_invoke_full(impl_->context, G_PRIORITY_DEFAULT, Impl::resolve_on_main, request,
++                                  +[](gpointer data) { delete static_cast<Impl::Request*>(data); });
+     }
+ 
+     void DesktopNotifier::notify_file_arrived(const std::filesystem::path& path) {
+diff --git a/test/CMakeLists.txt b/test/CMakeLists.txt
+index d021832..313f623 100644
+--- a/test/CMakeLists.txt
++++ b/test/CMakeLists.txt
+@@ -50,6 +50,15 @@ target_link_libraries(tether_test PRIVATE
+ include(GoogleTest)
+ gtest_discover_tests(tether_test)
+ 
++add_executable(tether_app_icon_test test_app_icon.cpp)
++target_link_libraries(tether_app_icon_test PRIVATE tether_app_icons GTest::gtest nlohmann_json::nlohmann_json PkgConfig::GDK_PIXBUF)
++gtest_discover_tests(tether_app_icon_test)
++
++add_executable(tether_notification_icons_test test_notification_icons.cpp ../src/daemon/notification.cpp)
++target_include_directories(tether_notification_icons_test PRIVATE ../src/daemon)
++target_link_libraries(tether_notification_icons_test PRIVATE tether GTest::gtest_main PkgConfig::LIBNOTIFY PkgConfig::GIO_UNIX)
++gtest_discover_tests(tether_notification_icons_test PROPERTIES TIMEOUT 10)
++
+ # These exercise the actual daemon/CLI in isolated homes, on the daemon's fixed port.
+ add_executable(tether_container_store_fixture fixtures/container_store.cpp)
+ target_link_libraries(tether_container_store_fixture PRIVATE tether)
+diff --git a/test/test_app_icon.cpp b/test/test_app_icon.cpp
+new file mode 100644
+index 0000000..f257fdf
+--- /dev/null
++++ b/test/test_app_icon.cpp
+@@ -0,0 +1,111 @@
++#include "app_icon.hpp"
++
++#include <gdk-pixbuf/gdk-pixbuf.h>
++#include <gtest/gtest.h>
++#include <nlohmann/json.hpp>
++
++#include <chrono>
++#include <filesystem>
++
++namespace {
++    std::string image() {
++        GdkPixbuf* pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, true, 8, 16, 16);
++        gdk_pixbuf_fill(pixbuf, 0x123456ff);
++        gchar* buffer = nullptr;
++        gsize size = 0;
++        gdk_pixbuf_save_to_buffer(pixbuf, &buffer, &size, "png", nullptr, nullptr);
++        std::string bytes(buffer, size);
++        g_free(buffer);
++        g_object_unref(pixbuf);
++        return bytes;
++    }
++
++    std::string metadata(const std::string& id, const std::string& url = "https://is1-ssl.mzstatic.com/icon.png") {
++        return nlohmann::json{{"results", {{{"bundleId", id}, {"artworkUrl512", url}}}}}.dump();
++    }
++}
++
++TEST(AppIcon, RejectsPathsBeforeFetching) {
++    for (const std::string& id : {"", "../outside", "com.app/id", "com.app?other=value"})
++        EXPECT_TRUE(tether::app_icon_for(id, [](const auto&) -> std::string {
++            ADD_FAILURE() << "Invalid ID triggered a lookup";
++            return {};
++        }).empty());
++}
++
++TEST(AppIcon, MatchesBundleIdNormalizesAndCachesArtwork) {
++    int requests = 0;
++    const auto fetch = [&](const std::string& url) {
++        ++requests;
++        if (url.starts_with("https://itunes.apple.com/lookup?bundleId=com.test.cached&"))
++            return metadata("com.test.cached");
++        return image();
++    };
++    const auto path = tether::app_icon_for("com.test.cached", fetch);
++    ASSERT_FALSE(path.empty());
++    EXPECT_EQ(requests, 2);
++    GdkPixbuf* pixbuf = gdk_pixbuf_new_from_file(path.c_str(), nullptr);
++    ASSERT_NE(pixbuf, nullptr);
++    EXPECT_EQ(gdk_pixbuf_get_width(pixbuf), 128);
++    g_object_unref(pixbuf);
++    EXPECT_EQ(tether::app_icon_for("com.test.cached", fetch), path);
++    EXPECT_EQ(tether::cached_app_icon("com.test.cached"), path);
++    EXPECT_EQ(requests, 2);
++}
++
++TEST(AppIcon, IgnoresArtworkForADifferentBundle) {
++    int requests = 0;
++    EXPECT_TRUE(tether::app_icon_for("com.test.mismatch", [&](const auto&) {
++        ++requests;
++        return metadata("com.other.app");
++    }).empty());
++    EXPECT_EQ(requests, 1);
++}
++
++TEST(AppIcon, RetriesFailedLookupsAfterAnHour) {
++    int requests = 0;
++    const auto fetch = [&](const auto&) { ++requests; return std::string{}; };
++    EXPECT_TRUE(tether::app_icon_for("com.test.offline", fetch).empty());
++    EXPECT_TRUE(tether::app_icon_for("com.test.offline", fetch).empty());
++    EXPECT_EQ(requests, 1);
++    const auto miss = std::filesystem::path(g_get_user_cache_dir()) / "tether/app-icons/com.test.offline.miss";
++    std::filesystem::last_write_time(miss, std::filesystem::file_time_type::clock::now() - std::chrono::hours(2));
++    EXPECT_TRUE(tether::app_icon_for("com.test.offline", fetch).empty());
++    EXPECT_EQ(requests, 2);
++}
++
++TEST(AppIcon, RejectsNonAppleArtworkAndInvalidImageData) {
++    int requests = 0;
++    EXPECT_TRUE(tether::app_icon_for("com.test.host", [&](const auto&) {
++        ++requests;
++        return metadata("com.test.host", "https://mzstatic.com.example.org/icon.png");
++    }).empty());
++    EXPECT_EQ(requests, 1);
++    EXPECT_TRUE(tether::app_icon_for("com.test.image", [](const std::string& url) {
++        return url.starts_with("https://itunes.apple.com/") ? metadata("com.test.image") : "not an image";
++    }).empty());
++    EXPECT_FALSE(std::filesystem::exists(std::filesystem::path(g_get_user_cache_dir()) /
++                                         "tether/app-icons/com.test.image.png"));
++}
++
++TEST(AppIcon, DoesNotDownloadWhenCacheCannotBeWritten) {
++    const auto miss = std::filesystem::path(g_get_user_cache_dir()) / "tether/app-icons/com.test.unwritable.miss";
++    std::filesystem::create_directories(miss);
++    std::filesystem::last_write_time(miss, std::filesystem::file_time_type::clock::now() - std::chrono::hours(2));
++    EXPECT_TRUE(tether::app_icon_for("com.test.unwritable", [](const auto&) -> std::string {
++        ADD_FAILURE() << "Unwritable cache triggered a download";
++        return {};
++    }).empty());
++}
++
++int main(int argc, char** argv) {
++    gchar* cache = g_dir_make_tmp("tether-app-icon-test-XXXXXX", nullptr);
++    if (!cache)
++        return 1;
++    g_setenv("XDG_CACHE_HOME", cache, true);
++    testing::InitGoogleTest(&argc, argv);
++    const int status = RUN_ALL_TESTS();
++    std::filesystem::remove_all(cache);
++    g_free(cache);
++    return status;
++}
+diff --git a/test/test_notification_icons.cpp b/test/test_notification_icons.cpp
+new file mode 100644
+index 0000000..e0518e0
+--- /dev/null
++++ b/test/test_notification_icons.cpp
+@@ -0,0 +1,165 @@
++#include "app_icon.hpp"
++#include "notification.hpp"
++
++#include <gio/gio.h>
++#include <gtest/gtest.h>
++#include <libnotify/notify.h>
++#include <tether/bluetooth/ancs/notifications.hpp>
++
++#include <atomic>
++#include <chrono>
++#include <condition_variable>
++#include <future>
++#include <memory>
++#include <mutex>
++#include <string>
++#include <vector>
++
++namespace {
++    using namespace std::chrono_literals;
++
++    struct LookupState {
++        std::mutex mutex;
++        std::condition_variable changed;
++        std::atomic<bool> popups{true};
++        bool cached = false;
++        bool released = false;
++        bool finished = false;
++        bool cancelled = false;
++        bool barrier = false;
++        int calls = 0;
++        std::vector<std::string> shown;
++    } state;
++
++    class NotificationIcons : public testing::Test {
++    protected:
++        std::unique_ptr<tether::DesktopNotifier> notifier;
++
++        void SetUp() override {
++            state.popups = true;
++            state.cached = state.released = state.finished = state.cancelled = state.barrier = false;
++            state.calls = 0;
++            state.shown.clear();
++            notifier = std::make_unique<tether::DesktopNotifier>();
++            ASSERT_TRUE(notifier->init());
++        }
++
++        void TearDown() override {
++            release_lookup();
++            notifier.reset();
++        }
++
++        void send(const std::string& summary) {
++            tether::NotificationSpec spec;
++            spec.app_id = "com.test.notifications";
++            spec.summary = summary;
++            notifier->notify(spec);
++        }
++
++        template <class Predicate> bool wait_for(Predicate predicate) {
++            std::unique_lock lock(state.mutex);
++            return state.changed.wait_for(lock, 2s, predicate);
++        }
++
++        void release_lookup() {
++            std::lock_guard lock(state.mutex);
++            state.released = true;
++            state.changed.notify_all();
++        }
++    };
++}
++
++// Link-time seams keep these lifecycle tests independent of HTTP and D-Bus.
++namespace tether {
++    bool desktop_popups_enabled() { return state.popups; }
++
++    std::string cached_app_icon(const std::string&) {
++        std::lock_guard lock(state.mutex);
++        return state.cached ? "/missing-test-icon.png" : "";
++    }
++
++    std::string app_icon_for(const std::string&, IconDownload) {
++        std::unique_lock lock(state.mutex);
++        ++state.calls;
++        state.cached = true;
++        state.changed.notify_all();
++        state.changed.wait(lock, [] { return state.released; });
++        state.finished = true;
++        return "/missing-test-icon.png";
++    }
++
++    namespace bluetooth::ancs {
++        LaunchTarget launch_target(const std::string&) { return {}; }
++    }
++}
++
++extern "C" GCancellable* g_cancellable_new() {
++    auto* cancellable = G_CANCELLABLE(g_object_new(G_TYPE_CANCELLABLE, nullptr));
++    g_signal_connect(cancellable, "cancelled", G_CALLBACK(+[](GCancellable*, gpointer) {
++        std::lock_guard lock(state.mutex);
++        state.cancelled = true;
++        state.changed.notify_all();
++    }), nullptr);
++    return cancellable;
++}
++
++extern "C" gboolean notify_notification_show(NotifyNotification* notification, GError**) {
++    g_autofree gchar* summary = nullptr;
++    g_autofree gchar* body = nullptr;
++    g_object_get(notification, "summary", &summary, "body", &body, nullptr);
++    const bool barrier = body && std::string(body) == "barrier";
++    {
++        std::lock_guard lock(state.mutex);
++        if (barrier)
++            state.barrier = true;
++        else
++            state.shown.emplace_back(summary);
++        state.changed.notify_all();
++    }
++    if (barrier)
++        g_signal_emit_by_name(notification, "closed");
++    return true;
++}
++
++TEST_F(NotificationIcons, CoalescesArrivalsEvenAfterCacheIsWritten) {
++    send("first");
++    ASSERT_TRUE(wait_for([] { return state.calls == 1; }));
++    send("second");
++    notifier->notify_file_arrived("/tmp/barrier");
++    // This callback proves the loop processed 'second' while lookup is blocked.
++    ASSERT_TRUE(wait_for([] { return state.barrier; }));
++    {
++        std::lock_guard lock(state.mutex);
++        EXPECT_TRUE(state.shown.empty());
++        EXPECT_EQ(state.calls, 1);
++    }
++    release_lookup();
++    ASSERT_TRUE(wait_for([] { return state.shown.size() == 2; }));
++    std::lock_guard lock(state.mutex);
++    EXPECT_EQ(state.shown, (std::vector<std::string>{"first", "second"}));
++}
++
++TEST_F(NotificationIcons, DisablingPopupsSuppressesPendingDelivery) {
++    send("pending");
++    ASSERT_TRUE(wait_for([] { return state.calls == 1; }));
++    state.popups = false;
++    release_lookup();
++    EXPECT_FALSE(wait_for([] { return !state.shown.empty(); }));
++    std::lock_guard lock(state.mutex);
++    EXPECT_TRUE(state.finished);
++    EXPECT_TRUE(state.shown.empty());
++}
++
++TEST_F(NotificationIcons, ShutdownDrainsLookupWithoutDisplayingIt) {
++    send("pending");
++    ASSERT_TRUE(wait_for([] { return state.calls == 1; }));
++    auto shutdown = std::async(std::launch::async, [&] { notifier.reset(); });
++    EXPECT_TRUE(wait_for([] { return state.cancelled; }));
++    EXPECT_EQ(shutdown.wait_for(50ms), std::future_status::timeout);
++    release_lookup();
++    EXPECT_EQ(shutdown.wait_for(2s), std::future_status::ready);
++    shutdown.get();
++    std::lock_guard lock(state.mutex);
++    EXPECT_TRUE(state.finished);
++    EXPECT_TRUE(state.shown.empty());
++}

@@ -582,7 +582,12 @@ in
     #    for old missed calls and replays Wallet notifications without the
     #    PreExisting flag. Compare content and original delivery dates against
     #    subscription time to keep unchanged updates and backlog popups quiet.
+    #
+    # 5. patches/tether-app-icons.patch: ANCS provides bundle IDs but no icons.
+    #    Resolve App Store artwork on a worker and cache it under
+    #    ~/.cache/tether/app-icons; keep contact photos ahead of app icons.
     package = (pkgs.callPackage "${inputs.tether}/nix/package.nix" { }).overrideAttrs (old: {
+      buildInputs = old.buildInputs ++ [ pkgs.curl pkgs.gdk-pixbuf ];
       patches = (old.patches or [ ]) ++ [
         # The update preview restores flake.lock afterward, so retain support
         # for the older PBAP API too. Tether's package version stayed at 0.2.18
@@ -592,6 +597,7 @@ in
         then ../../patches/tether-contact-photos.patch
         else ../../patches/tether-contact-photos-legacy.patch)
         ../../patches/tether-notification-replays.patch
+        ../../patches/tether-app-icons.patch
       ];
       postPatch = old.postPatch + ''
         substituteInPlace src/daemon/main.cpp \
