@@ -447,23 +447,18 @@
     setgid = true;
   };
 
-  # GNOME Keyring (for libsecret consumers — NetworkManager Wi-Fi, Chromium
-  # logins, etc.). Daemon is D-Bus activated on first use.
+  # GNOME Keyring for libsecret consumers and SSH key passphrases. GCR
+  # discovers ~/.ssh/* keys with matching .pub files and unlocks them on use;
+  # its prompt can save each passphrase in the login keyring.
   services.gnome.gnome-keyring.enable = true;
-  # Recent nixpkgs auto-enables gcr-ssh-agent whenever gnome-keyring is on,
-  # which conflicts with programs.ssh.startAgent above. We use the OpenSSH
-  # agent, so opt out of the GCR one.
-  services.gnome.gcr-ssh-agent.enable = false;
-  # Also stop pam_gnome_keyring from auto-starting gnome-keyring-daemon at
-  # greetd login. That `session optional ... auto_start` line exports
-  # SSH_AUTH_SOCK=/run/user/UID/gcr/ssh into the PAM env, which propagates
-  # into the systemd user manager and shadows the OpenSSH agent socket.
-  # Since gnome-keyring 46+ moved SSH out into gcr-ssh-agent (disabled
-  # above), the socket has no listener — `ssh-add` gets "Connection
-  # refused". Fingerprint auth never feeds PAM a password, so the daemon
-  # would start locked anyway and not actually auto-unlock the keyring;
-  # nothing of value lost.
-  security.pam.services.greetd.enableGnomeKeyring = lib.mkForce false;
+  services.gnome.gcr-ssh-agent.enable = config.services.gnome.gnome-keyring.enable;
+  # The socket unit updates the user manager's environment. Also cover
+  # login shells (including SSH sessions), preserving forwarded agents.
+  environment.extraInit = lib.mkIf config.services.gnome.gcr-ssh-agent.enable ''
+    if [ -z "$SSH_AUTH_SOCK" -a -n "$XDG_RUNTIME_DIR" ]; then
+      export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/gcr/ssh"
+    fi
+  '';
 
   # Removable media (udisks2 + gvfs so Nautilus can detect/mount USB drives)
   services.udisks2.enable = true;

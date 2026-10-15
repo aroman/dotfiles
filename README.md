@@ -152,7 +152,7 @@ chmod 600 ~/.ssh/config.local
 # Switch remote to SSH
 git remote set-url origin git@github.com:aroman/dotfiles.git
 
-# Load the key into the agent (AddKeysToAgent will handle it after this)
+# Headless hosts: load the key into the agent once per boot
 ssh-add ~/.ssh/<hostname>
 
 # Symlink dotfiles managed by rcm (scripts in ~/.local/bin, etc.)
@@ -168,6 +168,18 @@ echo '[user]
 # Add API keys for tools (ai-commit, etc.)
 echo 'set -gx GEMINI_API_KEY "your-key-here"' >> ~/.config/fish/conf.d/secrets.fish
 ```
+
+On desktops with GNOME Keyring, GCR discovers keys with matching `.pub` files.
+Use `ssh-add -T ~/.ssh/<hostname>.pub` to trigger its unlock dialog, enter the
+passphrase, and select **Automatically unlock this key whenever I'm logged in**.
+The passphrase is then saved in the encrypted login keyring and reused when
+the key signs a request. Plain `ssh-add ~/.ssh/<hostname>` only loads the key
+into memory; it does not save its passphrase in the keyring.
+
+For automatic keyring unlock, use password login at the greeter and keep the
+**Login** keyring password equal to the account password. If they differ,
+change the Login keyring password in Seahorse (**Passwords and Keys**).
+Fingerprint authentication cannot supply the password needed to decrypt it.
 
 From your main machine, set up passwordless SSH:
 

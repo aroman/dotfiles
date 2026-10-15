@@ -24,7 +24,8 @@ Host moonbinder moonbinder.marlin-antares.ts.net dawnbinder dawnbinder.marlin-an
 # See https://github.com/tailscale/tailscale/issues/16558
 # Agent-forwarding policy: every machine in this file is one we own and trust,
 # and each carries its own SSH key (see the "machine-specific key" setup in
-# README.md) used via its local ssh-agent (programs.ssh.startAgent + linger).
+# README.md) used via its local agent (GCR + keyring on moonbinder, OpenSSH
+# elsewhere; linger keeps the agent alive across SSH disconnects).
 # We deliberately do NOT ForwardAgent between them. Forwarding exists to borrow
 # a key onto a host you don't want to store one on — the opposite of our case,
 # so it buys nothing here. It also widens attack surface and, worse, pins

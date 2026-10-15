@@ -340,7 +340,10 @@ in
     })
   ];
 
-  security.pam.services.greetd.fprintAuth = false;
+  # greetd includes the `login` PAM stack. Require a password at the greeter
+  # and text console so PAM can unlock the matching login keyring; screen
+  # unlocking and sudo keep their own fingerprint-enabled stacks.
+  security.pam.services.login.fprintAuth = false;
 
   # ── Suspend & hibernate ─────────────────────────────────────────
   #
