@@ -584,6 +584,8 @@ in
     #    for old missed calls and replays Wallet notifications without the
     #    PreExisting flag. Compare content and original delivery dates against
     #    subscription time to keep unchanged updates and backlog popups quiet.
+    #    Remember dated calls after removal/list eviction and reject late call
+    #    replays against the current time throughout a connection.
     #
     # 5. patches/tether-app-icons.patch: ANCS provides bundle IDs but no icons.
     #    Resolve App Store artwork on a worker and cache it under
