@@ -269,7 +269,7 @@ profile automatically. Think [Velja](https://sindresorhus.com/velja) for Linux.
 ```
 any app
   -> xdg-open
-    -> handlr-regex (registered as default x-scheme-handler/https)
+    -> local HTTP(S): handlr-regex directly
       -> regex match on URL domain
         -> figma.com/*    : figma-open (CDP script)
         -> youtube.com/*  : Chrome (Personal profile)
@@ -286,9 +286,11 @@ any app
 [handlr-regex](https://github.com/Anomalocaridid/handlr-regex) is a Rust-based
 `xdg-open` replacement that matches URLs against regex rules. A `.desktop` entry
 registers it as the default handler for `x-scheme-handler/http` and
-`x-scheme-handler/https`. When any app calls `xdg-open` with an http(s) URL,
-handlr matches it against the rules in `handlr.toml` and dispatches to the
-appropriate command.
+`x-scheme-handler/https`. On a desktop, our `xdg-open` wrapper sends HTTP(S)
+URLs straight to handlr, avoiding xdg-utils' MIME lookup and desktop-file
+parsing. Handlr matches the URL against the rules in `handlr.toml` and
+dispatches to the appropriate command. Other inputs use the standard
+`xdg-open`; sessions without a display use the remote opener bridge.
 
 Chrome profiles are selected via `--profile-directory`. Profile names map to
 directory names under `~/.config/google-chrome/` (e.g. `Default`, `Profile 1`).
