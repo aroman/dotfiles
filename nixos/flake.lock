@@ -563,11 +563,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1791665743,
-        "narHash": "sha256-ry4yIWhFdkXHhQqS11E9cqUVPky4e/P/Zg3yWHs71Sg=",
+        "lastModified": 1792278811,
+        "narHash": "sha256-5/heuK1CUFjedHOL21fqI1K7pNBy3ok1ojT17PcCP7Q=",
         "owner": "zackb",
         "repo": "tether",
-        "rev": "62b4670b50ce5422e4ceeb510849790a512ee10d",
+        "rev": "ce430938d2644b4190b15c5c2dfec910dea164c5",
         "type": "github"
       },
       "original": {
