@@ -594,6 +594,11 @@ in
     # 6. patches/tether-obex-login.patch: a lingering user manager runs before
     #    login, when obexd has no transport and fails initialization. Defer MAP
     #    and PBAP session creation until BlueZ's active-local-login check passes.
+    #
+    # 7. patches/tether-autofill-recovery.patch: release a native bridge when
+    #    either endpoint disappears, reconnect with backoff, and re-arm an OTP
+    #    flow after its timeout. Content-free events go to the journal under
+    #    tether-autofill (disconnect/recovery, timeout/resume, available/filled).
     package = (pkgs.callPackage "${inputs.tether}/nix/package.nix" { }).overrideAttrs (old: {
       buildInputs = old.buildInputs ++ [ pkgs.curl pkgs.gdk-pixbuf pkgs.systemd ];
       patches = (old.patches or [ ]) ++ [
@@ -607,8 +612,16 @@ in
         ../../patches/tether-notification-replays.patch
         ../../patches/tether-app-icons.patch
         ../../patches/tether-obex-login.patch
+        ../../patches/tether-autofill-recovery.patch
       ];
       postPatch = old.postPatch + ''
+        # systemd owns this daemon. A browser reconnect during a service restart
+        # must not spawn a competing daemon that takes over the runtime lock.
+        substituteInPlace extension/host/tether-native-host.in --replace-fail \
+          'exec "@CMAKE_INSTALL_FULL_BINDIR@/tether"' \
+          'export TETHER_NO_AUTOSTART=1
+        exec "@CMAKE_INSTALL_FULL_BINDIR@/tether"'
+
         substituteInPlace src/daemon/main.cpp \
           --replace-fail "@messages_icon@" "${../../imessage.svg}" \
           --replace-fail "@phone_icon@" "${../../phone.svg}"
@@ -619,6 +632,9 @@ in
         substituteInPlace extension/src/content/autofill.js --replace-fail \
           "if (input.inputMode === 'numeric') return scoreInput(input) > 5;" \
           "if (input.inputMode === 'numeric') return scoreInput(input) > 5 || (input.maxLength >= 4 && input.maxLength <= 8);"
+      '';
+      postCheck = (old.postCheck or "") + ''
+        ${pkgs.python3}/bin/python3 ${../../tests/tether-native-recovery.py} --binary "$PWD/tether"
       '';
     });
     wifi = {
