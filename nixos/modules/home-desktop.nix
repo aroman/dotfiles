@@ -275,6 +275,7 @@ in
     ];
     afterTypescript = [
     # Wayland tools
+    inputs.screenie.packages.${pkgs.stdenv.hostPlatform.system}.default
     wl-clipboard
     ddcutil
     playerctl

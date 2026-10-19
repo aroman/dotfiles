@@ -440,6 +440,7 @@
         "nixpkgs-kernel": "nixpkgs-kernel",
         "nixpkgs-noctalia": "nixpkgs-noctalia",
         "noctalia": "noctalia",
+        "screenie": "screenie",
         "spotifast": "spotifast",
         "tether": "tether",
         "vicinae": "vicinae",
@@ -464,6 +465,27 @@
       "original": {
         "owner": "oxalica",
         "repo": "rust-overlay",
+        "type": "github"
+      }
+    },
+    "screenie": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1790748941,
+        "narHash": "sha256-x8QCRboWMn1yOMv2wqi8mRGQUnAPqYeS1EWSnosqFGM=",
+        "owner": "aroman",
+        "repo": "screenie",
+        "rev": "3626de0f0816fb06c7ccb777f9f96e7f18fd0a93",
+        "type": "github"
+      },
+      "original": {
+        "owner": "aroman",
+        "repo": "screenie",
+        "rev": "3626de0f0816fb06c7ccb777f9f96e7f18fd0a93",
         "type": "github"
       }
     },

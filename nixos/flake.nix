@@ -9,6 +9,13 @@
     # Update with `nix flake update ghostty --flake ./nixos`.
     ghostty.url = "github:ghostty-org/ghostty";
 
+    # Keep the monitor-hotplug fix while building against the system's libc:
+    # a separate profile with an older nixpkgs cannot load current Mesa.
+    screenie = {
+      url = "github:aroman/screenie/3626de0f0816fb06c7ccb777f9f96e7f18fd0a93";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     spotifast = {
       url = "github:crmne/spotifast";
       inputs.nixpkgs.follows = "nixpkgs";
