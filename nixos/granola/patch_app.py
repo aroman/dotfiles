@@ -5,7 +5,7 @@ Operates on app.asar extracted to a plain directory, which Electron loads in
 its place. Split-identity design from
 https://github.com/bindusara-reddy/granola-linux-macos (MIT): Electron's
 native side keeps seeing Linux (so Granola picks its browser/MediaDevices
-capture path and a PipeWire loopback for system audio), while only the
+capture path and a filtered PipeWire source for meeting audio), while only the
 renderer's product identity and the platform label sent to api.granola.ai
 claim macOS. The API 500s on platform=linux, which breaks sign-in.
 
@@ -154,12 +154,49 @@ catch{if(fd!==void 0)try{f.closeSync(fd)}catch{}if(owned)try{f.unlinkSync(t)}cat
         )
 
 
+def patch_audio(app: Bundle, capture: str) -> None:
+    """Use filtered app playback; never fall back to the full desktop mix."""
+    # The mic is still opened first (below), which grants MediaDevices labels.
+    # Use an exact device constraint on every acquisition/reacquisition. A
+    # missing source must fail rather than record an unrelated default device.
+    app.patch(
+        capture,
+        rf"function ({ID})\(({ID})\)\{{return {ID}\(\)\?Promise\.resolve\({ID}\(\)\):"
+        rf"navigator\.mediaDevices\.getDisplayMedia\(\{{audio:\{{sampleRate:\2\}},video:!1\}}\)\}}",
+        lambda m: (
+            f"async function {m[1]}({m[2]}){{"
+            "let devices=await navigator.mediaDevices.enumerateDevices(),"
+            "source=devices.find(d=>d.kind===`audioinput`&&d.deviceId!==`default`&&"
+            "d.deviceId!==`communications`&&d.label===`Granola meeting audio`);"
+            "if(!source)throw new DOMException(`Granola meeting audio source is unavailable`,`NotFoundError`);"
+            "return navigator.mediaDevices.getUserMedia({audio:{deviceId:{exact:source.deviceId},"
+            f"sampleRate:{m[2]},echoCancellation:!1,noiseSuppression:!1,autoGainControl:!1}},video:!1}})}}"
+        ),
+        label="filtered meeting audio instead of desktop loopback",
+    )
+    app.patch(
+        capture,
+        rf"(async function {ID}\(({ID}),{ID},{ID}\)\{{)(?=if\(\2===`system`&&)",
+        r"\1if(\2===`system`)return`Granola meeting audio`;",
+        label="filtered meeting source label",
+    )
+    # A virtual input is how Chromium captures the meeting track, but it is
+    # not a microphone choice: selecting it there would duplicate call audio.
+    app.patch(
+        capture,
+        rf"(return {ID}\.filter\(({ID})=>\2\.kind===`audioinput`&&)(\2\.deviceId!==\"default\")",
+        r"\1\2.label!==`Granola meeting audio`&&\3",
+        label="exclude meeting audio from microphone choices",
+    )
+
+
 def patch_granola(app: Bundle, macos_version: str) -> None:
     preload = "dist-electron/preload/preload.js"
     main = "dist-electron/main/index.js"
 
-    # The patches below only make sense if Granola still ships the Linux
-    # browser-capture branch and its all-outputs loopback handler.
+    # Linux uses browser capture. The permission probe still opens and stops
+    # a display-capture stream, so its loopback handler is needed even though
+    # meeting capture uses the filtered input patched below.
     app.require(main, "process.platform===`linux`", "Linux browser-audio branch is gone")
     app.require(main, "id:`loopbackAllDevices`", "Linux loopback handler is gone")
     patch_storage(app, main)
@@ -286,10 +323,11 @@ def patch_granola(app: Bundle, macos_version: str) -> None:
     )
 
     capture = app.find(rf"navigator\.mediaDevices\.getDisplayMedia\(\{{audio:\{{sampleRate:{ID}\}},video:!1\}}\)")
+    patch_audio(app, capture)
 
-    # Open the mic before the output monitor, then give PipeWire a moment.
-    # Opening a Bluetooth headset's mic flips it A2DP -> HSP/HFP, which tears
-    # down and recreates its sink; grabbing the sink monitor first loses it.
+    # Open the mic first so Chromium exposes input-device labels, then give
+    # Bluetooth's A2DP -> HSP/HFP switch a moment to settle before opening
+    # the filtered meeting track.
     app.patch(
         capture,
         rf",\[({ID}),({ID})\]={ID}\({ID}\)\?await Promise\.all\(\[({ID})\(`system`\),\3\(`microphone`\)\]\)"

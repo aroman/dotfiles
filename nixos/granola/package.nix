@@ -99,6 +99,7 @@ stdenv.mkDerivation (finalAttrs: {
     asar extract Resources/app.asar app
     python3 ${./patch_app.py} app --macos-version "$macosVersion"
     python3 ${./test_storage.py} app
+    python3 ${./test_audio.py} app
 
     pushd app/node_modules/better-sqlite3-multiple-ciphers
     tar xzf ${sqliteBindingSrc} --strip-components=1 package/binding.gyp
