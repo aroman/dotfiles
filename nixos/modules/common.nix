@@ -83,6 +83,16 @@
   # Enable fish system-wide (needed for it to be a valid login shell)
   programs.fish.enable = true;
 
+  # Agent daemons can exhaust the legacy 1024-descriptor soft limit.
+  # Cover login sessions and both systemd managers while retaining the
+  # existing hard limit for applications that raise their own soft limit.
+  security.pam.loginLimits = [
+    { domain = "*"; type = "soft"; item = "nofile"; value = "65536"; }
+    { domain = "*"; type = "hard"; item = "nofile"; value = "524288"; }
+  ];
+  systemd.settings.Manager.DefaultLimitNOFILE = "65536:524288";
+  systemd.user.settings.Manager.DefaultLimitNOFILE = "65536:524288";
+
   programs.direnv = {
     enable = true;
     nix-direnv.enable = true;
