@@ -548,6 +548,11 @@ in
     };
   };
 
+  # Experimental mode is needed by Tether, but also enables RAP (Bluetooth
+  # ranging). RAP cannot attach to the iPhone and logged 941 failed accepts
+  # this boot. This machine does not use ranging; keep the other profiles.
+  hardware.bluetooth.disabledPlugins = [ "rap" ];
+
   # Tether: iPhone bridge (https://github.com/zackb/tether). WiFi carries
   # clipboard + file transfer (iOS app, mTLS on 5134/tcp); Bluetooth carries
   # SMS/iMessage (MAP), contacts (PBAP) and notifications (ANCS). The module
