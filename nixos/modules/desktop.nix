@@ -410,7 +410,11 @@
 
   xdg.portal = {
     enable = true;
-    extraPortals = [ pkgs.xdg-desktop-portal-gnome ];
+    # programs.niri supplies the GNOME backend and niri-portals.conf for
+    # screen sharing and file dialogs. Add GTK for Access permission dialogs,
+    # notifications, and fallback interfaces such as Inhibit and Email.
+    # Let the portal prompt for permissions instead of pre-granting them.
+    extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
   };
 
   # Fonts

@@ -618,36 +618,4 @@ in
     [Service]
     ExecStop=${pkgs.systemd}/bin/systemctl --user stop graphical-session.target
   '';
-
-  # ── Portal permissions ────────────────────────────────────────────
-  # xdg-desktop-portal-gnome can't show the "allow camera?" dialog
-  # outside a full GNOME session (no org.gnome.Shell on niri), so we
-  # grant camera access directly in the permission store on startup.
-  systemd.user.services.portal-camera-permission = let
-    dbus-send = "${pkgs.dbus}/bin/dbus-send";
-    grant = app: ''
-      ${dbus-send} --session \
-        --dest=org.freedesktop.impl.portal.PermissionStore \
-        --type=method_call \
-        /org/freedesktop/impl/portal/PermissionStore \
-        org.freedesktop.impl.portal.PermissionStore.SetPermission \
-        string:devices boolean:true string:camera \
-        string:${app} array:string:yes
-    '';
-    cameraApps = [
-      "org.gnome.Snapshot"
-    ];
-  in {
-    Unit = {
-      Description = "Grant camera permission in XDG portal store";
-      After = [ "xdg-desktop-portal.service" ];
-    };
-    Service = {
-      Type = "oneshot";
-      ExecStart = pkgs.writeShellScript "grant-camera-permissions" ''
-        ${lib.concatMapStringsSep "\n" grant cameraApps}
-      '';
-    };
-    Install.WantedBy = [ "default.target" ];
-  };
 }
