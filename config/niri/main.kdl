@@ -548,16 +548,13 @@ binds {
     XF86AudioPrev        allow-when-locked=true { spawn-sh "playerctl previous"; }
     XF86AudioNext        allow-when-locked=true { spawn-sh "playerctl next"; }
 
-    // Brightness: dispatch to the focused output only. Internal panel uses
-    // brightnessctl (instant; Noctalia OSDs off inotify); external monitors
-    // use ddcutil over DDC/CI (backgrounded, with a Noctalia OSD pushed by
-    // the script since Noctalia can't drive DDC itself).
-    XF86MonBrightnessUp allow-when-locked=true { spawn-sh "brightness-focused up"; }
-    XF86MonBrightnessDown allow-when-locked=true { spawn-sh "brightness-focused down"; }
+    // Noctalia controls brightness on the focused monitor and shows the OSD.
+    XF86MonBrightnessUp allow-when-locked=true { spawn "noctalia" "msg" "brightness-up" "10%"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn "noctalia" "msg" "brightness-down" "10%"; }
     // Same on bare F7/F8, for external keyboards without brightness keys.
     // Note this takes F7/F8 away from every app.
-    F7 allow-when-locked=true { spawn-sh "brightness-focused down"; }
-    F8 allow-when-locked=true { spawn-sh "brightness-focused up"; }
+    F7 allow-when-locked=true { spawn "noctalia" "msg" "brightness-down" "10%"; }
+    F8 allow-when-locked=true { spawn "noctalia" "msg" "brightness-up" "10%"; }
 
     // Open/close the Overview: a zoomed-out view of workspaces and windows.
     // You can also move the mouse into the top-left hot corner,

@@ -152,6 +152,9 @@
       settings = {
         accessibility.ui_scale = 1.15;
 
+        # External-monitor brightness; internal backlights work automatically.
+        brightness.enable_ddcutil = true;
+
         notification = {
           filter_order = [ "filter" "ten-seconds" ];
           filter = {

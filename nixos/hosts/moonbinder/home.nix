@@ -11,7 +11,6 @@
 
   home.packages = (with pkgs; [
     jdk17
-    brightnessctl
     websocat     # WebSocket CLI — used by figma-open to navigate via CDP
     figma-agent  # serves local fonts to Figma web (needs Windows user-agent)
     discord
