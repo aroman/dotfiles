@@ -421,6 +421,10 @@ in
       cursor-size = 24;
       gtk-enable-primary-paste = false;
     };
+    "org/gnome/desktop/wm/preferences" = {
+      # Niri handles window management; leave both sides without titlebar buttons.
+      button-layout = ":";
+    };
     "org/gtk/gtk4/settings/file-chooser" = {
       sort-directories-first = false;
     };
