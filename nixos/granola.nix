@@ -156,6 +156,9 @@
           # Storage failure needs user attention, not repeated unlock dialogs.
           RestartPreventExitStatus = [ 78 ];
           RestartSec = 3;
+          # Let Electron's main process stop its helpers before killing any
+          # leftovers; killing the GPU helper first can provoke an abort.
+          KillMode = "mixed";
         };
         Install.WantedBy = [ "graphical-session.target" ];
       };
