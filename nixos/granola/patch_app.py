@@ -201,6 +201,24 @@ def patch_granola(app: Bundle, macos_version: str) -> None:
     app.require(main, "id:`loopbackAllDevices`", "Linux loopback handler is gone")
     patch_storage(app, main)
 
+    # Electron translates systemd's SIGTERM into before-quit. Granola's
+    # macOS handler cancels that event and only closes the primary window,
+    # leaving its tray process alive and blocking graphical-session.target.
+    # Use the app's full shutdown path, which stops transcription and flushes
+    # pending work before exiting. Window-close-to-tray still uses its own
+    # close handler; this only changes requests to terminate the whole app.
+    shutdown = app.name(
+        main,
+        rf"\.powerMonitor\.on\(`shutdown`,\(\)=>\{{{ID}\(\)\|\|({ID})\(\)\}}\)",
+        "graceful shutdown function",
+    )
+    app.patch(
+        main,
+        rf"(\.app\.on\(`before-quit`,async ({ID})=>\{{)",
+        rf"\1if(process.platform===`linux`){{\2.preventDefault();await {shutdown}(`linux_app_quit`);return}}",
+        label="Linux graceful app shutdown",
+    )
+
     app.patch(preload, r"platform:process\.platform", "platform:`darwin`", label="renderer platform identity")
     app.patch(
         preload,
