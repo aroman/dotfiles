@@ -4,7 +4,6 @@ let
   # Use the same package set for the kernel and patched mt7925 module.
   # Updating this input advances the kernel without updating all userland.
   kernelPkgs = inputs.nixpkgs-kernel.legacyPackages.${pkgs.stdenv.hostPlatform.system};
-  graphicsPkgs = inputs.vicinae.inputs.nixpkgs.legacyPackages.${pkgs.stdenv.hostPlatform.system};
   desktopPackages = [
     inputs.ghostty.packages.${pkgs.stdenv.hostPlatform.system}.default
     inputs.vicinae.packages.${pkgs.stdenv.hostPlatform.system}.default
@@ -238,14 +237,15 @@ in
   # Graphics (AMD iGPU — Ryzen AI 300 series)
   hardware.graphics.enable = true;
 
-  # Cached GUI apps can use an older glibc than the system. Vicinae's
-  # glibc 2.42 cannot load the system Mesa 26.2.4: Gallium needs GLIBC_2.43
-  # and LLVM needs GLIBC_2.44. This broke OpenGL after the 2026-10-13 update.
-  # Use Mesa 26.2.3 from Vicinae's existing package set, which also works
-  # with newer applications. Recheck this when updating its nixpkgs pin.
-  hardware.graphics.package = graphicsPkgs.mesa;
-  hardware.graphics.package32 = graphicsPkgs.pkgsi686Linux.mesa;
-
+  # Apps from flake inputs with their own nixpkgs pin (vicinae, niri,
+  # noctalia) load the system Mesa with their own glibc, so a pin older than
+  # the system's glibc can't load it (GLIBC_2.43 not found; 2026-10-13, when
+  # Ghostty's and Vicinae's pins were on glibc 2.42). Ghostty now follows the
+  # system nixpkgs (see flake.nix). If this check fails after a nixpkgs bump,
+  # update the lagging input, or make it follow nixpkgs, rather than pinning
+  # Mesa: the 26.2.3 pin missed the 26.2.5 radeonsi fix for Chrome's SQC page
+  # faults and ~2 s ring-reset freezes.
+  #
   # These are dependencies of every system build, including ordinary
   # nixos-rebuild: an ABI-incompatible driver cannot produce a generation.
   system.checks = [ graphicsCompatibility ];

@@ -4,10 +4,16 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
-    # Ghostty tip, prebuilt by upstream CI on ghostty.cachix.org.
-    # Keep its own nixpkgs pin so the package matches upstream's cache.
+    # Ghostty tip, built locally against the system nixpkgs (~3 min).
+    # Upstream's own pin lagged months behind (glibc 2.42 as of 2026-10), and
+    # Ghostty loads the system Mesa: a Mesa built against a newer glibc fails
+    # to load in it, which forced a Mesa pin. Following nixpkgs costs the
+    # ghostty.cachix.org hits; Zig still comes from upstream's zig-overlay.
     # Update with `nix flake update ghostty --flake ./nixos`.
-    ghostty.url = "github:ghostty-org/ghostty";
+    ghostty = {
+      url = "github:ghostty-org/ghostty";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     # Keep the monitor-hotplug fix while building against the system's libc:
     # a separate profile with an older nixpkgs cannot load current Mesa.
@@ -54,7 +60,7 @@
     #   1. set the tag here to the version nixos-unstable's noctalia has
     #   2. nix flake update noctalia nixpkgs-noctalia --flake .../nixos
     noctalia = {
-      url = "github:noctalia-dev/noctalia/v5.2.0";
+      url = "github:noctalia-dev/noctalia/v5.3.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
