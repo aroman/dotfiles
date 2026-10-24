@@ -72,6 +72,17 @@
   # tree and execs niri-session on the same VT.
   services.greetd =
     let
+      # greetd connects each child's stdout/stderr directly to VT2, even
+      # when its systemd unit logs to the journal. Cage's diagnostics remain
+      # underneath the greeter and flash into view when it releases DRM.
+      # Keep the VT black with no cursor, and send graphical-session logs
+      # to the journal. Foot still gives tuigreet its own, unaffected PTY.
+      # Use this for both sides of the handoff: niri-session can also print
+      # messages before niri.service takes over the display.
+      quietSession = pkgs.writeShellScript "greetd-graphical-session" ''
+        printf '\033[?25l\033[H\033[2J'
+        exec ${config.systemd.package}/bin/systemd-cat --identifier=greetd-session "$@"
+      '';
       # cage doesn't advertise a scale, so disable foot's dpi-aware path
       # and pick a font size large enough for the 2560x1600 panel.
       # Palette is max-neon CGA — tuigreet's --theme uses ANSI color
@@ -105,6 +116,7 @@
         "--time" "--remember" "--remember-session" "--asterisks"
         "--issue"
         "--theme" "border=magenta;text=cyan;prompt=green;time=red;action=bold;button=yellow"
+        "--session-wrapper" "${quietSession}"
         "--cmd" "niri-session"
       ];
     in
@@ -116,7 +128,7 @@
           # -m last: only render on the last-connected output. cage's
           # `extend` default spans the greeter across both displays
           # when docked; cage 0.3 has no per-output picker.
-          command = "${pkgs.cage}/bin/cage -s -m last -- "
+          command = "${quietSession} ${pkgs.cage}/bin/cage -s -m last -- "
             + "${pkgs.foot}/bin/foot --config=${footConfig} -- "
             + "${pkgs.tuigreet}/bin/tuigreet ${tuigreetArgs}";
           user = "greeter";
