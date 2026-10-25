@@ -464,17 +464,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1790748941,
+        "lastModified": 1792862220,
         "narHash": "sha256-x8QCRboWMn1yOMv2wqi8mRGQUnAPqYeS1EWSnosqFGM=",
-        "owner": "aroman",
+        "owner": "johnpyp",
         "repo": "screenie",
-        "rev": "3626de0f0816fb06c7ccb777f9f96e7f18fd0a93",
+        "rev": "fe65c3eb2f01e1848be047f0f360f46cd0f4e77d",
         "type": "github"
       },
       "original": {
-        "owner": "aroman",
+        "owner": "johnpyp",
         "repo": "screenie",
-        "rev": "3626de0f0816fb06c7ccb777f9f96e7f18fd0a93",
         "type": "github"
       }
     },

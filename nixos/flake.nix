@@ -15,10 +15,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Keep the monitor-hotplug fix while building against the system's libc:
-    # a separate profile with an older nixpkgs cannot load current Mesa.
+    # Upstream includes our monitor-hotplug fix (PR #2). Build against the
+    # system's libc so Screenie can load the current Mesa drivers.
     screenie = {
-      url = "github:aroman/screenie/3626de0f0816fb06c7ccb777f9f96e7f18fd0a93";
+      url = "github:johnpyp/screenie";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
