@@ -3,6 +3,7 @@
 {
   imports = [
     ./gpu-freq-pin.nix
+    ./rex.nix
   ];
 
   networking.hostName = "wizardtower";

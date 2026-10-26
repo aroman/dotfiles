@@ -95,9 +95,19 @@
       url = "github:aaddrick/claude-desktop-debian";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Rex: prebuilt release binary plus its NixOS module (hosts/wizardtower/rex.nix).
+    # Until Rex's first release, pkgs.superlogical.com needs the pre-release
+    # token in /etc/nix/netrc, and only the snapshot channel exists (stable and
+    # preview 404). Bump with `nix flake update rex --flake ./nixos`; that
+    # restarts the login server but leaves running sessions alone.
+    rex = {
+      url = "https://pkgs.superlogical.com/rex/nix/snapshot.tar.gz";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = inputs@{ self, nixpkgs, home-manager, nixos-hardware, niri, disko, ... }:
+  outputs =inputs@{ self, nixpkgs, home-manager, nixos-hardware, niri, disko, ... }:
   let
     reservedHostArgumentNames = [
       "inputs"

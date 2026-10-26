@@ -428,6 +428,23 @@
         "type": "github"
       }
     },
+    "rex": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1793018865,
+        "narHash": "sha256-hux31yxz82WG93cdd2S5V/axXwnmsDdup1T8O1/S+tI=",
+        "type": "tarball",
+        "url": "https://pkgs.superlogical.com/rex/nix/snapshot/0.0.1793018865-gefd6aa.tar.gz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://pkgs.superlogical.com/rex/nix/snapshot.tar.gz"
+      }
+    },
     "root": {
       "inputs": {
         "claude-desktop": "claude-desktop",
@@ -440,6 +457,7 @@
         "nixpkgs-kernel": "nixpkgs-kernel",
         "nixpkgs-noctalia": "nixpkgs-noctalia",
         "noctalia": "noctalia",
+        "rex": "rex",
         "spotifast": "spotifast",
         "tether": "tether",
         "vicinae": "vicinae",
