@@ -319,7 +319,11 @@ in
     firefox
     (google-chrome.override {
       commandLineArgs = [
-        "--enable-features=TouchpadOverscrollHistoryNavigation"
+        # Vulkan: without it Chrome renders on GL, and Linux WebGPU on AMD
+        # then falls back to a software (SwiftShader) adapter, because Chrome
+        # blocklists AMD's Vulkan/GL interop. One --enable-features list,
+        # since a later one replaces the wrapper's WaylandWindowDecorations.
+        "--enable-features=Vulkan,WaylandWindowDecorations,TouchpadOverscrollHistoryNavigation"
         "--new-window"
         "--hide-crash-restore-bubble"
       ];
