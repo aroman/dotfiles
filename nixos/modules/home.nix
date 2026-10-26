@@ -174,8 +174,10 @@ in
     cloudflared
     # btop dlopen()s libnvidia-ml.so for its GPU panel, which lives in
     # /run/opengl-driver/lib; cudaSupport adds that to its RUNPATH.
+    # AMD monitoring likewise needs ROCm SMI in its RUNPATH.
     (btop.override {
       cudaSupport = lib.elem "nvidia" osConfig.services.xserver.videoDrivers;
+      rocmSupport = osConfig.hardware.amdgpu.initrd.enable;
     })
   ] ++ lib.optionals desktop desktopPackageSegments.afterBtop ++ [
     tokei
