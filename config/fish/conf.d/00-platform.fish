@@ -32,6 +32,8 @@ set -g nvm_default_version lts
 if test (uname) = Linux
     alias zed="zeditor"
     alias bake="nh os switch && rcup -K"
+    # Pull the latest Rex snapshot and switch; only the rex input moves.
+    alias rex-update="nix flake update rex --flake ~/Projects/dotfiles/nixos && nh os switch"
     alias yt-dlp="nix run nixpkgs#yt-dlp --"
 end
 
