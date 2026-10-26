@@ -279,7 +279,6 @@ in
     wl-clipboard
     ddcutil
     playerctl
-    overskride
     socat # IPC with niri socket (used by swap-monitors script)
     fuzzel       # Wayland dmenu/rofi — used for worktree picker etc.
     xdg-terminal-exec # XDG default terminal launcher — used by batman-picker
