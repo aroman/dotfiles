@@ -96,13 +96,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Rex: prebuilt release binary plus its NixOS module (hosts/wizardtower/rex.nix).
-    # Until Rex's first release, pkgs.superlogical.com needs the pre-release
-    # token in /etc/nix/netrc, and only the snapshot channel exists (stable and
-    # preview 404). Bump with `nix flake update rex --flake ./nixos`; that
-    # restarts the login server but leaves running sessions alone.
+    # Rex: prebuilt release binary plus its NixOS module (modules/rex.nix).
+    # The preview channel carries the builds that get release notes;
+    # snapshot.tar.gz ships every commit, and stable doesn't exist yet. No login
+    # needed since the open beta. Bump with `rex-update`; that restarts only the
+    # login server (modules/rex.nix says how to move sessions onto the new one).
     rex = {
-      url = "https://pkgs.superlogical.com/rex/nix/snapshot.tar.gz";
+      url = "https://pkgs.superlogical.com/rex/nix/preview.tar.gz";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };

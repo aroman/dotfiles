@@ -11,7 +11,11 @@
 # tailscaled, maps them to an OS account via /etc/rex/accounts.jsonc, and starts
 # or reuses that account's personal server — the same one local `rex` commands
 # use, so local and remote clients see the same sessions. Restarting the login
-# server (e.g. on a Rex bump) leaves account servers and their sessions running.
+# server (e.g. on a Rex bump) leaves account servers and their sessions running,
+# still on the old binary. To move an account onto the new one, run
+# `rex server stop` as that user from outside Rex, then reconnect: the server
+# saves its sessions as it stops, and the next one restores their layouts and
+# working directories, but not running programs or scrollback.
 # Someone who reaches the host only over SSH can still run `rex` there and share
 # those sessions; only remote Rex clients need to be on the tailnet.
 #
@@ -20,9 +24,7 @@
 # (wizardtower proxies a dev server there); give clients the :7297 address
 # explicitly so they don't land on that first.
 #
-# Only hosts that import this file run it. pkgs.superlogical.com needs the
-# pre-release token in /etc/nix/netrc on whichever machine evaluates and builds
-# the system — the deploying machine, for a --target-host deploy.
+# Only hosts that import this file run it.
 {
   imports = [ inputs.rex.nixosModules.default ];
 
