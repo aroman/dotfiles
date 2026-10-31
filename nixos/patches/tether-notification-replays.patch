@@ -1,8 +1,29 @@
 diff --git a/src/core/include/tether/bluetooth/ancs/notifications.hpp b/src/core/include/tether/bluetooth/ancs/notifications.hpp
-index e69c66b..f41b8d4 100644
+index e69c66b..5125b5e 100644
 --- a/src/core/include/tether/bluetooth/ancs/notifications.hpp
 +++ b/src/core/include/tether/bluetooth/ancs/notifications.hpp
-@@ -26,6 +26,9 @@ namespace tether::bluetooth::ancs {
+@@ -3,9 +3,12 @@
+ #include "tether/bluetooth/ancs/protocol.hpp"
+ 
+ #include <cstdint>
++#include <deque>
+ #include <map>
+ #include <nlohmann/json.hpp>
++#include <set>
+ #include <string>
++#include <tuple>
+ #include <vector>
+ 
+ namespace tether::bluetooth::ancs {
+@@ -21,11 +24,17 @@ namespace tether::bluetooth::ancs {
+         std::string body;
+         CategoryId category = CategoryId::Other;
+         int64_t received = 0;
++        // Distinguish the phone's original date from the local fallback time.
++        bool has_delivery_date = false;
++        int64_t observed_at = 0;
+         bool silent = false;
+         bool has_positive_action = false;
          bool has_negative_action = false;
          // Already on the phone when the subscription came up.
          bool pre_existing = false;
@@ -12,7 +33,7 @@ index e69c66b..f41b8d4 100644
          uint64_t session = 0;
  
          bool operator==(const Notification&) const = default;
-@@ -42,8 +45,8 @@ namespace tether::bluetooth::ancs {
+@@ -42,8 +51,8 @@ namespace tether::bluetooth::ancs {
      //
      // iOS replays every existing notification whenever the subscription comes
      // up, so the same notification arrives again after each reconnect. Dedupe is
@@ -23,7 +44,7 @@ index e69c66b..f41b8d4 100644
      class NotificationRegistry {
      public:
          Decision classify(const SourceEvent& event) const;
-@@ -51,10 +54,13 @@ namespace tether::bluetooth::ancs {
+@@ -51,10 +60,13 @@ namespace tether::bluetooth::ancs {
          void remember(const SourceEvent& event);
          void forget(uint32_t uid);
          void clear();
@@ -35,20 +56,27 @@ index e69c66b..f41b8d4 100644
  
 -        void store(const Notification& notification);
 +        // Returns the stored copy with backlog/replay delivery rules applied.
-+        Notification store(Notification notification);
++        Notification store(Notification notification, int64_t observed_at = 0);
          // Applies a display name resolved after the notifications were stored.
          void rename_app(const std::string& app_id, const std::string& name);
          const Notification* find(uint32_t uid) const;
-@@ -66,6 +72,7 @@ namespace tether::bluetooth::ancs {
+@@ -66,8 +78,14 @@ namespace tether::bluetooth::ancs {
      private:
          std::map<uint32_t, int64_t> seen_;
          uint64_t session_ = 0;
 +        int64_t subscribed_at_ = 0;
          std::map<uint32_t, Notification> notifications_;
          std::vector<uint32_t> order_;
++        // Call identity survives removal and list eviction. iOS can reissue the
++        // same call with a new UID or change its caller text when unlocked.
++        using CallKey = std::tuple<std::string, CategoryId, int64_t>;
++        std::set<CallKey> calls_seen_;
++        std::deque<CallKey> calls_order_;
      };
+ 
+     // "com.burbn.instagram" -> "Instagram". Stands in until the phone answers
 diff --git a/src/core/src/bluetooth/ancs/client.cpp b/src/core/src/bluetooth/ancs/client.cpp
-index 56379f3..e2e09d2 100644
+index 56379f3..2bea70d 100644
 --- a/src/core/src/bluetooth/ancs/client.cpp
 +++ b/src/core/src/bluetooth/ancs/client.cpp
 @@ -454,6 +454,8 @@ namespace tether::bluetooth::ancs {
@@ -60,16 +88,32 @@ index 56379f3..e2e09d2 100644
              if (on_withdraw)
                  on_withdraw(event.uid);
              return;
-@@ -543,7 +545,7 @@ namespace tether::bluetooth::ancs {
+@@ -540,11 +542,23 @@ namespace tether::bluetooth::ancs {
+         const int64_t delivered =
+             parse_map_timestamp(response.attribute(static_cast<uint8_t>(NotificationAttributeId::Date)));
+         notification.received = delivered ? delivered : now;
++        notification.has_delivery_date = delivered > 0;
  
          {
              std::lock_guard<std::mutex> lock(registry_mutex);
 -            registry.store(notification);
-+            notification = registry.store(notification);
++            notification = registry.store(notification, now);
          }
++        if (notification.category == CategoryId::IncomingCall || notification.category == CategoryId::MissedCall)
++            debug::log(INFO,
++                       "ancs: call uid {} event {} flags {} category {} date {} dated {} pre_existing {} popup_suppressed {}",
++                       notification.uid,
++                       static_cast<int>(event.event),
++                       static_cast<unsigned>(event.flags),
++                       static_cast<int>(notification.category),
++                       notification.received,
++                       notification.has_delivery_date,
++                       notification.pre_existing,
++                       notification.popup_suppressed);
          if (on_notification)
              on_notification(notification);
-@@ -685,6 +687,7 @@ namespace tether::bluetooth::ancs {
+     }
+@@ -685,6 +699,7 @@ namespace tether::bluetooth::ancs {
              if (now < s->next_subscribe)
                  return;
              s->next_subscribe = now + ANCS_RETRY_SECONDS;
@@ -77,7 +121,7 @@ index 56379f3..e2e09d2 100644
              if (!s->subscribe()) {
                  s->set_status(false, "Subscribing to the iPhone's notifications...");
                  return;
-@@ -693,7 +696,7 @@ namespace tether::bluetooth::ancs {
+@@ -693,7 +708,7 @@ namespace tether::bluetooth::ancs {
              uint64_t session = 0;
              {
                  std::lock_guard<std::mutex> lock(s->registry_mutex);
@@ -87,16 +131,22 @@ index 56379f3..e2e09d2 100644
              }
              debug::log(INFO, "ancs: notification session {} started", session);
 diff --git a/src/core/src/bluetooth/ancs/notifications.cpp b/src/core/src/bluetooth/ancs/notifications.cpp
-index 1a67881..cfbc4bf 100644
+index 1a67881..99257bf 100644
 --- a/src/core/src/bluetooth/ancs/notifications.cpp
 +++ b/src/core/src/bluetooth/ancs/notifications.cpp
-@@ -8,6 +8,14 @@ namespace tether::bluetooth::ancs {
+@@ -8,6 +8,20 @@ namespace tether::bluetooth::ancs {
  
      namespace {
          constexpr size_t MAX_RETAINED = 200;
++        constexpr size_t MAX_CALLS_RETAINED = 512;
++        constexpr int64_t CALL_DELIVERY_GRACE_SECONDS = 5 * 60;
 +        // Allow for clock skew and notifications already being delivered while
 +        // StartNotify completes. Older first arrivals belong to the backlog.
 +        constexpr int64_t DELIVERY_GRACE_SECONDS = 5;
++
++        bool is_call(CategoryId category) {
++            return category == CategoryId::IncomingCall || category == CategoryId::MissedCall;
++        }
 +
 +        bool same_content(const Notification& a, const Notification& b) {
 +            return a.app_id == b.app_id && a.category == b.category && a.title == b.title &&
@@ -105,7 +155,7 @@ index 1a67881..cfbc4bf 100644
  
          // Generic stand-ins for an app whose own logo is unknown or absent from
          // the theme. Two per category, because Breeze and Adwaita disagree on
-@@ -61,23 +69,48 @@ namespace tether::bluetooth::ancs {
+@@ -61,23 +75,84 @@ namespace tether::bluetooth::ancs {
          order_.erase(std::remove(order_.begin(), order_.end(), uid), order_.end());
      }
  
@@ -121,20 +171,29 @@ index 1a67881..cfbc4bf 100644
 +        subscribed_at_ = 0;
          notifications_.clear();
          order_.clear();
++        calls_seen_.clear();
++        calls_order_.clear();
      }
  
 -    void NotificationRegistry::store(const Notification& notification) {
-+    Notification NotificationRegistry::store(Notification notification) {
++    Notification NotificationRegistry::store(Notification notification, int64_t observed_at) {
 +        notification.popup_suppressed = false;
++        notification.observed_at = observed_at;
 +        const Notification* previous = find(notification.uid);
 +        const bool known_in_session =
 +            previous && previous->session == session_ && previous->app_id == notification.app_id;
++        const bool call = is_call(notification.category);
++        const bool different_call = known_in_session && call && notification.has_delivery_date &&
++                                    previous->has_delivery_date && previous->received != notification.received;
 +        if (known_in_session) {
 +            // iOS can omit PreExisting on later Modified events. An old missed
 +            // call must not become new just because its flags changed.
 +            notification.pre_existing = notification.pre_existing ||
-+                                        (previous->category == notification.category && previous->pre_existing);
-+            notification.popup_suppressed = same_content(*previous, notification);
++                                        (previous->category == notification.category && previous->pre_existing &&
++                                         !different_call);
++            notification.popup_suppressed = !different_call &&
++                                           (same_content(*previous, notification) ||
++                                            (call && previous->category == notification.category));
 +        } else if (subscribed_at_ > 0 && notification.received > 0 &&
 +                   notification.received < subscribed_at_ - DELIVERY_GRACE_SECONDS) {
 +            // Wallet and other apps replay old notifications without setting
@@ -142,6 +201,33 @@ index 1a67881..cfbc4bf 100644
 +            // Apply only on first arrival: an already ringing call can still
 +            // become newly missed after subscribing, using its original date.
 +            notification.pre_existing = true;
++        }
++
++        if (call && notification.has_delivery_date && notification.received > 0) {
++            const CallKey key{notification.app_id, notification.category, notification.received};
++            // An original call date is stable when the UID or visible caller
++            // changes. Keep this history independently of the 200-entry list.
++            const bool repeated_call = !calls_seen_.insert(key).second;
++            if (!repeated_call) {
++                calls_order_.push_back(key);
++                if (calls_order_.size() > MAX_CALLS_RETAINED) {
++                    calls_seen_.erase(calls_order_.front());
++                    calls_order_.pop_front();
++                }
++            }
++            // A long-lived connection may receive an old call that was removed
++            // or evicted hours ago, after subscription but long before now.
++            // A recently observed ringing call can still become newly missed
++            // even if its original ringing date is outside the grace window.
++            const bool just_stopped_ringing = known_in_session && !different_call &&
++                                             previous->category == CategoryId::IncomingCall &&
++                                             notification.category == CategoryId::MissedCall &&
++                                             !previous->pre_existing && previous->observed_at > 0 &&
++                                             previous->observed_at >= observed_at - CALL_DELIVERY_GRACE_SECONDS;
++            const bool stale_call = observed_at > 0 &&
++                                    notification.received < observed_at - CALL_DELIVERY_GRACE_SECONDS &&
++                                    !just_stopped_ringing;
++            notification.popup_suppressed = notification.popup_suppressed || repeated_call || stale_call;
 +        }
 +
          for (auto it = notifications_.begin(); it != notifications_.end();) {
@@ -159,7 +245,7 @@ index 1a67881..cfbc4bf 100644
                  order_.erase(std::remove(order_.begin(), order_.end(), it->first), order_.end());
                  it = notifications_.erase(it);
              } else {
-@@ -95,6 +128,7 @@ namespace tether::bluetooth::ancs {
+@@ -95,6 +170,7 @@ namespace tether::bluetooth::ancs {
              order_.erase(order_.begin());
              notifications_.erase(oldest);
          }
@@ -167,7 +253,7 @@ index 1a67881..cfbc4bf 100644
      }
  
      const Notification* NotificationRegistry::find(uint32_t uid) const {
-@@ -138,7 +172,7 @@ namespace tether::bluetooth::ancs {
+@@ -138,7 +214,7 @@ namespace tether::bluetooth::ancs {
      }
  
      bool should_show_desktop_popup(const Notification& notification) {
@@ -177,10 +263,10 @@ index 1a67881..cfbc4bf 100644
  
      std::vector<std::string> icon_candidates(const Notification& notification) {
 diff --git a/test/test_ancs_notifications.cpp b/test/test_ancs_notifications.cpp
-index f21f558..dc7027d 100644
+index f21f558..c705993 100644
 --- a/test/test_ancs_notifications.cpp
 +++ b/test/test_ancs_notifications.cpp
-@@ -182,6 +182,195 @@ TEST(AncsRegistry, RecentIsOrderedByDeliveryTime) {
+@@ -182,6 +182,305 @@ TEST(AncsRegistry, RecentIsOrderedByDeliveryTime) {
      EXPECT_EQ(registry.recent(2)[0].uid, 1u);
  }
  
@@ -371,6 +457,116 @@ index f21f558..dc7027d 100644
 +    notification.uid = 2;
 +    notification.received = 2000;
 +    EXPECT_TRUE(should_show_desktop_popup(registry.store(notification)));
++}
++
++TEST(AncsRegistry, LongConnectionRejectsOldMissedCallsNewerThanSubscription) {
++    NotificationRegistry registry;
++    registry.begin_session(1000);
++    Notification call = make(122, "com.apple.mobilephone");
++    call.category = CategoryId::MissedCall;
++    call.title = "Potential Spam";
++    call.body = "Missed Call";
++    call.received = 2000;
++    call.has_delivery_date = true;
++
++    // The reported call happened after connection, then resurfaced six hours
++    // later with no PreExisting flag and no retained copy to compare against.
++    const Notification replay = registry.store(call, 2000 + 6 * 60 * 60);
++    EXPECT_FALSE(should_show_desktop_popup(replay));
++    EXPECT_EQ(registry.size(), 1u) << "the call must remain in the notification list";
++}
++
++TEST(AncsRegistry, DatedCallDoesNotAlertAgainWhenCallerTextChanges) {
++    NotificationRegistry registry;
++    Notification call = make(7, "com.apple.mobilephone");
++    call.category = CategoryId::MissedCall;
++    call.received = 1000;
++    call.has_delivery_date = true;
++    call.title = "Phone";
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(call, 1000)));
++
++    call.title = "Potential Spam";
++    call.body = "Missed Call";
++    EXPECT_FALSE(should_show_desktop_popup(registry.store(call, 1010)));
++    EXPECT_EQ(registry.find(7)->title, call.title) << "caller information must still update";
++}
++
++TEST(AncsRegistry, CallIdentitySurvivesRemovalAndAReplacementUid) {
++    NotificationRegistry registry;
++    Notification call = make(7, "com.apple.mobilephone");
++    call.category = CategoryId::MissedCall;
++    call.received = 1000;
++    call.has_delivery_date = true;
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(call, 1000)));
++    registry.forget(call.uid);
++
++    call.uid = 122;
++    call.title = "Potential Spam";
++    EXPECT_FALSE(should_show_desktop_popup(registry.store(call, 1010)));
++
++    registry.begin_session(1000);
++    call.uid = 2;
++    call.title = "Changed caller text";
++    EXPECT_FALSE(should_show_desktop_popup(registry.store(call, 1020)));
++}
++
++TEST(AncsRegistry, CallIdentitySurvivesNotificationListEviction) {
++    NotificationRegistry registry;
++    Notification call = make(7, "com.apple.mobilephone");
++    call.category = CategoryId::MissedCall;
++    call.received = 1000;
++    call.has_delivery_date = true;
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(call, 1000)));
++    for (uint32_t uid = 10; uid < 220; ++uid)
++        registry.store(make(uid, "com.example.chat"));
++    ASSERT_EQ(registry.find(7), nullptr);
++
++    call.uid = 300;
++    EXPECT_FALSE(should_show_desktop_popup(registry.store(call, 1010)));
++}
++
++TEST(AncsRegistry, NewCallDateAlertsEvenWhenIosReusesTheSameUidAndText) {
++    NotificationRegistry registry;
++    Notification call = make(7, "com.apple.mobilephone");
++    call.category = CategoryId::MissedCall;
++    call.received = 1000;
++    call.has_delivery_date = true;
++    call.title = "Potential Spam";
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(call, 1000)));
++
++    call.received = 1100;
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(call, 1100)));
++    EXPECT_FALSE(should_show_desktop_popup(registry.store(call, 1101)));
++
++    call.uid = 8;
++    call.received = 1200;
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(call, 1200)));
++}
++
++TEST(AncsRegistry, RecentlyObservedRingingCallCanBecomeMissedUsingItsOriginalDate) {
++    NotificationRegistry registry;
++    Notification call = make(7, "com.apple.mobilephone");
++    call.category = CategoryId::IncomingCall;
++    call.received = 1000;
++    call.has_delivery_date = true;
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(call, 1300)));
++
++    call.category = CategoryId::MissedCall;
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(call, 1500)));
++    EXPECT_FALSE(should_show_desktop_popup(registry.store(call, 1501)));
++}
++
++TEST(AncsRegistry, MissingPhoneDateDoesNotMakeAFreshCallLookStale) {
++    NotificationRegistry registry;
++    Notification call = make(7, "com.apple.mobilephone");
++    call.category = CategoryId::MissedCall;
++    call.received = 1000;
++    call.has_delivery_date = false;
++    EXPECT_TRUE(should_show_desktop_popup(registry.store(call, 25000)));
++
++    call.title = "Caller details now available";
++    call.received = 25010;
++    EXPECT_FALSE(should_show_desktop_popup(registry.store(call, 25010)));
 +}
 +
  // Content mirroring was off with no way to turn it on, so a stored false from

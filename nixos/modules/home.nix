@@ -70,7 +70,8 @@ in
     # opener-bridged: when SSH'd in, `xdg-open URL` hands the URL to the Mac,
     # which opens it in the local browser — Velja then routes it just like
     # handlr-regex does here — or to moonbinder, whichever was touched last.
-    # At the console the shim falls through to real xdg-open → handlr → Chrome.
+    # At the console HTTP(S) URLs go straight to handlr → Chrome; other
+    # inputs fall through to real xdg-open.
     #
     # 127.0.0.1:47831 and :47832 are the mouths of tunnels back to the Mac's
     # and moonbinder's opener-bridged daemons.  One line each way:
@@ -125,6 +126,15 @@ in
                    exit 1 ;;
         esac
       fi
+      ${lib.optionalString desktop ''
+      # Avoid xdg-utils' MIME lookup and desktop-file parsing for web URLs.
+      # handlr already owns HTTP(S) routing, including profile and app rules.
+      if [ "$#" -eq 1 ]; then
+        case "$1" in
+          http://*|https://*) exec ${handlr-regex}/bin/handlr open "$1" ;;
+        esac
+      fi
+      ''}
       exec ${xdg-utils}/bin/xdg-open "$@"
     '')
     bat
@@ -164,8 +174,10 @@ in
     cloudflared
     # btop dlopen()s libnvidia-ml.so for its GPU panel, which lives in
     # /run/opengl-driver/lib; cudaSupport adds that to its RUNPATH.
+    # AMD monitoring likewise needs ROCm SMI in its RUNPATH.
     (btop.override {
       cudaSupport = lib.elem "nvidia" osConfig.services.xserver.videoDrivers;
+      rocmSupport = osConfig.hardware.amdgpu.initrd.enable;
     })
   ] ++ lib.optionals desktop desktopPackageSegments.afterBtop ++ [
     tokei

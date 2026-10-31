@@ -32,10 +32,6 @@
   ];
 
   home-manager.users.aroman = {
-    # Home Manager moved its bundled module from programs/noctalia.nix to
-    # programs/noctalia. The pinned upstream module only disables the old
-    # path, so disable the new one here to avoid duplicate option declarations.
-    disabledModules = [ "programs/noctalia" ];
     imports = [ inputs.noctalia.homeModules.default ];
 
     programs.noctalia = {
@@ -147,10 +143,13 @@
       };
 
       # Rendered to ~/.config/noctalia/config.toml and checked at build time by
-      # `noctalia config validate` (programs.noctalia.validateConfig, on by
+      # `noctalia config validate` (programs.noctalia.checkConfig, on by
       # default) — a typo here fails the rebuild instead of the session.
       settings = {
         accessibility.ui_scale = 1.15;
+
+        # External-monitor brightness; internal backlights work automatically.
+        brightness.enable_ddcutil = true;
 
         notification = {
           filter_order = [ "filter" "ten-seconds" ];

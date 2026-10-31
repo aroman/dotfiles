@@ -99,6 +99,8 @@ stdenv.mkDerivation (finalAttrs: {
     asar extract Resources/app.asar app
     python3 ${./patch_app.py} app --macos-version "$macosVersion"
     python3 ${./test_storage.py} app
+    python3 ${./test_audio.py} app
+    python3 ${./test_shutdown.py} app
 
     pushd app/node_modules/better-sqlite3-multiple-ciphers
     tar xzf ${sqliteBindingSrc} --strip-components=1 package/binding.gyp
@@ -145,6 +147,7 @@ stdenv.mkDerivation (finalAttrs: {
     # Select GNOME Keyring for the direct Secret Service backend while
     # leaving the async Secret portal provider enabled.
     makeWrapper $app/granola-env $out/bin/granola \
+      --set PULSE_SOURCE echo_cancel_source \
       --add-flags "--password-store=gnome-libsecret" \
       --add-flags "--ozone-platform-hint=auto" \
       --add-flags "--enable-features=WebRTCPipeWireCapturer"

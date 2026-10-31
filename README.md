@@ -152,7 +152,7 @@ chmod 600 ~/.ssh/config.local
 # Switch remote to SSH
 git remote set-url origin git@github.com:aroman/dotfiles.git
 
-# Load the key into the agent (AddKeysToAgent will handle it after this)
+# Headless hosts: load the key into the agent once per boot
 ssh-add ~/.ssh/<hostname>
 
 # Symlink dotfiles managed by rcm (scripts in ~/.local/bin, etc.)
@@ -169,6 +169,18 @@ echo '[user]
 echo 'set -gx GEMINI_API_KEY "your-key-here"' >> ~/.config/fish/conf.d/secrets.fish
 ```
 
+On desktops with GNOME Keyring, GCR discovers keys with matching `.pub` files.
+Use `ssh-add -T ~/.ssh/<hostname>.pub` to trigger its unlock dialog, enter the
+passphrase, and select **Automatically unlock this key whenever I'm logged in**.
+The passphrase is then saved in the encrypted login keyring and reused when
+the key signs a request. Plain `ssh-add ~/.ssh/<hostname>` only loads the key
+into memory; it does not save its passphrase in the keyring.
+
+For automatic keyring unlock, use password login at the greeter and keep the
+**Login** keyring password equal to the account password. If they differ,
+change the Login keyring password in Seahorse (**Passwords and Keys**).
+Fingerprint authentication cannot supply the password needed to decrypt it.
+
 From your main machine, set up passwordless SSH:
 
 ```bash
@@ -179,11 +191,13 @@ ssh-copy-id <hostname>
 
 ```bash
 git clone git@github.com:aroman/dotfiles.git ~/Projects/dotfiles
-sudo nixos-rebuild switch --flake ~/Projects/dotfiles/nixos
-rcup -K
+nh os switch --show-activation-logs ~/Projects/dotfiles/nixos && rcup -K
 ```
 
-Hosts are defined in `nixos/hosts/`. Rebuild alias: `bake`
+Hosts are defined in `nixos/hosts/`. Rebuild function: `bake`. It forwards
+arguments to `nh os switch`, shows activation logs, and runs `rcup -K` only
+after a successful switch. NH activates the system before making it the boot
+default, so a failed activation leaves the existing boot default in place.
 
 ### Backups (NixOS)
 
@@ -255,7 +269,7 @@ profile automatically. Think [Velja](https://sindresorhus.com/velja) for Linux.
 ```
 any app
   -> xdg-open
-    -> handlr-regex (registered as default x-scheme-handler/https)
+    -> local HTTP(S): handlr-regex directly
       -> regex match on URL domain
         -> figma.com/*    : figma-open (CDP script)
         -> youtube.com/*  : Chrome (Personal profile)
@@ -272,9 +286,11 @@ any app
 [handlr-regex](https://github.com/Anomalocaridid/handlr-regex) is a Rust-based
 `xdg-open` replacement that matches URLs against regex rules. A `.desktop` entry
 registers it as the default handler for `x-scheme-handler/http` and
-`x-scheme-handler/https`. When any app calls `xdg-open` with an http(s) URL,
-handlr matches it against the rules in `handlr.toml` and dispatches to the
-appropriate command.
+`x-scheme-handler/https`. On a desktop, our `xdg-open` wrapper sends HTTP(S)
+URLs straight to handlr, avoiding xdg-utils' MIME lookup and desktop-file
+parsing. Handlr matches the URL against the rules in `handlr.toml` and
+dispatches to the appropriate command. Other inputs use the standard
+`xdg-open`; sessions without a display use the remote opener bridge.
 
 Chrome profiles are selected via `--profile-directory`. Profile names map to
 directory names under `~/.config/google-chrome/` (e.g. `Default`, `Profile 1`).

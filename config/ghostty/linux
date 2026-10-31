@@ -5,3 +5,6 @@
 # the primary and most NF glyphs unreachable.
 font-family =
 font-family = CaskaydiaCove Nerd Font Mono
+
+# Let terminal applications receive Ctrl+Enter instead of toggling fullscreen.
+keybind = ctrl+enter=unbind

@@ -76,9 +76,7 @@ input {
     touchpad {
         // off
         tap
-        // Disable-while-typing: on by default, off for Figma & Magic Garden.
-        // niri-dwt-toggle.service comments/uncomments this line at runtime.
-        dwt
+        // Allow touchpad use while typing in all apps; omit the DWT flag entirely.
         dwtp
         // drag false
         // drag-lock
@@ -421,10 +419,26 @@ window-rule {
     open-maximized true
 }
 
+// Spotifast opens on the laptop display as a full-width tiled column.
+window-rule {
+    match app-id=r#"^spotifast$"#
+    open-on-output "eDP-1"
+    open-maximized true
+    open-fullscreen false
+}
+
 // screenie's annotation editor (editor.mode: window) should float, not tile.
 window-rule {
     match app-id=r#"^dev\.johnpyp\.Screenie$"#
     open-floating true
+}
+
+// Keyring requests block the calling app until answered; show the prompt
+// immediately instead of leaving it hidden among tiled app windows.
+window-rule {
+    match app-id=r#"^gcr-prompter$"#
+    open-floating true
+    open-focused true
 }
 
 // Sushi (Nautilus spacebar preview) is a transient peek, not a column —
@@ -534,16 +548,13 @@ binds {
     XF86AudioPrev        allow-when-locked=true { spawn-sh "playerctl previous"; }
     XF86AudioNext        allow-when-locked=true { spawn-sh "playerctl next"; }
 
-    // Brightness: dispatch to the focused output only. Internal panel uses
-    // brightnessctl (instant; Noctalia OSDs off inotify); external monitors
-    // use ddcutil over DDC/CI (backgrounded, with a Noctalia OSD pushed by
-    // the script since Noctalia can't drive DDC itself).
-    XF86MonBrightnessUp allow-when-locked=true { spawn-sh "brightness-focused up"; }
-    XF86MonBrightnessDown allow-when-locked=true { spawn-sh "brightness-focused down"; }
+    // Noctalia controls brightness on the focused monitor and shows the OSD.
+    XF86MonBrightnessUp allow-when-locked=true { spawn "noctalia" "msg" "brightness-up" "10%"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn "noctalia" "msg" "brightness-down" "10%"; }
     // Same on bare F7/F8, for external keyboards without brightness keys.
     // Note this takes F7/F8 away from every app.
-    F7 allow-when-locked=true { spawn-sh "brightness-focused down"; }
-    F8 allow-when-locked=true { spawn-sh "brightness-focused up"; }
+    F7 allow-when-locked=true { spawn "noctalia" "msg" "brightness-down" "10%"; }
+    F8 allow-when-locked=true { spawn "noctalia" "msg" "brightness-up" "10%"; }
 
     // Open/close the Overview: a zoomed-out view of workspaces and windows.
     // You can also move the mouse into the top-left hot corner,

@@ -1,9 +1,81 @@
-{ config, pkgs, lib, inputs, ... }:
+{ config, pkgs, lib, inputs, username, ... }:
 
 let
   # Use the same package set for the kernel and patched mt7925 module.
   # Updating this input advances the kernel without updating all userland.
   kernelPkgs = inputs.nixpkgs-kernel.legacyPackages.${pkgs.stdenv.hostPlatform.system};
+  desktopPackages = [
+    inputs.ghostty.packages.${pkgs.stdenv.hostPlatform.system}.default
+    inputs.vicinae.packages.${pkgs.stdenv.hostPlatform.system}.default
+    inputs.screenie.packages.${pkgs.stdenv.hostPlatform.system}.default
+    inputs.spotifast.packages.${pkgs.stdenv.hostPlatform.system}.default
+    config.programs.niri.package
+    pkgs.noctalia
+  ];
+
+  # Run dlopen with each app's own ELF loader and startup libraries. A
+  # version comparison (or the build host's ldd) misses cached binaries'
+  # actual runtime. No GPU/display is needed to detect the ABI mismatch.
+  graphicsCompatibility = pkgs.runCommand "desktop-graphics-compatibility" {
+    nativeBuildInputs = [ pkgs.stdenv.cc pkgs.binutils pkgs.python3 ];
+  } ''
+    cat > probe.c <<'C'
+    #include <dlfcn.h>
+    #include <stdio.h>
+    int main(int argc, char **argv) {
+      if (argc != 2) return 2;
+      void *driver = dlopen(argv[1], RTLD_NOW | RTLD_LOCAL);
+      if (!driver) { fprintf(stderr, "%s\n", dlerror()); return 1; }
+      dlclose(driver);
+      return 0;
+    }
+    C
+    cc probe.c -o probe -ldl
+    python3 - ${config.hardware.graphics.package} ${lib.escapeShellArgs (map toString desktopPackages)} <<'PY'
+    import os
+    from pathlib import Path
+    import re
+    import subprocess
+    import sys
+
+    drivers = [Path(sys.argv[1]) / "lib" / name for name in
+               ["libEGL_mesa.so.0", "libGLX_mesa.so.0", "libvulkan_radeon.so"]]
+    checked = 0
+    for package in sys.argv[2:]:
+        executables = sorted(set(path.resolve() for directory in ["bin", "libexec"]
+                                 for path in (Path(package) / directory).rglob("*")
+                                 if path.is_file() and os.access(path, os.X_OK)))
+        package_checked = 0
+        for executable in executables:
+            with executable.open("rb") as file:
+                if file.read(4) != b"\x7fELF":
+                    continue
+            headers = subprocess.check_output(["readelf", "-l", executable], text=True)
+            match = re.search(r"Requesting program interpreter: (.*?)\]", headers)
+            if not match:
+                continue
+            loader = match[1]
+            startup = subprocess.run([loader, "--list", executable], text=True, capture_output=True)
+            if startup.returncode or startup.stderr or "not found" in startup.stdout:
+                sys.exit(f"Cannot resolve {executable}:\n{startup.stdout}\n{startup.stderr}")
+            libraries = re.findall(r"=> (/\S+)", startup.stdout)
+            directories = dict.fromkeys([str(Path(loader).parent)] +
+                                        [str(Path(library).parent) for library in libraries])
+            for driver in drivers:
+                result = subprocess.run([loader, "--library-path", ":".join(directories),
+                                         str(Path("probe").resolve()), str(driver)],
+                                        text=True, capture_output=True)
+                if result.returncode:
+                    sys.exit(f"Graphics driver is incompatible with {executable}:\n{result.stderr}")
+            package_checked += 1
+        if not package_checked:
+            sys.exit(f"No dynamic ELF executables checked in {package}")
+        checked += package_checked
+    print(f"Checked EGL, GLX and Radeon Vulkan loading for {checked} desktop executables")
+    PY
+    touch "$out"
+  '';
+
 in
 {
   imports = [
@@ -166,6 +238,20 @@ in
   # Graphics (AMD iGPU — Ryzen AI 300 series)
   hardware.graphics.enable = true;
 
+  # Apps from flake inputs with their own nixpkgs pin (vicinae, niri,
+  # noctalia) load the system Mesa with their own glibc, so a pin older than
+  # the system's glibc can't load it (GLIBC_2.43 not found; 2026-10-13, when
+  # Ghostty's and Vicinae's pins were on glibc 2.42). Ghostty now follows the
+  # system nixpkgs (see flake.nix). If this check fails after a nixpkgs bump,
+  # update the lagging input, or make it follow nixpkgs, rather than pinning
+  # Mesa: the 26.2.3 pin missed the 26.2.5 radeonsi fix for Chrome's SQC page
+  # faults and ~2 s ring-reset freezes.
+  #
+  # These are dependencies of every system build, including ordinary
+  # nixos-rebuild: an ABI-incompatible driver cannot produce a generation.
+  system.checks = [ graphicsCompatibility ];
+  system.build.desktopGraphicsCompatibility = graphicsCompatibility;
+
   # Disable the NVIDIA dGPU entirely — blacklist nouveau so only the AMD iGPU
   # is used. The NVIDIA GPU will power down automatically via PCIe ASPM/runtime PM
   # when no driver binds to it.
@@ -203,8 +289,10 @@ in
   # Disable the airplane mode key (FW16 keyboard wireless radio button).
   # It triggers rfkill at the kernel level and kills WiFi/Bluetooth with no undo UX.
   # Remap its HID scancode (Generic Desktop page 0x01, usage 0xC6) to nothing.
+  # Match the radio interface only; the main interface shares its USB IDs but
+  # rejects this scancode with EINVAL.
   services.udev.extraHwdb = ''
-    evdev:input:b0003v32ACp0012*
+    evdev:name:Framework Laptop 16 Keyboard Module - ANSI Wireless Radio Control:*
       KEYBOARD_KEY_100c6=reserved
   '';
 
@@ -256,7 +344,10 @@ in
     })
   ];
 
-  security.pam.services.greetd.fprintAuth = false;
+  # greetd includes the `login` PAM stack. Require a password at the greeter
+  # and text console so PAM can unlock the matching login keyring; screen
+  # unlocking and sudo keep their own fingerprint-enabled stacks.
+  security.pam.services.login.fprintAuth = false;
 
   # ── Suspend & hibernate ─────────────────────────────────────────
   #
@@ -458,6 +549,11 @@ in
     };
   };
 
+  # Experimental mode is needed by Tether, but also enables RAP (Bluetooth
+  # ranging). RAP cannot attach to the iPhone and logged 941 failed accepts
+  # this boot. This machine does not use ranging; keep the other profiles.
+  hardware.bluetooth.disabledPlugins = [ "rap" ];
+
   # Tether: iPhone bridge (https://github.com/zackb/tether). WiFi carries
   # clipboard + file transfer (iOS app, mTLS on 5134/tcp); Bluetooth carries
   # SMS/iMessage (MAP), contacts (PBAP) and notifications (ANCS). The module
@@ -495,7 +591,23 @@ in
     #    for old missed calls and replays Wallet notifications without the
     #    PreExisting flag. Compare content and original delivery dates against
     #    subscription time to keep unchanged updates and backlog popups quiet.
+    #    Remember dated calls after removal/list eviction and reject late call
+    #    replays against the current time throughout a connection.
+    #
+    # 5. patches/tether-app-icons.patch: ANCS provides bundle IDs but no icons.
+    #    Resolve App Store artwork on a worker and cache it under
+    #    ~/.cache/tether/app-icons; keep contact photos ahead of app icons.
+    #
+    # 6. patches/tether-obex-login.patch: a lingering user manager runs before
+    #    login, when obexd has no transport and fails initialization. Defer MAP
+    #    and PBAP session creation until BlueZ's active-local-login check passes.
+    #
+    # 7. patches/tether-autofill-recovery.patch: release a native bridge when
+    #    either endpoint disappears, reconnect with backoff, and re-arm an OTP
+    #    flow after its timeout. Content-free events go to the journal under
+    #    tether-autofill (disconnect/recovery, timeout/resume, available/filled).
     package = (pkgs.callPackage "${inputs.tether}/nix/package.nix" { }).overrideAttrs (old: {
+      buildInputs = old.buildInputs ++ [ pkgs.curl pkgs.gdk-pixbuf pkgs.systemd ];
       patches = (old.patches or [ ]) ++ [
         # The update preview restores flake.lock afterward, so retain support
         # for the older PBAP API too. Tether's package version stayed at 0.2.18
@@ -505,8 +617,18 @@ in
         then ../../patches/tether-contact-photos.patch
         else ../../patches/tether-contact-photos-legacy.patch)
         ../../patches/tether-notification-replays.patch
+        ../../patches/tether-app-icons.patch
+        ../../patches/tether-obex-login.patch
+        ../../patches/tether-autofill-recovery.patch
       ];
       postPatch = old.postPatch + ''
+        # systemd owns this daemon. A browser reconnect during a service restart
+        # must not spawn a competing daemon that takes over the runtime lock.
+        substituteInPlace extension/host/tether-native-host.in --replace-fail \
+          'exec "@CMAKE_INSTALL_FULL_BINDIR@/tether"' \
+          'export TETHER_NO_AUTOSTART=1
+        exec "@CMAKE_INSTALL_FULL_BINDIR@/tether"'
+
         substituteInPlace src/daemon/main.cpp \
           --replace-fail "@messages_icon@" "${../../imessage.svg}" \
           --replace-fail "@phone_icon@" "${../../phone.svg}"
@@ -517,6 +639,9 @@ in
         substituteInPlace extension/src/content/autofill.js --replace-fail \
           "if (input.inputMode === 'numeric') return scoreInput(input) > 5;" \
           "if (input.inputMode === 'numeric') return scoreInput(input) > 5 || (input.maxLength >= 4 && input.maxLength <= 8);"
+      '';
+      postCheck = (old.postCheck or "") + ''
+        ${pkgs.python3}/bin/python3 ${../../tests/tether-native-recovery.py} --binary "$PWD/tether"
       '';
     });
     wifi = {
@@ -532,9 +657,11 @@ in
   };
 
   # The module installs tetherd but doesn't start it; the package ships a
-  # user unit, so pull it in and enable it at login.
+  # user unit, so pull it in for the configured user's manager.
   systemd.packages = [ config.programs.tether.package ];
   systemd.user.services.tetherd = {
+    # The greeter also has a user manager, but no writable home for Tether.
+    unitConfig.ConditionUser = username;
     wantedBy = [ "default.target" ];
     # Probes the adapter with `btmgmt info` (a bare PATH lookup) every minute;
     # the user manager's PATH has no bluez, so it just logged ENOENT.

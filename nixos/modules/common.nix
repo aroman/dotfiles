@@ -13,7 +13,6 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.systemd-boot.configurationLimit = 20;
   boot.loader.systemd-boot.consoleMode = "5";
-  boot.initrd.systemd.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
 
@@ -48,12 +47,10 @@
   services.openssh.settings.ClientAliveCountMax = 3;
   programs.mosh.enable = true;
 
-  # Local ssh-agent so passphrased keys can be unlocked once and stay loaded
-  # across SSH sessions (vs. relying on agent forwarding, whose per-connection
-  # SSH_AUTH_SOCK goes stale inside long-lived tmux panes).
-  # Pair with `loginctl enable-linger <user>` so the agent survives between
-  # disconnects — then `ssh-add` is a once-per-boot operation.
-  programs.ssh.startAgent = true;
+  # Use the keyring-backed GCR agent on desktops with GNOME Keyring; keep
+  # OpenSSH's agent on headless hosts. Both have a stable local socket, so
+  # SSH disconnects don't strand long-lived tmux panes with a forwarded one.
+  programs.ssh.startAgent = !config.services.gnome.gcr-ssh-agent.enable;
 
   # Tailscale
   services.tailscale.enable = true;
@@ -74,9 +71,8 @@
     description = username;
     extraGroups = [ "wheel" ];
     shell = pkgs.fish;
-    # Keep the user systemd instance alive between logins so ssh-agent
-    # (programs.ssh.startAgent) survives across SSH disconnects — making
-    # `ssh-add` a once-per-boot operation rather than once-per-login.
+    # Keep the user systemd instance and its SSH agent alive between logins
+    # and SSH disconnects.
     linger = true;
   };
 

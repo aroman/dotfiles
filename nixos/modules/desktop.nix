@@ -45,6 +45,25 @@
   # manager's PATH and breaks spawn-at-startup; and environment.etc can't
   # write under /etc/systemd/user/ without colliding with NixOS unit mgmt.
 
+  # Cage 0.3.1 re-enables the previous output during -m last teardown, after
+  # the output layout has been freed. Backport the shutdown guard from:
+  # https://github.com/cage-kiosk/cage/pull/525
+  # Remove once nixpkgs' Cage includes this upstream commit.
+  nixpkgs.overlays = [
+    (_final: prev: {
+      cage = prev.cage.overrideAttrs (old: {
+        patches = (old.patches or []) ++ [
+          (prev.fetchpatch {
+            url = "https://github.com/cage-kiosk/cage/commit/e84cd4faae1ff0253d6dab82adcf9d2fac4c89b7.patch";
+            hash = "sha256-2U07HFHQ3pE7I+8mW4vm2yWQIS8Q2LqTb4d4C5keqdQ=";
+          })
+        ];
+        # Fail on context drift so package updates require reviewing the patch.
+        patchFlags = (old.patchFlags or [ "-p1" ]) ++ [ "--fuzz=0" ];
+      });
+    })
+  ];
+
   # Display manager — greetd, with tuigreet wrapped in foot under cage.
   # cage owns the DRM master and handles monitor hotplug as Wayland output
   # events, so plugging/unplugging displays no longer reflows the kernel
@@ -53,6 +72,17 @@
   # tree and execs niri-session on the same VT.
   services.greetd =
     let
+      # greetd connects each child's stdout/stderr directly to VT2, even
+      # when its systemd unit logs to the journal. Cage's diagnostics remain
+      # underneath the greeter and flash into view when it releases DRM.
+      # Keep the VT black with no cursor, and send graphical-session logs
+      # to the journal. Foot still gives tuigreet its own, unaffected PTY.
+      # Use this for both sides of the handoff: niri-session can also print
+      # messages before niri.service takes over the display.
+      quietSession = pkgs.writeShellScript "greetd-graphical-session" ''
+        printf '\033[?25l\033[H\033[2J'
+        exec ${config.systemd.package}/bin/systemd-cat --identifier=greetd-session "$@"
+      '';
       # cage doesn't advertise a scale, so disable foot's dpi-aware path
       # and pick a font size large enough for the 2560x1600 panel.
       # Palette is max-neon CGA — tuigreet's --theme uses ANSI color
@@ -86,6 +116,7 @@
         "--time" "--remember" "--remember-session" "--asterisks"
         "--issue"
         "--theme" "border=magenta;text=cyan;prompt=green;time=red;action=bold;button=yellow"
+        "--session-wrapper" "${quietSession}"
         "--cmd" "niri-session"
       ];
     in
@@ -97,7 +128,7 @@
           # -m last: only render on the last-connected output. cage's
           # `extend` default spans the greeter across both displays
           # when docked; cage 0.3 has no per-output picker.
-          command = "${pkgs.cage}/bin/cage -s -m last -- "
+          command = "${quietSession} ${pkgs.cage}/bin/cage -s -m last -- "
             + "${pkgs.foot}/bin/foot --config=${footConfig} -- "
             + "${pkgs.tuigreet}/bin/tuigreet ${tuigreetArgs}";
           user = "greeter";
@@ -335,12 +366,14 @@
   # and, after an odd number of presses, `%tak` was read as `%TAK` and no
   # snippet ever matched.  Remapping here makes evdev itself emit KEY_ESC,
   # so niri, vicinae, kmscon and the TTY all agree.
-  # 70039 = HID Keyboard page (0x07) usage 0x39, Caps Lock; b0003 = USB
-  # (incl. the FW16 module), b0005 = Bluetooth.
-  services.udev.extraHwdb = ''
-    evdev:input:b0003*
-    evdev:input:b0005*
-      KEYBOARD_KEY_70039=esc
+  # 70039 = HID Keyboard page (0x07) usage 0x39, Caps Lock.
+  # Match keyboards after 60-input-id.rules classifies each interface. A
+  # bus-wide hwdb match also hits mice, speakers and consumer controls that
+  # reject this scancode and log EVIOCSKEYCODE errors.
+  services.udev.extraRules = ''
+    ACTION!="remove", SUBSYSTEM=="input", KERNEL=="event*", \
+      ENV{ID_INPUT_KEYBOARD}=="1", ENV{ID_BUS}=="usb|bluetooth", \
+      ENV{KEYBOARD_KEY_70039}="esc", RUN{builtin}+="keyboard"
   '';
   # Also set console keymap for TTY
   console.useXkbConfig = true;
@@ -389,7 +422,11 @@
 
   xdg.portal = {
     enable = true;
-    extraPortals = [ pkgs.xdg-desktop-portal-gnome ];
+    # programs.niri supplies the GNOME backend and niri-portals.conf for
+    # screen sharing and file dialogs. Add GTK for Access permission dialogs,
+    # notifications, and fallback interfaces such as Inhibit and Email.
+    # Let the portal prompt for permissions instead of pre-granting them.
+    extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
   };
 
   # Fonts
@@ -447,23 +484,18 @@
     setgid = true;
   };
 
-  # GNOME Keyring (for libsecret consumers — NetworkManager Wi-Fi, Chromium
-  # logins, etc.). Daemon is D-Bus activated on first use.
+  # GNOME Keyring for libsecret consumers and SSH key passphrases. GCR
+  # discovers ~/.ssh/* keys with matching .pub files and unlocks them on use;
+  # its prompt can save each passphrase in the login keyring.
   services.gnome.gnome-keyring.enable = true;
-  # Recent nixpkgs auto-enables gcr-ssh-agent whenever gnome-keyring is on,
-  # which conflicts with programs.ssh.startAgent above. We use the OpenSSH
-  # agent, so opt out of the GCR one.
-  services.gnome.gcr-ssh-agent.enable = false;
-  # Also stop pam_gnome_keyring from auto-starting gnome-keyring-daemon at
-  # greetd login. That `session optional ... auto_start` line exports
-  # SSH_AUTH_SOCK=/run/user/UID/gcr/ssh into the PAM env, which propagates
-  # into the systemd user manager and shadows the OpenSSH agent socket.
-  # Since gnome-keyring 46+ moved SSH out into gcr-ssh-agent (disabled
-  # above), the socket has no listener — `ssh-add` gets "Connection
-  # refused". Fingerprint auth never feeds PAM a password, so the daemon
-  # would start locked anyway and not actually auto-unlock the keyring;
-  # nothing of value lost.
-  security.pam.services.greetd.enableGnomeKeyring = lib.mkForce false;
+  services.gnome.gcr-ssh-agent.enable = config.services.gnome.gnome-keyring.enable;
+  # The socket unit updates the user manager's environment. Also cover
+  # login shells (including SSH sessions), preserving forwarded agents.
+  environment.extraInit = lib.mkIf config.services.gnome.gcr-ssh-agent.enable ''
+    if [ -z "$SSH_AUTH_SOCK" -a -n "$XDG_RUNTIME_DIR" ]; then
+      export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/gcr/ssh"
+    fi
+  '';
 
   # Removable media (udisks2 + gvfs so Nautilus can detect/mount USB drives)
   services.udisks2.enable = true;

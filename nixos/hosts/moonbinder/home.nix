@@ -11,7 +11,6 @@
 
   home.packages = (with pkgs; [
     jdk17
-    brightnessctl
     websocat     # WebSocket CLI — used by figma-open to navigate via CDP
     figma-agent  # serves local fonts to Figma web (needs Windows user-agent)
     discord
@@ -147,6 +146,8 @@
         mode = "push_to_talk";
       };
       audio.max_duration_secs = 600;
+      # Pause playing media while recording, then resume only those players.
+      audio.pause_media = true;
       audio.feedback = {
         enabled = true;
         theme = "${config.home.homeDirectory}/.local/share/voxtype/sounds/wispr";

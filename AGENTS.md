@@ -32,3 +32,18 @@ postBuild = ''
     --replace-fail "${pkg}/bin/foo" "$out/bin/foo"
 '';
 ```
+
+## NixOS: desktop update validation
+
+- Use `bake` (Fish) or `nh os switch --show-activation-logs` for normal
+  deployments. NH activates first and updates the boot default only after
+  successful activation; `nixos-rebuild switch` updates boot entries first.
+- Keep the desktop graphics compatibility check in `system.checks`. Cached
+  GUI apps use their own libc and must be able to load the selected system
+  EGL/GLX/Vulkan drivers; a successful package build alone does not prove this.
+- Do not manually symlink Home Manager-owned user units into `~/.config/systemd`.
+  Declare them in Home Manager and activate the configuration.
+- Treat a failed activation as a failed deployment. Check both system and user
+  failed units and launch Ghostty and Vicinae after desktop updates. Do not
+  report success or leave a failed generation as the boot default; restore the
+  previous working generation if the failure cannot be resolved immediately.

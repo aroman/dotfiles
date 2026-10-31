@@ -1,0 +1,473 @@
+--- a/src/cli/main.cpp
++++ b/src/cli/main.cpp
+@@ -2,6 +2,7 @@
+ 
+ #include <algorithm>
+ #include <atomic>
++#include <cerrno>
+ #include <charconv>
+ #include <csignal>
+ #include <cstring>
+@@ -9,10 +10,12 @@
+ #include <fstream>
+ #include <iostream>
+ #include <nlohmann/json.hpp>
++#include <poll.h>
+ #include <sstream>
+ #include <string>
+ #include <strings.h>
+ #include <sys/ioctl.h>
++#include <syslog.h>
+ #include <tether/bluetooth/config.hpp>
+ #include <tether/client.hpp>
+ #include <tether/core.hpp>
+@@ -30,6 +33,8 @@
+ 
+ void run_native_messaging_host(tether::Client& client) {
+     debug::log(INFO, "Starting Native Messaging Host loop...\n");
++    openlog("tether-autofill", LOG_PID, LOG_USER);
++    syslog(LOG_INFO, "event=bridge_connected");
+ 
+     // When the browser tears down the port, stdout becomes a closed pipe. Ignore
+     // SIGPIPE so a write to it fails gracefully.
+@@ -44,9 +49,17 @@
+     std::thread reader_thread([&]() {
+         std::string buffer;
+         char buf[8192];
++        uint64_t last_logged_otp = 0;
+         while (running) {
++            // Check shutdown even when the daemon has nothing to send. Closing a
++            // descriptor in another thread does not cancel a blocked Linux read.
++            if (!client.wait_readable(250))
++                continue;
++            if (!running)
++                break;
+             ssize_t n = client.read(buf, sizeof(buf));
+             if (n <= 0) {
++                syslog(LOG_NOTICE, "event=daemon_disconnected");
+                 running = false;
+                 break;
+             }
+@@ -59,6 +72,19 @@
+ 
+                 if (msg.empty())
+                     continue;
++
++                // Content-free correlation: never put codes or message text in
++                // the journal, including malformed/unrecognized packet bodies.
++                const auto event = nlohmann::json::parse(msg, nullptr, false);
++                if (event.is_object() && event.value("command", nlohmann::json{}) == "otp_available" &&
++                    event.contains("otp_id") && event["otp_id"].is_number_unsigned() &&
++                    event.contains("otp") && event["otp"].is_string() && !event["otp"].get_ref<const std::string&>().empty()) {
++                    const auto id = event["otp_id"].get<uint64_t>();
++                    if (id && id != last_logged_otp) {
++                        syslog(LOG_INFO, "event=otp_available otp_id=%llu", static_cast<unsigned long long>(id));
++                        last_logged_otp = id;
++                    }
++                }
+ 
+                 uint32_t out_length = msg.length();
+                 std::cout.write(reinterpret_cast<const char*>(&out_length), sizeof(out_length));
+@@ -66,6 +92,7 @@
+                 std::cout.flush();
+                 // Browser pipe closed: stop cleanly instead of spinning on a dead fd.
+                 if (!std::cout) {
++                    syslog(LOG_NOTICE, "event=browser_write_failed");
+                     running = false;
+                     break;
+                 }
+@@ -73,10 +100,36 @@
+         }
+     });
+ 
++    // A daemon EOF must also release an idle or partially written browser frame.
++    // Poll raw stdin rather than std::cin so no prefetched bytes are hidden from
++    // poll, and handle fragmented native-messaging headers and payloads normally.
++    auto read_browser = [&](char* out, size_t size) {
++        size_t received = 0;
++        while (running && received < size) {
++            pollfd input{STDIN_FILENO, POLLIN, 0};
++            const int ready = poll(&input, 1, 250);
++            if (ready < 0 && errno == EINTR)
++                continue;
++            if (ready < 0)
++                return false;
++            if (!ready)
++                continue;
++            const ssize_t n = ::read(STDIN_FILENO, out + received, size - received);
++            if (n < 0 && errno == EINTR)
++                continue;
++            if (n <= 0)
++                return false;
++            received += static_cast<size_t>(n);
++        }
++        return running && received == size;
++    };
++
+     // main thread reads commands from browser and forwards to tetherd
+     while (running) {
+         uint32_t length = 0;
+-        if (!std::cin.read(reinterpret_cast<char*>(&length), sizeof(length))) {
++        if (!read_browser(reinterpret_cast<char*>(&length), sizeof(length))) {
++            if (running)
++                syslog(LOG_INFO, "event=browser_disconnected");
+             running = false;
+             break;
+         }
+@@ -87,26 +140,45 @@
+         }
+ 
+         std::vector<char> buffer(length);
+-        if (!std::cin.read(buffer.data(), length)) {
++        if (!read_browser(buffer.data(), length)) {
+             running = false;
+             break;
+         }
+ 
+         std::string payload(buffer.begin(), buffer.end());
++        const auto diagnostic = nlohmann::json::parse(payload, nullptr, false);
++        if (diagnostic.is_object() && diagnostic.value("command", nlohmann::json{}) == "autofill_diagnostic") {
++            // Only fixed event names are accepted from the extension. Nothing
++            // else from a browser diagnostic is copied into system logs.
++            if (diagnostic.contains("event") && diagnostic["event"].is_string()) {
++                const auto event = diagnostic["event"].get<std::string>();
++                for (const char* allowed : {"bridge_recovered", "poll_started", "poll_timeout", "poll_resumed", "filled"}) {
++                    if (event == allowed) {
++                        syslog(LOG_INFO, "event=%s", allowed);
++                        break;
++                    }
++                }
++            }
++            continue;
++        }
+         if (payload.empty() || payload.back() != '\n') {
+             payload += "\n";
+         }
+ 
+         if (!client.send(payload)) {
++            syslog(LOG_NOTICE, "event=daemon_write_failed");
+             running = false;
+             break;
+         }
+     }
+ 
+-    client.disconnect(); // unblock reader thread
++    running = false;
+     if (reader_thread.joinable()) {
+         reader_thread.join();
+     }
++    client.disconnect();
++    syslog(LOG_INFO, "event=bridge_stopped");
++    closelog();
+ }
+ 
+ static bool parse_int(const char* text, int& out) {
+@@ -1523,6 +1595,11 @@
+ 
+     // Bind network abstraction natively
+     if (!client.connect(host, port)) {
++        if (action == "native") {
++            openlog("tether-autofill", LOG_PID, LOG_USER);
++            syslog(LOG_WARNING, "event=bridge_connect_failed");
++            closelog();
++        }
+         // status and pending are what someone runs to find out whether the daemon is up
+         if (action == "status" || action == "pending") {
+             if (host.empty())
+--- a/extension/src/shared/native.js
++++ b/extension/src/shared/native.js
+@@ -2,6 +2,19 @@
+ 
+ // Native messaging connection logic
+ let port = null;
++let reconnectTimer = null;
++let reconnectDelay = 1000;
++let recovering = false;
++
++function scheduleReconnect() {
++  if (reconnectTimer !== null) return;
++  reconnectTimer = setTimeout(() => {
++    reconnectTimer = null;
++    connectToNativeHost();
++  }, reconnectDelay);
++  // Stay below Chrome's 30-second worker idle timeout while the host is down.
++  reconnectDelay = Math.min(reconnectDelay * 2, 15000);
++}
+ 
+ // Built once from the generated Public Suffix List (psl.js).
+ const PSL_NORMAL = new Set();
+@@ -44,6 +57,10 @@
+ }
+ 
+ export function connectToNativeHost() {
++  if (reconnectTimer !== null) {
++    clearTimeout(reconnectTimer);
++    reconnectTimer = null;
++  }
+   const hostName = "com.tether.extension";
+   if (typeof browser !== 'undefined' && browser.runtime && browser.runtime.connectNative) {
+     port = browser.runtime.connectNative(hostName);
+@@ -54,11 +71,19 @@
+     return null;
+   }
+ 
++  const connectedPort = port;
+   port.onMessage.addListener((message) => {
++    if (port !== connectedPort) return;
++    reconnectDelay = 1000;
++    if (recovering) {
++      recovering = false;
++      connectedPort.postMessage({ command: 'autofill_diagnostic', event: 'bridge_recovered' });
++    }
+     handleNativeMessage(message);
+   });
+ 
+   port.onDisconnect.addListener((p) => {
++    if (port !== connectedPort) return;
+     let errorMsg = "unknown reason";
+     if (p.error) {
+         errorMsg = p.error.message;
+@@ -69,6 +94,8 @@
+     }
+     console.log("Disconnected from Tether daemon. Reason:", errorMsg);
+     port = null;
++    recovering = true;
++    scheduleReconnect();
+   });
+ 
+   return port;
+--- a/extension/src/background/background.js
++++ b/extension/src/background/background.js
+@@ -26,6 +26,13 @@
+     // but validate the sender explicitly anyway.
+     const fromTab = sender && sender.tab && typeof sender.tab.id === 'number';
+     if (!fromTab) return;
++
++    if (request.action === 'autofill_diagnostic') {
++      if (['poll_started', 'poll_timeout', 'poll_resumed', 'filled'].includes(request.event)) {
++        sendToNativeHost({ command: 'autofill_diagnostic', event: request.event });
++      }
++      return;
++    }
+ 
+     if (request.action === "found_otp_in_email") {
+       // Legacy path from older mail builds; the mail extractor now talks to the
+--- a/extension/src/content/autofill.js
++++ b/extension/src/content/autofill.js
+@@ -196,6 +196,17 @@
+ let otpInterval = null;
+ // last code id this page was offered
+ let lastSeenOtpId = 0;
++let pollTimedOut = false;
++
++function diagnostic(event) {
++  chrome.runtime.sendMessage({ action: 'autofill_diagnostic', event });
++}
++
++function stopOtpFlow() {
++  if (otpInterval !== null) clearInterval(otpInterval);
++  otpInterval = null;
++  otpFlowStarted = false;
++}
+ 
+ function requestOtp() {
+   chrome.runtime.sendMessage({
+@@ -219,7 +230,15 @@
+   // Never request codes while the tab is hidden in the background.
+   if (!isPageVisible(document)) return;
+   if (otpFlowStarted) return;
++  const splits = detectSplitOtp(document);
++  const regular = findOtpInputs(document);
++  // Returning to a tab must not overwrite a code the user already entered.
++  if (!splits && !regular.length) return;
++  if ((splits && splits.some(input => input.value !== '')) ||
++      (regular.length > 0 && regular[0].value !== '')) return;
+   otpFlowStarted = true;
++  diagnostic(pollTimedOut ? 'poll_resumed' : 'poll_started');
++  pollTimedOut = false;
+   requestOtp();
+ 
+   let attempts = 0;
+@@ -235,7 +254,11 @@
+     const userFilled = (splits && splits[0].value !== "") ||
+                        (regular.length > 0 && regular[0].value.length > 3);
+     if (attempts > 60 || userFilled) {
+-      clearInterval(otpInterval);
++      stopOtpFlow();
++      if (!userFilled) {
++        pollTimedOut = true;
++        diagnostic('poll_timeout');
++      }
+       if (userFilled) consumeOtp(lastSeenOtpId);
+       return;
+     }
+@@ -264,6 +287,15 @@
+   if (hasOtpFields()) startOtpFlow();
+ });
+ 
++// A focused code field or a retry click can restart an expired flow without
++// polling forever or extending the scope to hidden/background pages.
++document.addEventListener('focusin', () => {
++  if (hasOtpFields()) startOtpFlow();
++});
++document.addEventListener('click', () => {
++  if (hasOtpFields()) startOtpFlow();
++});
++
+ // listen for OTPs sent from the daemon
+ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+   if (request.action !== "fill_otp") return;
+@@ -277,7 +309,8 @@
+   lastSeenOtpId = request.otp_id || lastSeenOtpId;
+   const result = handleFillOtp(document, request, {
+     onFilled: () => {
+-      if (otpInterval) clearInterval(otpInterval);
++      stopOtpFlow();
++      diagnostic('filled');
+     }
+   });
+   sendResponse(result);
+--- /dev/null
++++ b/extension/test/recovery.test.js
+@@ -0,0 +1,141 @@
++import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
++import { readFileSync } from 'node:fs';
++import { runInNewContext } from 'node:vm';
++import { JSDOM } from 'jsdom';
++
++beforeEach(() => {
++  vi.useFakeTimers();
++  vi.resetModules();
++});
++afterEach(() => {
++  vi.clearAllTimers();
++  vi.useRealTimers();
++  delete global.chrome;
++  delete global.browser;
++});
++
++function nativeHarness() {
++  const ports = [];
++  global.browser = undefined;
++  global.chrome = { runtime: {
++    connectNative: vi.fn(() => {
++      const port = {
++        postMessage: vi.fn(),
++        onMessage: { addListener(callback) { port.message = callback; } },
++        onDisconnect: { addListener(callback) { port.disconnect = callback; } },
++      };
++      ports.push(port);
++      return port;
++    }),
++  } };
++  return ports;
++}
++
++describe('native bridge recovery', () => {
++  it('reconnects without a webpage request, and records recovery only after a reply', async () => {
++    const ports = nativeHarness();
++    const native = await import('../src/shared/native.js');
++    native.connectToNativeHost();
++    ports[0].disconnect(ports[0]);
++    vi.advanceTimersByTime(999);
++    expect(ports).toHaveLength(1);
++    vi.advanceTimersByTime(1);
++    expect(ports).toHaveLength(2);
++    expect(ports[1].postMessage).not.toHaveBeenCalled();
++    ports[1].message({ command: 'protocol_info' });
++    expect(ports[1].postMessage).toHaveBeenCalledExactlyOnceWith({
++      command: 'autofill_diagnostic', event: 'bridge_recovered',
++    });
++  });
++
++  it('backs off repeated failures and resets the delay after a healthy reply', async () => {
++    const ports = nativeHarness();
++    const native = await import('../src/shared/native.js');
++    native.connectToNativeHost();
++    ports[0].disconnect(ports[0]);
++    vi.advanceTimersByTime(1000);
++    ports[1].disconnect(ports[1]);
++    vi.advanceTimersByTime(1999);
++    expect(ports).toHaveLength(2);
++    vi.advanceTimersByTime(1);
++    expect(ports).toHaveLength(3);
++    ports[2].message({ command: 'protocol_info' });
++    ports[2].disconnect(ports[2]);
++    vi.advanceTimersByTime(1000);
++    expect(ports).toHaveLength(4);
++  });
++
++  it('ignores a late disconnect from an older port', async () => {
++    const ports = nativeHarness();
++    const native = await import('../src/shared/native.js');
++    native.connectToNativeHost();
++    native.connectToNativeHost();
++    ports[0].disconnect(ports[0]);
++    vi.advanceTimersByTime(30000);
++    expect(ports).toHaveLength(2);
++    native.sendToNativeHost({ command: 'protocol_info' });
++    expect(ports[1].postMessage).toHaveBeenCalledWith({ command: 'protocol_info' });
++  });
++});
++
++function contentHarness() {
++  const dom = new JSDOM('<input autocomplete="one-time-code" maxlength="6">', {
++    url: 'https://example.test',
++  });
++  const doc = dom.window.document;
++  Object.defineProperty(doc, 'visibilityState', { configurable: true, writable: true, value: 'visible' });
++  let receive;
++  const send = vi.fn();
++  const source = readFileSync(new URL('../src/content/autofill.js', import.meta.url), 'utf8')
++    .replace(/export /g, '');
++  runInNewContext(source, {
++    document: doc, window: dom.window,
++    chrome: { runtime: { sendMessage: send, onMessage: { addListener(callback) { receive = callback; } } } },
++    setInterval, clearInterval,
++  });
++  const requestCount = () => send.mock.calls.filter(([message]) => message.action === 'request_otp_for_site').length;
++  return { dom, doc, send, requestCount, receive };
++}
++
++describe('expired OTP flow recovery', () => {
++  it.each(['visibilitychange', 'focusin', 'click'])('resumes on %s after the two-minute timeout', event => {
++    const harness = contentHarness();
++    vi.advanceTimersByTime(122000);
++    expect(harness.requestCount()).toBe(61);
++    expect(harness.send).toHaveBeenCalledWith({ action: 'autofill_diagnostic', event: 'poll_timeout' });
++    harness.doc.dispatchEvent(new harness.dom.window.Event(event));
++    expect(harness.requestCount()).toBe(62);
++    expect(harness.send).toHaveBeenCalledWith({ action: 'autofill_diagnostic', event: 'poll_resumed' });
++    harness.dom.window.close();
++  });
++
++  it('does not resume in a hidden tab or overwrite an entered code', () => {
++    const harness = contentHarness();
++    vi.advanceTimersByTime(122000);
++    harness.doc.visibilityState = 'hidden';
++    harness.doc.dispatchEvent(new harness.dom.window.Event('click'));
++    expect(harness.requestCount()).toBe(61);
++    harness.doc.visibilityState = 'visible';
++    harness.doc.querySelector('input').value = '12';
++    harness.doc.dispatchEvent(new harness.dom.window.Event('focusin'));
++    expect(harness.requestCount()).toBe(61);
++    expect(harness.doc.querySelector('input').value).toBe('12');
++    harness.dom.window.close();
++  });
++
++  it('records a successful fill without putting the code or URL in its diagnostic', () => {
++    const harness = contentHarness();
++    const respond = vi.fn();
++    harness.receive({ action: 'fill_otp', otp: '123456', otp_id: 9 }, {}, respond);
++    expect(respond).toHaveBeenCalledWith({ filled: true });
++    expect(harness.send).toHaveBeenCalledWith({ action: 'autofill_diagnostic', event: 'filled' });
++    const diagnostics = harness.send.mock.calls.map(([message]) => message)
++      .filter(message => message.action === 'autofill_diagnostic');
++    expect(JSON.stringify(diagnostics)).not.toContain('123456');
++    expect(JSON.stringify(diagnostics)).not.toContain('example.test');
++    const before = harness.requestCount();
++    harness.doc.dispatchEvent(new harness.dom.window.Event('focusin'));
++    expect(harness.requestCount()).toBe(before);
++    harness.dom.window.close();
++  });
++});

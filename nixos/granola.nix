@@ -4,14 +4,127 @@
 #
 #   granola/package.nix       macOS bundle on nixpkgs' Electron (bump notes inside)
 #   granola/patch_app.py      the Linux patches to Granola's JS
+#   granola/route_audio.lua   live playback filtering for the meeting track
 #   granola/niri.kdl          popup and screen-share window rules
 #   granola/noctalia-plugin/  bar widget + panel: next meeting, join link, dismiss
-{ lib, username, ... }:
+{ config, lib, pkgs, username, ... }:
 {
   # As pkgs.granola, so `nix build .#nixosConfigurations.<host>.pkgs.granola`
   # builds exactly what the host installs (with its allowUnfree).
   nixpkgs.overlays = [
     (final: _: { granola = final.callPackage ./granola/package.nix { }; })
+  ];
+
+  # Remove speaker audio from Granola's microphone track before capture,
+  # using the default output's monitor as the echo reference. Monitor mode
+  # leaves playback on the real speakers/headset.
+  # This is a general-purpose virtual mic, selectable by any app. Granola's
+  # wrapper opts in without changing the desktop's default microphone.
+  services.pipewire.extraConfig.pipewire."80-echo-cancel" = {
+    "context.modules" = [{
+      name = "libpipewire-module-echo-cancel";
+      args = {
+        "library.name" = "aec/libspa-aec-webrtc";
+        "monitor.mode" = true;
+        "audio.rate" = 48000;
+        "capture.props" = {
+          "node.name" = "echo_cancel_capture";
+          "audio.position" = [ "MONO" ];
+        };
+        "source.props" = {
+          "node.name" = "echo_cancel_source";
+          "node.description" = "Microphone (echo cancelled)";
+          "audio.position" = [ "MONO" ];
+          # Granola opts in through PULSE_SOURCE. Prefer physical mics for
+          # the desktop default and this filter's own capture.
+          "priority.session" = 0;
+        };
+        "sink.props" = {
+          "node.name" = "echo_cancel_reference";
+          "audio.position" = [ "FL" "FR" ];
+        };
+      };
+    }];
+  };
+
+  # Capture app playback before it is mixed with desktop audio, excluding
+  # streams tagged Music or Movie. Other roles and unclassified streams are
+  # included. This depends on apps supplying accurate media.role metadata;
+  # unclassified music/video playback is intentionally included too.
+  # Never fall back to a microphone or a full output monitor.
+  services.pipewire.extraConfig.pipewire."81-granola-meeting-audio" = {
+    # Exact MediaDevices constraints select the initial device, but the audio
+    # server must also prevent moving its recording stream to another source.
+    "node.rules" = [{
+      matches = [{
+        "media.class" = "Stream/Input/Audio";
+        "target.object" = "granola_meeting_audio";
+      }];
+      actions.update-props = {
+        "node.dont-fallback" = true;
+        "node.dont-move" = true;
+        "node.dont-reconnect" = true;
+      };
+    }];
+    "context.modules" = [{
+      name = "libpipewire-module-combine-stream";
+      args = {
+        "combine.mode" = "source";
+        "combine.on-demand-streams" = true;
+        "node.name" = "granola_meeting_audio";
+        # patch_app.py finds this source by its MediaDevices label.
+        "node.description" = "Granola meeting audio";
+        "combine.props" = {
+          "audio.position" = [ "FL" "FR" ];
+          "priority.session" = 0;
+        };
+        "stream.props" = {
+          "node.passive" = true;
+          "node.dont-fallback" = true;
+          "node.linger" = true;
+          "stream.monitor" = true;
+        };
+        # route_audio.lua manages these by serial, including property changes.
+        "stream.rules" = [ ];
+      };
+    }];
+  };
+
+  services.pipewire.wireplumber = {
+    extraScripts."granola/route_audio.lua" = builtins.readFile ./granola/route_audio.lua;
+    extraConfig."81-granola-meeting-audio" = {
+      "wireplumber.components" = [{
+        name = "granola/route_audio.lua";
+        type = "script/lua";
+        provides = "custom.granola-audio";
+        # The script watches metadata creation itself. WirePlumber 0.5.18
+        # treats JSON-quoted requires entries as literal feature names.
+      }];
+      "wireplumber.profiles".main."custom.granola-audio" = "required";
+    };
+  };
+
+  system.checks = [
+    (pkgs.runCommand "granola-audio-routing-check" {
+      nativeBuildInputs = [ pkgs.lua5_4 ];
+    } ''
+      lua ${./granola/test_route_audio.lua} ${./granola/route_audio.lua}
+      touch "$out"
+    '')
+    (pkgs.runCommand "granola-audio-startup-check" {
+      nativeBuildInputs = [
+        config.services.pipewire.package
+        config.services.pipewire.wireplumber.package
+        pkgs.python3
+      ];
+      # Use the same generated config fragments and scripts as the service.
+      inherit (config.systemd.user.services.wireplumber.environment) XDG_DATA_DIRS;
+      pipewireConfig = pkgs.writeText "granola-meeting-audio.json"
+        (builtins.toJSON config.services.pipewire.extraConfig.pipewire."81-granola-meeting-audio");
+    } ''
+      python3 ${./granola/test_audio_startup.py} "$pipewireConfig"
+      touch "$out"
+    '')
   ];
 
   home-manager.users.${username} = { config, pkgs, ... }:
@@ -38,11 +151,14 @@
         };
         Service = {
           Type = "exec";
-          ExecStart = "${pkgs.granola}/bin/granola";
+          ExecStart = "${pkgs.granola}/bin/granola --start-in-tray";
           Restart = "on-failure";
           # Storage failure needs user attention, not repeated unlock dialogs.
           RestartPreventExitStatus = [ 78 ];
           RestartSec = 3;
+          # Let Electron's main process stop its helpers before killing any
+          # leftovers; killing the GPU helper first can provoke an abort.
+          KillMode = "mixed";
         };
         Install.WantedBy = [ "graphical-session.target" ];
       };
