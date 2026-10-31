@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  inputs,
   modulesPath,
   username,
   resticRepository,
@@ -27,7 +28,11 @@
   # batches rather than adding synchronous discard latency to every write.
   services.fstrim.enable = true;
 
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  # The 7.2 series from the kernel-only nixpkgs input, for its CVE-2026-98432
+  # fix: these hosts have a public address. Return to linuxPackages_latest
+  # once the main nixpkgs lock carries a fixed kernel.
+  boot.kernelPackages = pkgs.linuxPackagesFor
+    inputs.nixpkgs-kernel-7-2.legacyPackages.${pkgs.stdenv.hostPlatform.system}.linux_7_2;
   boot.initrd.availableKernelModules = [ "nvme" ];
   boot.initrd.kernelModules = [];
   boot.kernelModules = [];

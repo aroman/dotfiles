@@ -19,6 +19,12 @@
     # existing nixpkgs lock; see hosts/moonbinder/default.nix for the iwd fix.
     nixpkgs-kernel.url = "github:NixOS/nixpkgs/151fa4e8ddfdd8dd25d945ad94ed54a13de9f6e4";
 
+    # Kernel-only update for wizardtower and the cloud devboxes: Linux 7.2.10+
+    # fixes CVE-2026-98432, a pre-auth remote use-after-free in IPv4 TCP SYN
+    # handling (CVSS 9.8). This rev carries 7.2.13.
+    nixpkgs-kernel-7-2.url =
+      "github:NixOS/nixpkgs/1c89083e451e891152365b799595cf7790a43325";
+
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";

@@ -1,5 +1,12 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, inputs, ... }:
 
+let
+  system = pkgs.stdenv.hostPlatform.system;
+  kernelPkgs = import inputs.nixpkgs-kernel-7-2 {
+    inherit system;
+    config = config.nixpkgs.config;
+  };
+in
 {
   imports = [
     ./gpu-freq-pin.nix
@@ -74,8 +81,8 @@
   services.openssh.settings.PasswordAuthentication = false;
   services.openssh.settings.KbdInteractiveAuthentication = false;
 
-  # Use latest stable kernel
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  # Stay on the 7.2 stable series with the IPv4 TCP security fix.
+  boot.kernelPackages = pkgs.linuxPackagesFor kernelPkgs.linux_7_2;
 
   # NVIDIA RTX 2060 Super (proprietary driver)
   hardware.graphics.enable = true;
@@ -83,7 +90,10 @@
     modesetting.enable = true;
     open = false; # RTX 2060 Super needs the proprietary driver
     nvidiaSettings = true;
-    package = config.boot.kernelPackages.nvidiaPackages.stable;
+    # Keep userspace on the system's libraries, not the kernel toolchain's.
+    package = config.boot.kernelPackages.nvidiaPackages.stable.override {
+      stdenv = pkgs.stdenv;
+    };
   };
   services.xserver.videoDrivers = [ "nvidia" ];
 
