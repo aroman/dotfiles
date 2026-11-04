@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Codex CLI hook: tab title + bell + blue bg tint when codex is
-# waiting for input; clears them on prompt submit. Mirrors
-# claude-tab-notify but for codex's event set (no Notification /
-# SessionEnd; uses PermissionRequest as the attention event).
+# waiting for permission (PermissionRequest); clears them on prompt
+# submit.
 
 tty_dev="/dev/$(ps -o tty= -p "$PPID" 2>/dev/null | tr -d ' ')"
 [[ -w "$tty_dev" ]] || exit 0
