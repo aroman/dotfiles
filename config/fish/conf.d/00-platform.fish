@@ -36,7 +36,7 @@ if test (uname) = Linux
         or return $status
         rcup -K
     end
-    # Pull the latest Rex preview and switch; only the rex input moves.
+    # Pull the latest Rex snapshot and switch; only the rex input moves.
     alias rex-update="nix flake update rex --flake ~/Projects/dotfiles/nixos && nh os switch --show-activation-logs"
     alias yt-dlp="nix run nixpkgs#yt-dlp --"
 end

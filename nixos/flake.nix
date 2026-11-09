@@ -116,12 +116,13 @@
     };
 
     # Rex: prebuilt release binary plus its NixOS module (modules/rex.nix).
-    # The preview channel carries the builds that get release notes;
-    # snapshot.tar.gz ships every commit, and stable doesn't exist yet. No login
+    # Tracks snapshot, the bleeding-edge channel that ships every commit:
+    # features such as uploading dropped or pasted files to remote terminals
+    # land there before preview.tar.gz, and stable doesn't exist yet. No login
     # needed since the open beta. Bump with `rex-update`; that restarts only the
     # login server (modules/rex.nix says how to move sessions onto the new one).
     rex = {
-      url = "https://pkgs.superlogical.com/rex/nix/preview.tar.gz";
+      url = "https://pkgs.superlogical.com/rex/nix/snapshot.tar.gz";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
